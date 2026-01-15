@@ -20,6 +20,7 @@ namespace ArtisanPackUI\SEO\Models;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
+use InvalidArgumentException;
 
 /**
  * SeoMeta model for SEO metadata storage.
@@ -121,30 +122,6 @@ class SeoMeta extends Model
 		'sitemap_changefreq',
 		'exclude_from_sitemap',
 	];
-
-	/**
-	 * Get the attributes that should be cast.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @return array<string, string>
-	 */
-	protected function casts(): array
-	{
-		return [
-			'no_index'             => 'boolean',
-			'no_follow'            => 'boolean',
-			'exclude_from_sitemap' => 'boolean',
-			'schema_markup'        => 'array',
-			'secondary_keywords'   => 'array',
-			'hreflang'             => 'array',
-			'sitemap_priority'     => 'decimal:1',
-			'og_image_id'          => 'integer',
-			'twitter_image_id'     => 'integer',
-			'pinterest_image_id'   => 'integer',
-			'slack_image_id'       => 'integer',
-		];
-	}
 
 	/**
 	 * Get the parent seoable model.
@@ -432,5 +409,49 @@ class SeoMeta extends Model
 	public function hasSchemaMarkup(): bool
 	{
 		return null !== $this->schema_type || ! empty( $this->schema_markup );
+	}
+
+	/**
+	 * Bootstrap the model and register event listeners.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return void
+	 */
+	protected static function booted(): void
+	{
+		static::saving( function ( SeoMeta $model ): void {
+			$priority = $model->sitemap_priority;
+
+			if ( null !== $priority && ( $priority < 0.0 || $priority > 1.0 ) ) {
+				throw new InvalidArgumentException(
+					'The sitemap_priority must be between 0.0 and 1.0.',
+				);
+			}
+		} );
+	}
+
+	/**
+	 * Get the attributes that should be cast.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array<string, string>
+	 */
+	protected function casts(): array
+	{
+		return [
+			'no_index'             => 'boolean',
+			'no_follow'            => 'boolean',
+			'exclude_from_sitemap' => 'boolean',
+			'schema_markup'        => 'array',
+			'secondary_keywords'   => 'array',
+			'hreflang'             => 'array',
+			'sitemap_priority'     => 'decimal:1',
+			'og_image_id'          => 'integer',
+			'twitter_image_id'     => 'integer',
+			'pinterest_image_id'   => 'integer',
+			'slack_image_id'       => 'integer',
+		];
 	}
 }

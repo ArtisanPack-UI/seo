@@ -22,9 +22,9 @@ if ( ! function_exists( 'seo' ) ) {
 	 *
 	 * @since 1.0.0
 	 *
-	 * @return \ArtisanPackUI\SEO\SEO
+	 * @return ArtisanPackUI\SEO\SEO
 	 */
-	function seo(): \ArtisanPackUI\SEO\SEO
+	function seo(): ArtisanPackUI\SEO\SEO
 	{
 		return app( 'seo' );
 	}

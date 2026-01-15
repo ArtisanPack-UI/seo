@@ -33,7 +33,7 @@ class SEOServiceProvider extends ServiceProvider
 	{
 		$this->mergeConfigFrom(
 			__DIR__ . '/../../config/seo.php',
-			'seo'
+			'seo',
 		);
 
 		$this->app->singleton( 'seo', function ( $app ) {
@@ -72,7 +72,7 @@ class SEOServiceProvider extends ServiceProvider
 				[
 					__DIR__ . '/../../config/seo.php' => config_path( 'seo.php' ),
 				],
-				'seo-config'
+				'seo-config',
 			);
 
 			// Publish views
@@ -80,7 +80,7 @@ class SEOServiceProvider extends ServiceProvider
 				[
 					__DIR__ . '/../../resources/views' => resource_path( 'views/vendor/seo' ),
 				],
-				'seo-views'
+				'seo-views',
 			);
 
 			// Publish migrations
@@ -88,7 +88,7 @@ class SEOServiceProvider extends ServiceProvider
 				[
 					__DIR__ . '/../../database/migrations' => database_path( 'migrations' ),
 				],
-				'seo-migrations'
+				'seo-migrations',
 			);
 
 			// Publish all
@@ -98,7 +98,7 @@ class SEOServiceProvider extends ServiceProvider
 					__DIR__ . '/../../resources/views'      => resource_path( 'views/vendor/seo' ),
 					__DIR__ . '/../../database/migrations'  => database_path( 'migrations' ),
 				],
-				'seo'
+				'seo',
 			);
 		}
 	}
@@ -114,7 +114,7 @@ class SEOServiceProvider extends ServiceProvider
 	{
 		$this->loadViewsFrom(
 			__DIR__ . '/../../resources/views',
-			'seo'
+			'seo',
 		);
 	}
 

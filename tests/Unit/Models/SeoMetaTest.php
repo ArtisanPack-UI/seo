@@ -18,14 +18,14 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 
 uses( RefreshDatabase::class );
 
-beforeEach( function () {
+beforeEach( function (): void {
 	// Run the migration
 	$this->artisan( 'migrate', [ '--path' => realpath( __DIR__ . '/../../../database/migrations' ) ] );
 } );
 
-describe( 'SeoMeta Model', function () {
+describe( 'SeoMeta Model', function (): void {
 
-	it( 'can create a seo meta record', function () {
+	it( 'can create a seo meta record', function (): void {
 		$seoMeta = SeoMeta::create( [
 			'seoable_type'     => 'App\Models\Page',
 			'seoable_id'       => 1,
@@ -38,7 +38,7 @@ describe( 'SeoMeta Model', function () {
 			->and( $seoMeta->meta_description )->toBe( 'This is a test description for SEO purposes.' );
 	} );
 
-	it( 'casts boolean fields correctly', function () {
+	it( 'casts boolean fields correctly', function (): void {
 		$seoMeta = SeoMeta::create( [
 			'seoable_type'         => 'App\Models\Page',
 			'seoable_id'           => 1,
@@ -52,7 +52,7 @@ describe( 'SeoMeta Model', function () {
 			->and( $seoMeta->exclude_from_sitemap )->toBeTrue();
 	} );
 
-	it( 'casts JSON fields correctly', function () {
+	it( 'casts JSON fields correctly', function (): void {
 		$schemaMarkup       = [ '@type' => 'Article', 'headline' => 'Test' ];
 		$secondaryKeywords  = [ 'keyword1', 'keyword2', 'keyword3' ];
 		$hreflang           = [ 'en' => 'https://example.com/en', 'es' => 'https://example.com/es' ];
@@ -73,7 +73,7 @@ describe( 'SeoMeta Model', function () {
 			->and( $seoMeta->hreflang )->toBe( $hreflang );
 	} );
 
-	it( 'has correct default values', function () {
+	it( 'has correct default values', function (): void {
 		$seoMeta = SeoMeta::create( [
 			'seoable_type' => 'App\Models\Page',
 			'seoable_id'   => 1,
@@ -93,67 +93,67 @@ describe( 'SeoMeta Model', function () {
 
 } );
 
-describe( 'SeoMeta Scopes', function () {
+describe( 'SeoMeta Scopes', function (): void {
 
-	beforeEach( function () {
+	beforeEach( function (): void {
 		// Create test records
 		SeoMeta::create( [
-			'seoable_type' => 'App\Models\Page',
-			'seoable_id'   => 1,
-			'no_index'     => false,
-			'focus_keyword' => 'test keyword',
+			'seoable_type'         => 'App\Models\Page',
+			'seoable_id'           => 1,
+			'no_index'             => false,
+			'focus_keyword'        => 'test keyword',
 			'exclude_from_sitemap' => false,
-			'schema_type'  => 'Article',
+			'schema_type'          => 'Article',
 		] );
 
 		SeoMeta::create( [
-			'seoable_type' => 'App\Models\Page',
-			'seoable_id'   => 2,
-			'no_index'     => true,
-			'focus_keyword' => null,
+			'seoable_type'         => 'App\Models\Page',
+			'seoable_id'           => 2,
+			'no_index'             => true,
+			'focus_keyword'        => null,
 			'exclude_from_sitemap' => true,
-			'schema_type'  => 'WebPage',
+			'schema_type'          => 'WebPage',
 		] );
 
 		SeoMeta::create( [
-			'seoable_type' => 'App\Models\Post',
-			'seoable_id'   => 1,
-			'no_index'     => false,
-			'focus_keyword' => 'another keyword',
+			'seoable_type'         => 'App\Models\Post',
+			'seoable_id'           => 1,
+			'no_index'             => false,
+			'focus_keyword'        => 'another keyword',
 			'exclude_from_sitemap' => false,
-			'schema_type'  => 'Article',
+			'schema_type'          => 'Article',
 		] );
 	} );
 
-	it( 'filters indexable entries', function () {
+	it( 'filters indexable entries', function (): void {
 		$indexable = SeoMeta::indexable()->get();
 
 		expect( $indexable )->toHaveCount( 2 )
 			->and( $indexable->pluck( 'no_index' )->unique()->toArray() )->toBe( [ false ] );
 	} );
 
-	it( 'filters entries with focus keyword', function () {
+	it( 'filters entries with focus keyword', function (): void {
 		$withKeyword = SeoMeta::withFocusKeyword()->get();
 
 		expect( $withKeyword )->toHaveCount( 2 )
 			->and( $withKeyword->pluck( 'focus_keyword' )->filter()->count() )->toBe( 2 );
 	} );
 
-	it( 'filters entries in sitemap', function () {
+	it( 'filters entries in sitemap', function (): void {
 		$inSitemap = SeoMeta::inSitemap()->get();
 
 		expect( $inSitemap )->toHaveCount( 2 )
 			->and( $inSitemap->pluck( 'exclude_from_sitemap' )->unique()->toArray() )->toBe( [ false ] );
 	} );
 
-	it( 'filters by schema type', function () {
+	it( 'filters by schema type', function (): void {
 		$articles = SeoMeta::withSchemaType( 'Article' )->get();
 
 		expect( $articles )->toHaveCount( 2 )
 			->and( $articles->pluck( 'schema_type' )->unique()->toArray() )->toBe( [ 'Article' ] );
 	} );
 
-	it( 'filters by seoable type', function () {
+	it( 'filters by seoable type', function (): void {
 		$pages = SeoMeta::forType( 'App\Models\Page' )->get();
 
 		expect( $pages )->toHaveCount( 2 )
@@ -162,9 +162,9 @@ describe( 'SeoMeta Scopes', function () {
 
 } );
 
-describe( 'SeoMeta Helper Methods', function () {
+describe( 'SeoMeta Helper Methods', function (): void {
 
-	it( 'returns effective title from meta_title', function () {
+	it( 'returns effective title from meta_title', function (): void {
 		$seoMeta = new SeoMeta( [
 			'meta_title' => 'Custom SEO Title',
 		] );
@@ -172,7 +172,7 @@ describe( 'SeoMeta Helper Methods', function () {
 		expect( $seoMeta->getEffectiveTitle() )->toBe( 'Custom SEO Title' );
 	} );
 
-	it( 'returns app name when meta_title is empty', function () {
+	it( 'returns app name when meta_title is empty', function (): void {
 		$seoMeta = new SeoMeta( [
 			'meta_title' => null,
 		] );
@@ -182,7 +182,7 @@ describe( 'SeoMeta Helper Methods', function () {
 		expect( $seoMeta->getEffectiveTitle() )->toBe( 'Test App' );
 	} );
 
-	it( 'returns effective description from meta_description', function () {
+	it( 'returns effective description from meta_description', function (): void {
 		$seoMeta = new SeoMeta( [
 			'meta_description' => 'Custom SEO description.',
 		] );
@@ -190,7 +190,7 @@ describe( 'SeoMeta Helper Methods', function () {
 		expect( $seoMeta->getEffectiveDescription() )->toBe( 'Custom SEO description.' );
 	} );
 
-	it( 'returns null when meta_description is empty', function () {
+	it( 'returns null when meta_description is empty', function (): void {
 		$seoMeta = new SeoMeta( [
 			'meta_description' => null,
 		] );
@@ -198,7 +198,7 @@ describe( 'SeoMeta Helper Methods', function () {
 		expect( $seoMeta->getEffectiveDescription() )->toBeNull();
 	} );
 
-	it( 'generates correct robots content for index follow', function () {
+	it( 'generates correct robots content for index follow', function (): void {
 		$seoMeta = new SeoMeta( [
 			'no_index'  => false,
 			'no_follow' => false,
@@ -207,7 +207,7 @@ describe( 'SeoMeta Helper Methods', function () {
 		expect( $seoMeta->getRobotsContent() )->toBe( 'index, follow' );
 	} );
 
-	it( 'generates correct robots content for noindex', function () {
+	it( 'generates correct robots content for noindex', function (): void {
 		$seoMeta = new SeoMeta( [
 			'no_index'  => true,
 			'no_follow' => false,
@@ -216,7 +216,7 @@ describe( 'SeoMeta Helper Methods', function () {
 		expect( $seoMeta->getRobotsContent() )->toBe( 'noindex' );
 	} );
 
-	it( 'generates correct robots content for noindex nofollow', function () {
+	it( 'generates correct robots content for noindex nofollow', function (): void {
 		$seoMeta = new SeoMeta( [
 			'no_index'  => true,
 			'no_follow' => true,
@@ -225,7 +225,7 @@ describe( 'SeoMeta Helper Methods', function () {
 		expect( $seoMeta->getRobotsContent() )->toBe( 'noindex, nofollow' );
 	} );
 
-	it( 'includes additional robots meta directives', function () {
+	it( 'includes additional robots meta directives', function (): void {
 		$seoMeta = new SeoMeta( [
 			'no_index'    => true,
 			'no_follow'   => false,
@@ -235,7 +235,7 @@ describe( 'SeoMeta Helper Methods', function () {
 		expect( $seoMeta->getRobotsContent() )->toBe( 'noindex, noarchive' );
 	} );
 
-	it( 'correctly identifies indexable status', function () {
+	it( 'correctly identifies indexable status', function (): void {
 		$indexable   = new SeoMeta( [ 'no_index' => false ] );
 		$noIndexable = new SeoMeta( [ 'no_index' => true ] );
 
@@ -243,7 +243,7 @@ describe( 'SeoMeta Helper Methods', function () {
 			->and( $noIndexable->isIndexable() )->toBeFalse();
 	} );
 
-	it( 'correctly identifies followable status', function () {
+	it( 'correctly identifies followable status', function (): void {
 		$followable   = new SeoMeta( [ 'no_follow' => false ] );
 		$noFollowable = new SeoMeta( [ 'no_follow' => true ] );
 
@@ -251,7 +251,7 @@ describe( 'SeoMeta Helper Methods', function () {
 			->and( $noFollowable->isFollowable() )->toBeFalse();
 	} );
 
-	it( 'correctly determines sitemap inclusion', function () {
+	it( 'correctly determines sitemap inclusion', function (): void {
 		$includable = new SeoMeta( [
 			'no_index'             => false,
 			'exclude_from_sitemap' => false,
@@ -272,7 +272,7 @@ describe( 'SeoMeta Helper Methods', function () {
 			->and( $excludedManually->shouldIncludeInSitemap() )->toBeFalse();
 	} );
 
-	it( 'returns all keywords combined', function () {
+	it( 'returns all keywords combined', function (): void {
 		$seoMeta = new SeoMeta( [
 			'focus_keyword'      => 'main keyword',
 			'secondary_keywords' => [ 'secondary1', 'secondary2' ],
@@ -283,7 +283,7 @@ describe( 'SeoMeta Helper Methods', function () {
 		expect( $keywords )->toBe( [ 'main keyword', 'secondary1', 'secondary2' ] );
 	} );
 
-	it( 'returns empty array when no keywords', function () {
+	it( 'returns empty array when no keywords', function (): void {
 		$seoMeta = new SeoMeta( [
 			'focus_keyword'      => null,
 			'secondary_keywords' => null,
@@ -292,7 +292,7 @@ describe( 'SeoMeta Helper Methods', function () {
 		expect( $seoMeta->getAllKeywords() )->toBe( [] );
 	} );
 
-	it( 'detects Open Graph data presence', function () {
+	it( 'detects Open Graph data presence', function (): void {
 		$withOg    = new SeoMeta( [ 'og_title' => 'OG Title' ] );
 		$withoutOg = new SeoMeta( [] );
 
@@ -300,7 +300,7 @@ describe( 'SeoMeta Helper Methods', function () {
 			->and( $withoutOg->hasOpenGraphData() )->toBeFalse();
 	} );
 
-	it( 'detects Twitter Card data presence', function () {
+	it( 'detects Twitter Card data presence', function (): void {
 		$withTwitter    = new SeoMeta( [ 'twitter_title' => 'Twitter Title' ] );
 		$withoutTwitter = new SeoMeta( [] );
 
@@ -308,7 +308,7 @@ describe( 'SeoMeta Helper Methods', function () {
 			->and( $withoutTwitter->hasTwitterCardData() )->toBeFalse();
 	} );
 
-	it( 'detects schema markup presence', function () {
+	it( 'detects schema markup presence', function (): void {
 		$withSchemaType   = new SeoMeta( [ 'schema_type' => 'Article' ] );
 		$withSchemaMarkup = new SeoMeta( [ 'schema_markup' => [ '@type' => 'Article' ] ] );
 		$withoutSchema    = new SeoMeta( [] );

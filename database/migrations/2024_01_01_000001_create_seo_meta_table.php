@@ -16,6 +16,7 @@ declare( strict_types=1 );
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -94,6 +95,15 @@ return new class extends Migration
 			$table->index( 'focus_keyword' );
 			$table->index( [ 'exclude_from_sitemap', 'sitemap_priority' ] );
 		} );
+
+		// Add check constraint for sitemap_priority (0.0-1.0 range)
+		// This provides database-level validation for supported databases
+		try {
+			DB::statement( 'ALTER TABLE seo_meta ADD CONSTRAINT chk_sitemap_priority CHECK (sitemap_priority >= 0 AND sitemap_priority <= 1)' );
+		} catch ( \Exception $e ) {
+			// Silently ignore if database doesn't support check constraints
+			// Model-level validation will still enforce the range
+		}
 	}
 
 	/**

@@ -32,28 +32,28 @@ if ( true === config( 'seo.api.enabled', true ) ) {
 
 	Route::prefix( $prefix )
 		->middleware( $middleware )
-		->group( function () {
+		->group( function (): void {
 			// Analysis endpoints - will be implemented in analysis task
-			Route::prefix( 'analysis' )->group( function () {
-				Route::post( 'analyze', function () {
-					// Placeholder - will be replaced with AnalysisController
-					return response()->json( [
-						'status'  => 'success',
-						'message' => __( 'Analysis endpoint not yet implemented' ),
-					] );
-				} )->name( 'seo.api.analysis.analyze' );
+			Route::prefix( 'analysis' )->group( function (): void {
+Route::post( 'analyze', function () {
+	// Placeholder - will be replaced with AnalysisController
+	return response()->json( [
+		'status'  => 'not_implemented',
+		'message' => __( 'Analysis endpoint not yet implemented' ),
+	], 501 );
+} )->name( 'seo.api.analysis.analyze' );
 
-				Route::get( '{modelType}/{modelId}', function ( string $modelType, int $modelId ) {
-					// Placeholder - will be replaced with AnalysisController
-					return response()->json( [
-						'status'  => 'success',
-						'message' => __( 'Analysis results endpoint not yet implemented' ),
-					] );
-				} )->name( 'seo.api.analysis.get' );
+Route::get( '{modelType}/{modelId}', function ( string $modelType, int $modelId ) {
+	// Placeholder - will be replaced with AnalysisController
+	return response()->json( [
+		'status'  => 'success',
+		'message' => __( 'Analysis results endpoint not yet implemented' ),
+	] );
+} )->name( 'seo.api.analysis.get' );
 			} );
 
 			// Meta endpoints - will be implemented in core services task
-			Route::prefix( 'meta' )->group( function () {
+			Route::prefix( 'meta' )->group( function (): void {
 				Route::get( '{modelType}/{modelId}', function ( string $modelType, int $modelId ) {
 					// Placeholder - will be replaced with MetaController
 					return response()->json( [
@@ -72,7 +72,7 @@ if ( true === config( 'seo.api.enabled', true ) ) {
 			} );
 
 			// Redirect endpoints - will be implemented in redirects task
-			Route::prefix( 'redirects' )->group( function () {
+			Route::prefix( 'redirects' )->group( function (): void {
 				Route::get( '/', function () {
 					// Placeholder - will be replaced with RedirectController
 					return response()->json( [
