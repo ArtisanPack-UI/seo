@@ -57,7 +57,7 @@
   "extra": {
     "laravel": {
       "providers": [
-        "ArtisanPackUI\\SEO\\SEOServiceProvider"
+        "ArtisanPackUI\\SEO\\Providers\\SEOServiceProvider"
       ],
       "aliases": {
         "SEO": "ArtisanPackUI\\SEO\\Facades\\SEO"

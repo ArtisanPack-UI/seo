@@ -4,7 +4,7 @@ declare( strict_types=1 );
 
 namespace Tests;
 
-use ArtisanPackUI\SEO\SEOServiceProvider;
+use ArtisanPackUI\SEO\Providers\SEOServiceProvider;
 use Orchestra\Testbench\TestCase as BaseTestCase;
 
 /**

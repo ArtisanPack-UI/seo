@@ -3,8 +3,7 @@
 /**
  * SEO Package Configuration.
  *
- * This file contains the default configuration for the ArtisanPack UI SEO package.
- * These settings can be overridden in config/artisanpack.php under the 'seo' key.
+ * This file contains all configurable options for the ArtisanPack UI SEO package.
  *
  * @package    ArtisanPack_UI
  * @subpackage SEO
@@ -14,157 +13,241 @@
 
 return [
 
-    /*
-    |--------------------------------------------------------------------------
-    | Default Meta Tags
-    |--------------------------------------------------------------------------
-    |
-    | These are the default meta tags that will be used when no specific
-    | values are provided for a page.
-    |
-    */
-    'defaults' => [
-        'title'            => env( 'APP_NAME', 'Laravel' ),
-        'title_separator'  => ' | ',
-        'description'      => '',
-        'keywords'         => [],
-        'robots'           => 'index, follow',
-        'canonical'        => null,
-        'author'           => null,
-    ],
+	/*
+	|--------------------------------------------------------------------------
+	| Site Meta Information
+	|--------------------------------------------------------------------------
+	|
+	| Default meta information for your site. These values are used when
+	| specific page meta data is not available.
+	|
+	*/
 
-    /*
-    |--------------------------------------------------------------------------
-    | Open Graph Settings
-    |--------------------------------------------------------------------------
-    |
-    | Configuration for Open Graph (Facebook, LinkedIn, etc.) meta tags.
-    |
-    */
-    'open_graph' => [
-        'enabled'     => true,
-        'type'        => 'website',
-        'site_name'   => env( 'APP_NAME', 'Laravel' ),
-        'locale'      => env( 'APP_LOCALE', 'en_US' ),
-        'image'       => null,
-        'image_width' => 1200,
-        'image_height' => 630,
-    ],
+	'site' => [
+		'name'        => env( 'APP_NAME', 'Laravel' ),
+		'description' => env( 'SEO_SITE_DESCRIPTION', '' ),
+		'separator'   => ' | ',
+	],
 
-    /*
-    |--------------------------------------------------------------------------
-    | Twitter Card Settings
-    |--------------------------------------------------------------------------
-    |
-    | Configuration for Twitter Card meta tags.
-    |
-    */
-    'twitter' => [
-        'enabled'  => true,
-        'card'     => 'summary_large_image',
-        'site'     => null,
-        'creator'  => null,
-    ],
+	/*
+	|--------------------------------------------------------------------------
+	| Meta Tag Defaults
+	|--------------------------------------------------------------------------
+	|
+	| Default values for meta tags when not specified by individual models.
+	|
+	*/
 
-    /*
-    |--------------------------------------------------------------------------
-    | JSON-LD Structured Data
-    |--------------------------------------------------------------------------
-    |
-    | Configuration for JSON-LD structured data (Schema.org).
-    |
-    */
-    'json_ld' => [
-        'enabled' => true,
-        'organization' => [
-            'name'  => env( 'APP_NAME', 'Laravel' ),
-            'url'   => env( 'APP_URL', 'http://localhost' ),
-            'logo'  => null,
-            'social_profiles' => [],
-        ],
-        'website' => [
-            'name'         => env( 'APP_NAME', 'Laravel' ),
-            'url'          => env( 'APP_URL', 'http://localhost' ),
-            'search_url'   => null,
-            'search_input' => 'search_term_string',
-        ],
-    ],
+	'defaults' => [
+		'robots'                 => 'index, follow',
+		'title_max_length'       => 60,
+		'description_max_length' => 160,
+	],
 
-    /*
-    |--------------------------------------------------------------------------
-    | Sitemap Configuration
-    |--------------------------------------------------------------------------
-    |
-    | Configuration for XML sitemap generation.
-    |
-    */
-    'sitemap' => [
-        'enabled'           => true,
-        'path'              => 'sitemap.xml',
-        'cache_enabled'     => true,
-        'cache_duration'    => 3600,
-        'max_urls_per_file' => 50000,
-        'default_priority'  => 0.5,
-        'default_frequency' => 'weekly',
-    ],
+	/*
+	|--------------------------------------------------------------------------
+	| Open Graph Settings
+	|--------------------------------------------------------------------------
+	|
+	| Configuration for Open Graph meta tags (used by Facebook, LinkedIn, etc.).
+	|
+	*/
 
-    /*
-    |--------------------------------------------------------------------------
-    | Robots.txt Configuration
-    |--------------------------------------------------------------------------
-    |
-    | Configuration for dynamic robots.txt generation.
-    |
-    */
-    'robots_txt' => [
-        'enabled'       => false,
-        'allow_all'     => true,
-        'disallow'      => [],
-        'sitemap_url'   => null,
-        'custom_rules'  => [],
-    ],
+	'open_graph' => [
+		'enabled'       => true,
+		'type'          => 'website',
+		'default_image' => null,
+		'site_name'     => env( 'APP_NAME', 'Laravel' ),
+	],
 
-    /*
-    |--------------------------------------------------------------------------
-    | Title Templates
-    |--------------------------------------------------------------------------
-    |
-    | Templates for generating page titles. Use :title as a placeholder
-    | for the page-specific title.
-    |
-    */
-    'title_templates' => [
-        'default' => ':title:separator:site_name',
-        'home'    => ':site_name',
-    ],
+	/*
+	|--------------------------------------------------------------------------
+	| Twitter Card Settings
+	|--------------------------------------------------------------------------
+	|
+	| Configuration for Twitter Card meta tags.
+	|
+	*/
 
-    /*
-    |--------------------------------------------------------------------------
-    | Model SEO Fields
-    |--------------------------------------------------------------------------
-    |
-    | Configuration for model-level SEO fields.
-    |
-    */
-    'models' => [
-        'auto_generate_meta'      => true,
-        'description_max_length'  => 160,
-        'title_max_length'        => 60,
-    ],
+	'twitter' => [
+		'enabled'       => true,
+		'card_type'     => 'summary_large_image',
+		'site'          => null, // @username
+		'creator'       => null, // @username
+		'default_image' => null,
+	],
 
-    /*
-    |--------------------------------------------------------------------------
-    | Cache Settings
-    |--------------------------------------------------------------------------
-    |
-    | Configuration for caching SEO data.
-    |
-    */
-    'cache' => [
-        'enabled'  => true,
-        'driver'   => env( 'SEO_CACHE_DRIVER', 'file' ),
-        'duration' => 3600,
-        'prefix'   => 'artisanpack_seo_',
-    ],
+	/*
+	|--------------------------------------------------------------------------
+	| Schema.org / JSON-LD Settings
+	|--------------------------------------------------------------------------
+	|
+	| Configuration for structured data output.
+	|
+	*/
+
+	'schema' => [
+		'enabled'      => true,
+		'organization' => [
+			'name'  => env( 'APP_NAME', 'Laravel' ),
+			'logo'  => null,
+			'url'   => env( 'APP_URL', '' ),
+			'email' => null,
+			'phone' => null,
+		],
+		'default_types' => [
+			'page'    => 'WebPage',
+			'article' => 'Article',
+			'product' => 'Product',
+		],
+	],
+
+	/*
+	|--------------------------------------------------------------------------
+	| Sitemap Settings
+	|--------------------------------------------------------------------------
+	|
+	| Configuration for XML sitemap generation.
+	|
+	*/
+
+	'sitemap' => [
+		'enabled'           => true,
+		'route_enabled'     => true,
+		'route_path'        => 'sitemap.xml',
+		'max_urls_per_file' => 50000,
+		'default_frequency' => 'weekly',
+		'default_priority'  => 0.5,
+		'cache_enabled'     => true,
+		'cache_ttl'         => 3600, // 1 hour in seconds
+		'providers'         => [
+			// Register sitemap content providers here
+			// 'posts' => \App\Sitemap\PostSitemapProvider::class,
+		],
+		'types' => [
+			'standard' => true,
+			'image'    => false,
+			'video'    => false,
+			'news'     => false,
+		],
+	],
+
+	/*
+	|--------------------------------------------------------------------------
+	| Robots.txt Settings
+	|--------------------------------------------------------------------------
+	|
+	| Configuration for dynamic robots.txt generation.
+	|
+	*/
+
+	'robots' => [
+		'enabled'       => true,
+		'route_enabled' => true,
+		'route_path'    => 'robots.txt',
+		'disallow'      => [
+			'/admin',
+			'/api',
+		],
+		'allow'       => [],
+		'sitemap_url' => null, // Auto-generated if null
+	],
+
+	/*
+	|--------------------------------------------------------------------------
+	| Redirects Settings
+	|--------------------------------------------------------------------------
+	|
+	| Configuration for URL redirect management.
+	|
+	*/
+
+	'redirects' => [
+		'enabled'            => true,
+		'middleware_enabled' => true,
+		'cache_enabled'      => true,
+		'cache_ttl'          => 86400, // 24 hours in seconds
+		'track_hits'         => true,
+		'max_chain_depth'    => 5,
+	],
+
+	/*
+	|--------------------------------------------------------------------------
+	| SEO Analysis Settings
+	|--------------------------------------------------------------------------
+	|
+	| Configuration for content SEO analysis features.
+	|
+	*/
+
+	'analysis' => [
+		'enabled'          => true,
+		'queue_enabled'    => false,
+		'queue_connection' => null,
+		'queue_name'       => 'seo',
+		'cache_enabled'    => true,
+		'cache_ttl'        => 86400, // 24 hours in seconds
+		'analyzers'        => [
+			'readability'       => true,
+			'keyword_density'   => true,
+			'focus_keyword'     => true,
+			'meta_length'       => true,
+			'heading_structure' => true,
+			'image_alt'         => true,
+			'internal_links'    => true,
+			'content_length'    => true,
+		],
+		'thresholds' => [
+			'min_word_count'      => 300,
+			'max_keyword_density' => 3.0,
+			'min_internal_links'  => 2,
+		],
+	],
+
+	/*
+	|--------------------------------------------------------------------------
+	| Hreflang / Multi-language Settings
+	|--------------------------------------------------------------------------
+	|
+	| Configuration for multi-language SEO support.
+	|
+	*/
+
+	'hreflang' => [
+		'enabled'           => false,
+		'default_locale'    => 'en',
+		'supported_locales' => [ 'en' ],
+	],
+
+	/*
+	|--------------------------------------------------------------------------
+	| Cache Settings
+	|--------------------------------------------------------------------------
+	|
+	| Global cache settings for all SEO features.
+	|
+	*/
+
+	'cache' => [
+		'enabled' => true,
+		'driver'  => null, // Uses default cache driver if null
+		'prefix'  => 'seo',
+	],
+
+	/*
+	|--------------------------------------------------------------------------
+	| API Settings
+	|--------------------------------------------------------------------------
+	|
+	| Configuration for SEO package API endpoints.
+	|
+	*/
+
+	'api' => [
+		'enabled'    => true,
+		'prefix'     => 'api/seo',
+		'middleware' => [ 'api', 'auth:sanctum' ],
+		'rate_limit' => 60, // Requests per minute
+	],
 
 ];
