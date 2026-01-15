@@ -282,6 +282,32 @@ class SeoMeta extends Model
 	}
 
 	/**
+	 * Get the effective Twitter Card image URL.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return string|null
+	 */
+	public function getEffectiveTwitterImage(): ?string
+	{
+		// Check for media library integration
+		if ( null !== $this->twitter_image_id && class_exists( 'ArtisanPackUI\MediaLibrary\Models\Media' ) ) {
+			$media = \ArtisanPackUI\MediaLibrary\Models\Media::find( $this->twitter_image_id );
+			if ( null !== $media ) {
+				return $media->url;
+			}
+		}
+
+		// Fall back to direct URL
+		if ( null !== $this->twitter_image && '' !== $this->twitter_image ) {
+			return $this->twitter_image;
+		}
+
+		// Fall back to OG image
+		return $this->getEffectiveOgImage();
+	}
+
+	/**
 	 * Get the robots meta content string.
 	 *
 	 * @since 1.0.0

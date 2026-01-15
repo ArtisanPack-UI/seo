@@ -18,6 +18,15 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\SEO\Providers;
 
 use ArtisanPackUI\SEO\SEO;
+use ArtisanPackUI\SEO\Services\CacheService;
+use ArtisanPackUI\SEO\Services\MetaTagService;
+use ArtisanPackUI\SEO\Services\SeoService;
+use ArtisanPackUI\SEO\Services\SocialMetaService;
+use ArtisanPackUI\SEO\View\Components\Meta;
+use ArtisanPackUI\SEO\View\Components\MetaTags;
+use ArtisanPackUI\SEO\View\Components\OpenGraph;
+use ArtisanPackUI\SEO\View\Components\TwitterCard;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
 
 class SEOServiceProvider extends ServiceProvider
@@ -35,6 +44,8 @@ class SEOServiceProvider extends ServiceProvider
 			__DIR__ . '/../../config/seo.php',
 			'seo',
 		);
+
+		$this->registerServices();
 
 		$this->app->singleton( 'seo', function ( $app ) {
 			return new SEO();
@@ -55,6 +66,36 @@ class SEOServiceProvider extends ServiceProvider
 		$this->registerRoutes();
 		$this->registerMigrations();
 		$this->registerBladeComponents();
+	}
+
+	/**
+	 * Register SEO services.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return void
+	 */
+	protected function registerServices(): void
+	{
+		$this->app->singleton( CacheService::class, function ( $app ) {
+			return new CacheService();
+		} );
+
+		$this->app->singleton( MetaTagService::class, function ( $app ) {
+			return new MetaTagService();
+		} );
+
+		$this->app->singleton( SocialMetaService::class, function ( $app ) {
+			return new SocialMetaService();
+		} );
+
+		$this->app->singleton( SeoService::class, function ( $app ) {
+			return new SeoService(
+				$app->make( MetaTagService::class ),
+				$app->make( SocialMetaService::class ),
+				$app->make( CacheService::class ),
+			);
+		} );
 	}
 
 	/**
@@ -161,8 +202,9 @@ class SEOServiceProvider extends ServiceProvider
 	 */
 	protected function registerBladeComponents(): void
 	{
-		// Blade components will be registered here once they are created
-		// Example:
-		// Blade::component( 'seo-meta-tags', \ArtisanPackUI\SEO\View\Components\MetaTags::class );
+		Blade::component( 'seo:meta', Meta::class );
+		Blade::component( 'seo:meta-tags', MetaTags::class );
+		Blade::component( 'seo:open-graph', OpenGraph::class );
+		Blade::component( 'seo:twitter-card', TwitterCard::class );
 	}
 }

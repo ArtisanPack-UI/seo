@@ -13,8 +13,10 @@
 
 declare( strict_types=1 );
 
-use ArtisanPackUI\SEO\Facades\SEO;
+use ArtisanPackUI\SEO\Models\SeoMeta;
+use ArtisanPackUI\SEO\Services\SeoService;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 if ( ! function_exists( 'seo' ) ) {
 	/**
@@ -22,43 +24,71 @@ if ( ! function_exists( 'seo' ) ) {
 	 *
 	 * @since 1.0.0
 	 *
-	 * @return ArtisanPackUI\SEO\SEO
+	 * @return SeoService
 	 */
-	function seo(): ArtisanPackUI\SEO\SEO
+	function seo(): SeoService
 	{
-		return app( 'seo' );
-	}
-}
-
-if ( ! function_exists( 'seoTitle' ) ) {
-	/**
-	 * Get a formatted page title with site name.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @param  string  $title  The page title.
-	 *
-	 * @return string
-	 */
-	function seoTitle( string $title ): string
-	{
-		return SEO::title( $title );
+		return app( SeoService::class );
 	}
 }
 
 if ( ! function_exists( 'seoMeta' ) ) {
 	/**
-	 * Get meta tags for a model.
+	 * Get SEO meta data for a model.
+	 *
+	 * Returns the model's SeoMeta relationship if it exists,
+	 * or null if the model doesn't have SEO meta data.
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param  Model|null  $model  The model to get meta tags for.
+	 * @param  Model  $model  The model to get SEO meta for.
 	 *
-	 * @return array<string, mixed>
+	 * @return SeoMeta|null
 	 */
-	function seoMeta( ?Model $model = null ): array
+	function seoMeta( Model $model ): ?SeoMeta
 	{
-		return SEO::getMetaTags( $model );
+		if ( method_exists( $model, 'seoMeta' ) ) {
+			return $model->seoMeta;
+		}
+
+		return null;
+	}
+}
+
+if ( ! function_exists( 'seoTitle' ) ) {
+	/**
+	 * Format a page title with optional site name suffix.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param  string  $title          The page title.
+	 * @param  bool    $includeSuffix  Whether to include the site name suffix.
+	 *
+	 * @return string
+	 */
+	function seoTitle( string $title, bool $includeSuffix = true ): string
+	{
+		return app( SeoService::class )->buildTitle( $title, $includeSuffix );
+	}
+}
+
+if ( ! function_exists( 'seoDescription' ) ) {
+	/**
+	 * Format a meta description by limiting its length.
+	 *
+	 * Limits the description to 160 characters, which is the
+	 * recommended maximum length for meta descriptions.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param  string  $description  The description to format.
+	 * @param  int     $limit        Maximum character length (default 160).
+	 *
+	 * @return string
+	 */
+	function seoDescription( string $description, int $limit = 160 ): string
+	{
+		return Str::limit( $description, $limit );
 	}
 }
 
@@ -74,7 +104,7 @@ if ( ! function_exists( 'seoIsEnabled' ) ) {
 	 */
 	function seoIsEnabled( string $feature ): bool
 	{
-		return SEO::isEnabled( $feature );
+		return (bool) config( "seo.{$feature}.enabled", false );
 	}
 }
 
