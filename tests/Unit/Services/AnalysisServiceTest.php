@@ -97,15 +97,6 @@ describe( 'AnalysisService Analyzer Registration', function (): void {
 			->and( $this->service->getAnalyzers() )->toHaveKey( 'test_analyzer' );
 	} );
 
-use ArtisanPackUI\SEO\Contracts\AnalyzerContract;
-use ArtisanPackUI\SEO\DTOs\AnalysisResultDTO;
-use ArtisanPackUI\SEO\Models\SeoAnalysisCache;
-use ArtisanPackUI\SEO\Models\SeoMeta;
-use ArtisanPackUI\SEO\Services\AnalysisService;
-use Illuminate\Database\Eloquent\Model;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use InvalidArgumentException;
-
 	it( 'unregisters an analyzer', function (): void {
 		$analyzer = createMockAnalyzer( 'test_analyzer', 'readability', 50, 75 );
 

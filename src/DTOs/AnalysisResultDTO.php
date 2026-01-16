@@ -283,6 +283,7 @@ readonly class AnalysisResultDTO
 			'issue_count'       => $this->getIssueCount(),
 			'suggestion_count'  => $this->getSuggestionCount(),
 			'passed_count'      => $this->getPassedCount(),
+			'analyzer_results'  => $this->analyzerResults,
 		];
 	}
 
