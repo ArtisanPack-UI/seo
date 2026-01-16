@@ -19,10 +19,17 @@ namespace ArtisanPackUI\SEO\Providers;
 
 use ArtisanPackUI\SEO\Console\Commands\GenerateSitemapCommand;
 use ArtisanPackUI\SEO\Console\Commands\SubmitSitemapCommand;
+use ArtisanPackUI\SEO\Http\Middleware\HandleRedirects;
+use ArtisanPackUI\SEO\Livewire\Partials\MetaPreview;
+use ArtisanPackUI\SEO\Livewire\Partials\SocialPreview;
+use ArtisanPackUI\SEO\Livewire\RedirectManager;
+use ArtisanPackUI\SEO\Livewire\SeoAnalysisPanel;
+use ArtisanPackUI\SEO\Livewire\SeoMetaEditor;
 use ArtisanPackUI\SEO\Schema\SchemaFactory;
 use ArtisanPackUI\SEO\SEO;
 use ArtisanPackUI\SEO\Services\CacheService;
 use ArtisanPackUI\SEO\Services\MetaTagService;
+use ArtisanPackUI\SEO\Services\RedirectService;
 use ArtisanPackUI\SEO\Services\RobotsService;
 use ArtisanPackUI\SEO\Services\SchemaService;
 use ArtisanPackUI\SEO\Services\SeoService;
@@ -33,8 +40,10 @@ use ArtisanPackUI\SEO\View\Components\MetaTags;
 use ArtisanPackUI\SEO\View\Components\OpenGraph;
 use ArtisanPackUI\SEO\View\Components\Schema;
 use ArtisanPackUI\SEO\View\Components\TwitterCard;
+use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
+use Livewire\Livewire;
 
 class SEOServiceProvider extends ServiceProvider
 {
@@ -73,7 +82,9 @@ class SEOServiceProvider extends ServiceProvider
 		$this->registerRoutes();
 		$this->registerMigrations();
 		$this->registerBladeComponents();
+		$this->registerLivewireComponents();
 		$this->registerCommands();
+		$this->registerMiddleware();
 	}
 
 	/**
@@ -121,6 +132,10 @@ class SEOServiceProvider extends ServiceProvider
 
 		$this->app->singleton( RobotsService::class, function ( $app ) {
 			return new RobotsService();
+		} );
+
+		$this->app->singleton( RedirectService::class, function ( $app ) {
+			return new RedirectService();
 		} );
 	}
 
@@ -236,6 +251,27 @@ class SEOServiceProvider extends ServiceProvider
 	}
 
 	/**
+	 * Register Livewire components.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return void
+	 */
+	protected function registerLivewireComponents(): void
+	{
+		// Only register if Livewire is available
+		if ( ! class_exists( Livewire::class ) ) {
+			return;
+		}
+
+		Livewire::component( 'seo::seo-meta-editor', SeoMetaEditor::class );
+		Livewire::component( 'seo::seo-analysis-panel', SeoAnalysisPanel::class );
+		Livewire::component( 'seo::redirect-manager', RedirectManager::class );
+		Livewire::component( 'seo::meta-preview', MetaPreview::class );
+		Livewire::component( 'seo::social-preview', SocialPreview::class );
+	}
+
+	/**
 	 * Register Artisan commands.
 	 *
 	 * @since 1.0.0
@@ -249,6 +285,32 @@ class SEOServiceProvider extends ServiceProvider
 				GenerateSitemapCommand::class,
 				SubmitSitemapCommand::class,
 			] );
+		}
+	}
+
+	/**
+	 * Register the redirect handling middleware.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return void
+	 */
+	protected function registerMiddleware(): void
+	{
+		// Only register middleware if both redirects and middleware are enabled
+		if ( ! config( 'seo.redirects.enabled', true ) ) {
+			return;
+		}
+
+		if ( ! config( 'seo.redirects.middleware_enabled', true ) ) {
+			return;
+		}
+
+		// Append middleware to the web group
+		$kernel = $this->app->make( Kernel::class );
+
+		if ( method_exists( $kernel, 'appendMiddlewareToGroup' ) ) {
+			$kernel->appendMiddlewareToGroup( 'web', HandleRedirects::class );
 		}
 	}
 }
