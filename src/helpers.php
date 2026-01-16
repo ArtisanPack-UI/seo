@@ -13,7 +13,9 @@
 
 declare( strict_types=1 );
 
+use ArtisanPackUI\SEO\Models\Redirect;
 use ArtisanPackUI\SEO\Models\SeoMeta;
+use ArtisanPackUI\SEO\Services\RedirectService;
 use ArtisanPackUI\SEO\Services\SeoService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
@@ -122,5 +124,97 @@ if ( ! function_exists( 'seoConfig' ) ) {
 	function seoConfig( string $key, mixed $default = null ): mixed
 	{
 		return config( "seo.{$key}", $default );
+	}
+}
+
+if ( ! function_exists( 'seoRedirect' ) ) {
+	/**
+	 * Get the redirect service instance.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return RedirectService
+	 */
+	function seoRedirect(): RedirectService
+	{
+		return app( RedirectService::class );
+	}
+}
+
+if ( ! function_exists( 'seoFindRedirect' ) ) {
+	/**
+	 * Find a redirect match for the given path.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param  string  $path  The path to find a redirect for.
+	 *
+	 * @return Redirect|null
+	 */
+	function seoFindRedirect( string $path ): ?Redirect
+	{
+		return app( RedirectService::class )->findMatch( $path );
+	}
+}
+
+if ( ! function_exists( 'seoCreateRedirect' ) ) {
+	/**
+	 * Create a new redirect.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param  string  $fromPath    The source path.
+	 * @param  string  $toPath      The destination path.
+	 * @param  int     $statusCode  The HTTP status code (default 301).
+	 * @param  string  $matchType   The match type: exact, regex, wildcard (default exact).
+	 *
+	 * @return Redirect
+	 */
+	function seoCreateRedirect(
+		string $fromPath,
+		string $toPath,
+		int $statusCode = 301,
+		string $matchType = 'exact',
+	): Redirect {
+		return app( RedirectService::class )->create( [
+			'from_path'   => $fromPath,
+			'to_path'     => $toPath,
+			'status_code' => $statusCode,
+			'match_type'  => $matchType,
+		] );
+	}
+}
+
+if ( ! function_exists( 'seoDeleteRedirect' ) ) {
+	/**
+	 * Delete a redirect.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param  int|Redirect  $redirect  The redirect or redirect ID to delete.
+	 *
+	 * @return void
+	 */
+	function seoDeleteRedirect( Redirect|int $redirect ): void
+	{
+		if ( is_int( $redirect ) ) {
+			$redirect = Redirect::findOrFail( $redirect );
+		}
+
+		app( RedirectService::class )->delete( $redirect );
+	}
+}
+
+if ( ! function_exists( 'seoRedirectStatistics' ) ) {
+	/**
+	 * Get redirect statistics.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array<string, mixed>
+	 */
+	function seoRedirectStatistics(): array
+	{
+		return app( RedirectService::class )->getStatistics();
 	}
 }

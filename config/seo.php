@@ -245,6 +245,22 @@ return [
 		'cache_ttl'          => 86400, // 24 hours in seconds
 		'track_hits'         => true,
 		'max_chain_depth'    => 5,
+
+		/*
+		|--------------------------------------------------------------------------
+		| Authorization Settings
+		|--------------------------------------------------------------------------
+		|
+		| Configure authorization for the RedirectManager Livewire component.
+		| Set 'authorization_enabled' to true and define the gate/ability name.
+		|
+		| Example setup in AuthServiceProvider:
+		| Gate::define('manage-redirects', fn ($user) => $user->isAdmin());
+		|
+		*/
+
+		'authorization_enabled' => false,
+		'authorization_ability' => 'manage-redirects',
 	],
 
 	/*

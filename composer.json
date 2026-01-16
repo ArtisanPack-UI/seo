@@ -36,7 +36,13 @@
     "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
     "laravel/pint": "^1.26",
     "orchestra/testbench": "^8.0|^9.0|^10.0",
-    "friendsofphp/php-cs-fixer": "^3.75"
+    "friendsofphp/php-cs-fixer": "^3.75",
+    "livewire/livewire": "^3.6.4"
+  },
+  "suggest": {
+    "livewire/livewire": "Required for using the SeoMetaEditor Livewire component (^3.6.4)",
+    "artisanpack-ui/livewire-ui-components": "Required for UI components in the SeoMetaEditor (^1.0)",
+    "artisanpack-ui/media-library": "Optional for media library integration in the SeoMetaEditor (^1.0)"
   },
   "scripts": {
     "lint": [
