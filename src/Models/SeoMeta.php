@@ -19,6 +19,7 @@ namespace ArtisanPackUI\SEO\Models;
 
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use InvalidArgumentException;
 
@@ -133,6 +134,18 @@ class SeoMeta extends Model
 	public function seoable(): MorphTo
 	{
 		return $this->morphTo();
+	}
+
+	/**
+	 * Get the analysis cache for this SEO meta.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return HasOne<SeoAnalysisCache, SeoMeta>
+	 */
+	public function analysisCache(): HasOne
+	{
+		return $this->hasOne( SeoAnalysisCache::class, 'seo_meta_id' );
 	}
 
 	/**
