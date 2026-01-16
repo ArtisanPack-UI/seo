@@ -115,11 +115,12 @@ return [
 		'enabled'           => true,
 		'route_enabled'     => true,
 		'route_path'        => 'sitemap.xml',
-		'max_urls_per_file' => 50000,
+		'max_urls_per_file' => 10000,
 		'default_frequency' => 'weekly',
 		'default_priority'  => 0.5,
 		'cache_enabled'     => true,
 		'cache_ttl'         => 3600, // 1 hour in seconds
+		'submit_timeout'    => 10, // HTTP timeout for search engine pings
 		'providers'         => [
 			// Register sitemap content providers here
 			// 'posts' => \App\Sitemap\PostSitemapProvider::class,
@@ -129,6 +130,15 @@ return [
 			'image'    => false,
 			'video'    => false,
 			'news'     => false,
+		],
+		'news' => [
+			'types'        => [ 'article', 'post', 'news' ], // Content types for news sitemap
+			'max_age_days' => 2, // Google News only indexes last 2 days
+		],
+		'search_engines' => [
+			// Custom search engine ping URLs (default: Google and Bing)
+			// 'google' => 'https://www.google.com/ping?sitemap=%s',
+			// 'bing'   => 'https://www.bing.com/ping?sitemap=%s',
 		],
 	],
 
@@ -145,12 +155,78 @@ return [
 		'enabled'       => true,
 		'route_enabled' => true,
 		'route_path'    => 'robots.txt',
-		'disallow'      => [
+		'cache_ttl'     => 3600, // 1 hour in seconds
+
+		/*
+		|--------------------------------------------------------------------------
+		| Global Disallow/Allow Rules
+		|--------------------------------------------------------------------------
+		|
+		| These rules apply to all user agents (*). For bot-specific rules,
+		| use the 'rules' array below.
+		|
+		*/
+
+		'disallow' => [
 			'/admin',
 			'/api',
 		],
-		'allow'       => [],
+		'allow' => [],
+
+		/*
+		|--------------------------------------------------------------------------
+		| Bot-Specific Rules
+		|--------------------------------------------------------------------------
+		|
+		| Define rules for specific user agents. Each key is the user-agent
+		| string (e.g., 'Googlebot', 'Bingbot', 'GPTBot').
+		|
+		| Example:
+		| 'rules' => [
+		|     'GPTBot' => [
+		|         'disallow' => ['/'],  // Block AI crawlers from entire site
+		|     ],
+		|     'Googlebot' => [
+		|         'allow' => ['/api/public'],
+		|         'disallow' => ['/api/internal'],
+		|         'crawl_delay' => 1,
+		|     ],
+		| ],
+		|
+		*/
+
+		'rules' => [
+			// 'GPTBot' => [
+			//     'disallow' => ['/'],
+			// ],
+			// 'CCBot' => [
+			//     'disallow' => ['/'],
+			// ],
+		],
+
+		/*
+		|--------------------------------------------------------------------------
+		| Sitemap Configuration
+		|--------------------------------------------------------------------------
+		|
+		| The sitemap_url is auto-generated from the sitemap route if null.
+		| Use 'sitemaps' array to include multiple sitemap URLs.
+		|
+		*/
+
 		'sitemap_url' => null, // Auto-generated if null
+		'sitemaps'    => [], // Additional sitemap URLs
+
+		/*
+		|--------------------------------------------------------------------------
+		| Host Directive
+		|--------------------------------------------------------------------------
+		|
+		| The Host directive (used by some crawlers like Yandex).
+		|
+		*/
+
+		'host' => null,
 	],
 
 	/*
