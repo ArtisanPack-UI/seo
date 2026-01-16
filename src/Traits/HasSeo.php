@@ -18,7 +18,9 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\SEO\Traits;
 
 use ArtisanPackUI\SEO\Models\SeoMeta;
+use ArtisanPackUI\SEO\Models\SitemapEntry;
 use ArtisanPackUI\SEO\Observers\SeoObserver;
+use ArtisanPackUI\SEO\Observers\SitemapObserver;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Support\Str;
@@ -39,7 +41,7 @@ use RuntimeException;
 trait HasSeo
 {
 	/**
-	 * Boot the trait and register the observer.
+	 * Boot the trait and register the observers.
 	 *
 	 * @since 1.0.0
 	 *
@@ -48,6 +50,7 @@ trait HasSeo
 	public static function bootHasSeo(): void
 	{
 		static::observe( SeoObserver::class );
+		static::observe( SitemapObserver::class );
 	}
 
 	/**
@@ -60,6 +63,18 @@ trait HasSeo
 	public function seoMeta(): MorphOne
 	{
 		return $this->morphOne( SeoMeta::class, 'seoable' );
+	}
+
+	/**
+	 * Get the sitemap entry relationship.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return MorphOne<SitemapEntry, $this>
+	 */
+	public function sitemapEntry(): MorphOne
+	{
+		return $this->morphOne( SitemapEntry::class, 'sitemapable' );
 	}
 
 	/**
@@ -482,5 +497,162 @@ trait HasSeo
 		return $query->whereHas( 'seoMeta', function ( Builder $q ) use ( $keyword ): void {
 			$q->where( 'focus_keyword', $keyword );
 		} );
+	}
+
+	/**
+	 * Get the sitemap type for this model.
+	 *
+	 * Override this method in your model to specify a custom sitemap type.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return string
+	 */
+	public function getSitemapType(): string
+	{
+		return Str::snake( class_basename( $this ) );
+	}
+
+	/**
+	 * Get the images for this model's sitemap entry.
+	 *
+	 * Override this method in your model to provide images for the sitemap.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array<int, array<string, string>>|null
+	 */
+	public function getSitemapImages(): ?array
+	{
+		$images   = [];
+		$seoImage = $this->getSeoImage();
+
+		if ( null !== $seoImage && '' !== $seoImage ) {
+			$images[] = [ 'loc' => $seoImage ];
+		}
+
+		return ! empty( $images ) ? $images : null;
+	}
+
+	/**
+	 * Get the videos for this model's sitemap entry.
+	 *
+	 * Override this method in your model to provide videos for the sitemap.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array<int, array<string, mixed>>|null
+	 */
+	public function getSitemapVideos(): ?array
+	{
+		return null;
+	}
+
+	/**
+	 * Get or create the sitemap entry for this model.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @throws InvalidArgumentException If model is not persisted or has no valid URL.
+	 *
+	 * @return SitemapEntry
+	 */
+	public function getOrCreateSitemapEntry(): SitemapEntry
+	{
+		// Guard against unsaved models
+		if ( ! $this->exists || null === $this->getKey() ) {
+			throw new InvalidArgumentException(
+				__( 'Model must be persisted before creating sitemap entry.' ),
+			);
+		}
+
+		if ( ! $this->sitemapEntry ) {
+			$url = $this->canonical_url;
+
+			// Guard against empty URLs to prevent invalid sitemap entries
+			if ( '' === $url || null === $url ) {
+				throw new InvalidArgumentException(
+					__( 'Model must have a valid canonical URL before creating sitemap entry.' ),
+				);
+			}
+
+			$this->sitemapEntry()->create( [
+				'sitemapable_type' => get_class( $this ),
+				'sitemapable_id'   => $this->getKey(),
+				'url'              => $url,
+				'type'             => $this->getSitemapType(),
+				'priority'         => $this->getSitemapPriority(),
+				'changefreq'       => $this->getSitemapChangefreq(),
+				'is_indexable'     => $this->shouldBeIndexed(),
+				'last_modified'    => $this->updated_at ?? $this->created_at ?? now(),
+				'images'           => $this->getSitemapImages(),
+				'videos'           => $this->getSitemapVideos(),
+			] );
+
+			$this->load( 'sitemapEntry' );
+		}
+
+		return $this->sitemapEntry;
+	}
+
+	/**
+	 * Update the sitemap entry for this model.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param  array<string, mixed>  $data  The sitemap data to update.
+	 *
+	 * @return SitemapEntry
+	 */
+	public function updateSitemapEntry( array $data ): SitemapEntry
+	{
+		$sitemapEntry = $this->getOrCreateSitemapEntry();
+		$sitemapEntry->update( $data );
+
+		return $sitemapEntry->fresh() ?? $sitemapEntry;
+	}
+
+	/**
+	 * Delete the sitemap entry for this model.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return bool
+	 */
+	public function deleteSitemapEntry(): bool
+	{
+		if ( null !== $this->sitemapEntry ) {
+			return $this->sitemapEntry->delete();
+		}
+
+		return false;
+	}
+
+	/**
+	 * Scope: Models that have a sitemap entry.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param  Builder<static>  $query  The query builder instance.
+	 *
+	 * @return Builder<static>
+	 */
+	public function scopeWithSitemapEntry( Builder $query ): Builder
+	{
+		return $query->whereHas( 'sitemapEntry' );
+	}
+
+	/**
+	 * Scope: Models that don't have a sitemap entry.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param  Builder<static>  $query  The query builder instance.
+	 *
+	 * @return Builder<static>
+	 */
+	public function scopeWithoutSitemapEntry( Builder $query ): Builder
+	{
+		return $query->whereDoesntHave( 'sitemapEntry' );
 	}
 }

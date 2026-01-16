@@ -13,6 +13,8 @@
 
 declare( strict_types=1 );
 
+use ArtisanPackUI\SEO\Http\Controllers\RobotsController;
+use ArtisanPackUI\SEO\Http\Controllers\SitemapController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -27,18 +29,50 @@ use Illuminate\Support\Facades\Route;
 if ( true === config( 'seo.sitemap.route_enabled', true ) ) {
 	$sitemapPath = config( 'seo.sitemap.route_path', 'sitemap.xml' );
 
-	Route::get( $sitemapPath, function () {
-		// Placeholder - will be replaced with SitemapController in sitemap task
-		return response( '<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>' )
-			->header( 'Content-Type', 'application/xml' );
-	} )->name( 'seo.sitemap' );
+	// Main sitemap route
+	Route::get( $sitemapPath, [ SitemapController::class, 'index' ] )
+		->name( 'seo.sitemap' );
 
-	// Sitemap index route (for large sites with multiple sitemaps)
-	Route::get( 'sitemap-index.xml', function () {
-		// Placeholder - will be replaced with SitemapController in sitemap task
-		return response( '<?xml version="1.0" encoding="UTF-8"?><sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></sitemapindex>' )
-			->header( 'Content-Type', 'application/xml' );
-	} )->name( 'seo.sitemap.index' );
+	// Paginated main sitemap (when not using types)
+	Route::get( 'sitemap-{page}.xml', [ SitemapController::class, 'page' ] )
+		->where( 'page', '[1-9][0-9]*' )
+		->name( 'seo.sitemap.page' );
+
+	// Type-specific sitemaps with pagination
+	Route::get( 'sitemap-{type}-{page}.xml', [ SitemapController::class, 'show' ] )
+		->where( 'type', '[a-z0-9\-]+' )
+		->where( 'page', '[1-9][0-9]*' )
+		->name( 'seo.sitemap.type' );
+
+	// Image sitemap routes
+	if ( true === config( 'seo.sitemap.types.image', false ) ) {
+		Route::get( 'sitemap-images.xml', [ SitemapController::class, 'images' ] )
+			->name( 'seo.sitemap.images' );
+
+		Route::get( 'sitemap-images-{page}.xml', [ SitemapController::class, 'images' ] )
+			->where( 'page', '[1-9][0-9]*' )
+			->name( 'seo.sitemap.images.page' );
+	}
+
+	// Video sitemap routes
+	if ( true === config( 'seo.sitemap.types.video', false ) ) {
+		Route::get( 'sitemap-videos.xml', [ SitemapController::class, 'videos' ] )
+			->name( 'seo.sitemap.videos' );
+
+		Route::get( 'sitemap-videos-{page}.xml', [ SitemapController::class, 'videos' ] )
+			->where( 'page', '[1-9][0-9]*' )
+			->name( 'seo.sitemap.videos.page' );
+	}
+
+	// News sitemap routes
+	if ( true === config( 'seo.sitemap.types.news', false ) ) {
+		Route::get( 'sitemap-news.xml', [ SitemapController::class, 'news' ] )
+			->name( 'seo.sitemap.news' );
+
+		Route::get( 'sitemap-news-{page}.xml', [ SitemapController::class, 'news' ] )
+			->where( 'page', '[1-9][0-9]*' )
+			->name( 'seo.sitemap.news.page' );
+	}
 }
 
 /*
@@ -53,31 +87,6 @@ if ( true === config( 'seo.sitemap.route_enabled', true ) ) {
 if ( true === config( 'seo.robots.route_enabled', true ) ) {
 	$robotsPath = config( 'seo.robots.route_path', 'robots.txt' );
 
-	Route::get( $robotsPath, function () {
-		$disallow = config( 'seo.robots.disallow', [] );
-		$allow    = config( 'seo.robots.allow', [] );
-
-		$content = "User-agent: *\n";
-
-		foreach ( $disallow as $path ) {
-			$content .= "Disallow: {$path}\n";
-		}
-
-		foreach ( $allow as $path ) {
-			$content .= "Allow: {$path}\n";
-		}
-
-		// Add sitemap URL
-		$sitemapUrl = config( 'seo.robots.sitemap_url' );
-		if ( null === $sitemapUrl && true === config( 'seo.sitemap.route_enabled', true ) ) {
-			$sitemapUrl = url( config( 'seo.sitemap.route_path', 'sitemap.xml' ) );
-		}
-
-		if ( null !== $sitemapUrl ) {
-			$content .= "\nSitemap: {$sitemapUrl}\n";
-		}
-
-		return response( $content )
-			->header( 'Content-Type', 'text/plain' );
-	} )->name( 'seo.robots' );
+	Route::get( $robotsPath, [ RobotsController::class, 'index' ] )
+		->name( 'seo.robots' );
 }

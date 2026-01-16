@@ -17,14 +17,21 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\SEO\Providers;
 
+use ArtisanPackUI\SEO\Console\Commands\GenerateSitemapCommand;
+use ArtisanPackUI\SEO\Console\Commands\SubmitSitemapCommand;
+use ArtisanPackUI\SEO\Schema\SchemaFactory;
 use ArtisanPackUI\SEO\SEO;
 use ArtisanPackUI\SEO\Services\CacheService;
 use ArtisanPackUI\SEO\Services\MetaTagService;
+use ArtisanPackUI\SEO\Services\RobotsService;
+use ArtisanPackUI\SEO\Services\SchemaService;
 use ArtisanPackUI\SEO\Services\SeoService;
+use ArtisanPackUI\SEO\Services\SitemapService;
 use ArtisanPackUI\SEO\Services\SocialMetaService;
 use ArtisanPackUI\SEO\View\Components\Meta;
 use ArtisanPackUI\SEO\View\Components\MetaTags;
 use ArtisanPackUI\SEO\View\Components\OpenGraph;
+use ArtisanPackUI\SEO\View\Components\Schema;
 use ArtisanPackUI\SEO\View\Components\TwitterCard;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
@@ -66,6 +73,7 @@ class SEOServiceProvider extends ServiceProvider
 		$this->registerRoutes();
 		$this->registerMigrations();
 		$this->registerBladeComponents();
+		$this->registerCommands();
 	}
 
 	/**
@@ -95,6 +103,24 @@ class SEOServiceProvider extends ServiceProvider
 				$app->make( SocialMetaService::class ),
 				$app->make( CacheService::class ),
 			);
+		} );
+
+		$this->app->singleton( SchemaFactory::class, function ( $app ) {
+			return new SchemaFactory();
+		} );
+
+		$this->app->singleton( SchemaService::class, function ( $app ) {
+			return new SchemaService(
+				$app->make( SchemaFactory::class ),
+			);
+		} );
+
+		$this->app->singleton( SitemapService::class, function ( $app ) {
+			return new SitemapService();
+		} );
+
+		$this->app->singleton( RobotsService::class, function ( $app ) {
+			return new RobotsService();
 		} );
 	}
 
@@ -206,5 +232,23 @@ class SEOServiceProvider extends ServiceProvider
 		Blade::component( 'seo:meta-tags', MetaTags::class );
 		Blade::component( 'seo:open-graph', OpenGraph::class );
 		Blade::component( 'seo:twitter-card', TwitterCard::class );
+		Blade::component( 'seo:schema', Schema::class );
+	}
+
+	/**
+	 * Register Artisan commands.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return void
+	 */
+	protected function registerCommands(): void
+	{
+		if ( $this->app->runningInConsole() ) {
+			$this->commands( [
+				GenerateSitemapCommand::class,
+				SubmitSitemapCommand::class,
+			] );
+		}
 	}
 }
