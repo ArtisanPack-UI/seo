@@ -207,7 +207,7 @@ class SeoService
 
 		if ( null === $seoMeta ) {
 			$seoMeta               = new SeoMeta();
-			$seoMeta->seoable_type = get_class( $model );
+			$seoMeta->seoable_type = $model->getMorphClass();
 			$seoMeta->seoable_id   = $model->getKey();
 		}
 

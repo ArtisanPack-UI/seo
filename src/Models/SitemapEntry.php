@@ -401,7 +401,7 @@ class SitemapEntry extends Model
 	{
 		return static::updateOrCreate(
 			[
-				'sitemapable_type' => get_class( $model ),
+				'sitemapable_type' => $model->getMorphClass(),
 				'sitemapable_id'   => $model->getKey(),
 			],
 			[

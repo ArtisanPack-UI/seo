@@ -149,7 +149,7 @@ class SitemapObserver
 		// Check if URL already exists for a different model
 		$existingEntry = SitemapEntry::where( 'url', $url )
 			->where( function ( $query ) use ( $model ): void {
-				$query->where( 'sitemapable_type', '!=', get_class( $model ) )
+				$query->where( 'sitemapable_type', '!=', $model->getMorphClass() )
 					->orWhere( 'sitemapable_id', '!=', $model->getKey() );
 			} )
 			->first();
@@ -161,7 +161,7 @@ class SitemapObserver
 
 		SitemapEntry::updateOrCreate(
 			[
-				'sitemapable_type' => get_class( $model ),
+				'sitemapable_type' => $model->getMorphClass(),
 				'sitemapable_id'   => $model->getKey(),
 			],
 			[
@@ -189,7 +189,7 @@ class SitemapObserver
 	protected function deleteSitemapEntry( Model $model ): void
 	{
 		SitemapEntry::query()
-			->where( 'sitemapable_type', get_class( $model ) )
+			->where( 'sitemapable_type', $model->getMorphClass() )
 			->where( 'sitemapable_id', $model->getKey() )
 			->delete();
 	}

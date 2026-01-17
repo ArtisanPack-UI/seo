@@ -95,7 +95,7 @@ trait HasSeo
 
 		if ( ! $this->seoMeta ) {
 			$this->seoMeta()->create( [
-				'seoable_type' => get_class( $this ),
+				'seoable_type' => $this->getMorphClass(),
 				'seoable_id'   => $this->getKey(),
 			] );
 
@@ -577,7 +577,7 @@ trait HasSeo
 			}
 
 			$this->sitemapEntry()->create( [
-				'sitemapable_type' => get_class( $this ),
+				'sitemapable_type' => $this->getMorphClass(),
 				'sitemapable_id'   => $this->getKey(),
 				'url'              => $url,
 				'type'             => $this->getSitemapType(),

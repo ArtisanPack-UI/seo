@@ -301,14 +301,51 @@ return [
 	| Hreflang / Multi-language Settings
 	|--------------------------------------------------------------------------
 	|
-	| Configuration for multi-language SEO support.
+	| Configuration for multi-language SEO support. Hreflang tags help search
+	| engines serve the correct language or regional URL to users.
+	|
+	| 'enabled' - Set to true to enable hreflang functionality.
+	| 'default_locale' - The primary locale, used for x-default if not explicitly set.
+	| 'supported_locales' - Array of locale codes available for selection.
+	|                       Leave empty to allow all common locales.
+	| 'auto_add_x_default' - Automatically add x-default pointing to default_locale URL.
+	|
+	| Locale format examples:
+	| - Language only: 'en', 'fr', 'de', 'es'
+	| - Language-Region: 'en-US', 'en-GB', 'fr-FR', 'es-MX'
+	| - x-default: Used for fallback/default language page
 	|
 	*/
 
 	'hreflang' => [
-		'enabled'           => false,
-		'default_locale'    => 'en',
-		'supported_locales' => [ 'en' ],
+		'enabled'            => false,
+		'default_locale'     => 'en',
+		'auto_add_x_default' => true,
+		'supported_locales'  => [
+			// Uncomment and customize the locales you need:
+			// 'en',
+			// 'en-US',
+			// 'en-GB',
+			// 'es',
+			// 'es-ES',
+			// 'es-MX',
+			// 'fr',
+			// 'fr-FR',
+			// 'fr-CA',
+			// 'de',
+			// 'de-DE',
+			// 'it',
+			// 'it-IT',
+			// 'pt',
+			// 'pt-BR',
+			// 'ja',
+			// 'zh',
+			// 'zh-CN',
+			// 'zh-TW',
+			// 'ko',
+			// 'ar',
+			// 'ru',
+		],
 	],
 
 	/*

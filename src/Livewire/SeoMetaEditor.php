@@ -444,7 +444,7 @@ class SeoMetaEditor extends Component
 			if ( null !== $this->seoMeta ) {
 				$this->seoMeta->update( $data );
 			} else {
-				$data['seoable_type'] = get_class( $this->model );
+				$data['seoable_type'] = $this->model->getMorphClass();
 				$data['seoable_id']   = $this->model->getKey();
 
 				$this->seoMeta = SeoMeta::create( $data );
@@ -455,7 +455,7 @@ class SeoMetaEditor extends Component
 			session()->flash( 'success', __( 'SEO settings saved successfully.' ) );
 		} catch ( Exception $e ) {
 			Log::error( 'Failed to save SEO settings', [
-				'model_type' => get_class( $this->model ),
+				'model_type' => $this->model->getMorphClass(),
 				'model_id'   => $this->model->getKey(),
 				'exception'  => $e->getMessage(),
 				'trace'      => $e->getTraceAsString(),
@@ -860,7 +860,7 @@ class SeoMetaEditor extends Component
 	protected function loadSeoMeta(): void
 	{
 		// Get or create the SeoMeta record
-		$this->seoMeta = SeoMeta::where( 'seoable_type', get_class( $this->model ) )
+		$this->seoMeta = SeoMeta::where( 'seoable_type', $this->model->getMorphClass() )
 			->where( 'seoable_id', $this->model->getKey() )
 			->first();
 

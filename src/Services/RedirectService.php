@@ -655,7 +655,7 @@ class RedirectService
 	 */
 	protected function trackCachedPath( string $cacheKey ): void
 	{
-		Cache::lock( self::CACHE_PATHS_KEY . ':lock', 5 )->block( 5, function () use ( $cacheKey ) {
+		Cache::lock( self::CACHE_PATHS_KEY . ':lock', 5 )->block( 5, function () use ( $cacheKey ): void {
 			$cachedPaths = Cache::get( self::CACHE_PATHS_KEY, [] );
 
 			if ( ! in_array( $cacheKey, $cachedPaths, true ) ) {
