@@ -17,8 +17,10 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\SEO\Models;
 
+use ArtisanPackUI\SEO\Services\MediaLibraryIntegration;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\Relations\MorphTo;
 use InvalidArgumentException;
 
@@ -133,6 +135,18 @@ class SeoMeta extends Model
 	public function seoable(): MorphTo
 	{
 		return $this->morphTo();
+	}
+
+	/**
+	 * Get the analysis cache for this SEO meta.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return HasOne<SeoAnalysisCache, SeoMeta>
+	 */
+	public function analysisCache(): HasOne
+	{
+		return $this->hasOne( SeoAnalysisCache::class, 'seo_meta_id' );
 	}
 
 	/**
@@ -253,6 +267,8 @@ class SeoMeta extends Model
 	/**
 	 * Get the effective Open Graph image URL.
 	 *
+	 * Uses the MediaLibraryIntegration service to get social-optimized images.
+	 *
 	 * @since 1.0.0
 	 *
 	 * @return string|null
@@ -260,10 +276,12 @@ class SeoMeta extends Model
 	public function getEffectiveOgImage(): ?string
 	{
 		// Check for media library integration
-		if ( null !== $this->og_image_id && class_exists( 'ArtisanPackUI\MediaLibrary\Models\Media' ) ) {
-			$media = \ArtisanPackUI\MediaLibrary\Models\Media::find( $this->og_image_id );
-			if ( null !== $media ) {
-				return $media->url;
+		if ( null !== $this->og_image_id ) {
+			$integration = app( MediaLibraryIntegration::class );
+			$url         = $integration->getSocialImageUrl( $this->og_image_id );
+
+			if ( null !== $url ) {
+				return $url;
 			}
 		}
 
@@ -284,6 +302,8 @@ class SeoMeta extends Model
 	/**
 	 * Get the effective Twitter Card image URL.
 	 *
+	 * Uses the MediaLibraryIntegration service to get social-optimized images.
+	 *
 	 * @since 1.0.0
 	 *
 	 * @return string|null
@@ -291,16 +311,78 @@ class SeoMeta extends Model
 	public function getEffectiveTwitterImage(): ?string
 	{
 		// Check for media library integration
-		if ( null !== $this->twitter_image_id && class_exists( 'ArtisanPackUI\MediaLibrary\Models\Media' ) ) {
-			$media = \ArtisanPackUI\MediaLibrary\Models\Media::find( $this->twitter_image_id );
-			if ( null !== $media ) {
-				return $media->url;
+		if ( null !== $this->twitter_image_id ) {
+			$integration = app( MediaLibraryIntegration::class );
+			$url         = $integration->getSocialImageUrl( $this->twitter_image_id );
+
+			if ( null !== $url ) {
+				return $url;
 			}
 		}
 
 		// Fall back to direct URL
 		if ( null !== $this->twitter_image && '' !== $this->twitter_image ) {
 			return $this->twitter_image;
+		}
+
+		// Fall back to OG image
+		return $this->getEffectiveOgImage();
+	}
+
+	/**
+	 * Get the effective Pinterest image URL.
+	 *
+	 * Uses the MediaLibraryIntegration service to get social-optimized images.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return string|null
+	 */
+	public function getEffectivePinterestImage(): ?string
+	{
+		// Check for media library integration
+		if ( null !== $this->pinterest_image_id ) {
+			$integration = app( MediaLibraryIntegration::class );
+			$url         = $integration->getSocialImageUrl( $this->pinterest_image_id );
+
+			if ( null !== $url ) {
+				return $url;
+			}
+		}
+
+		// Fall back to direct URL
+		if ( null !== $this->pinterest_image && '' !== $this->pinterest_image ) {
+			return $this->pinterest_image;
+		}
+
+		// Fall back to OG image
+		return $this->getEffectiveOgImage();
+	}
+
+	/**
+	 * Get the effective Slack image URL.
+	 *
+	 * Uses the MediaLibraryIntegration service to get social-optimized images.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return string|null
+	 */
+	public function getEffectiveSlackImage(): ?string
+	{
+		// Check for media library integration
+		if ( null !== $this->slack_image_id ) {
+			$integration = app( MediaLibraryIntegration::class );
+			$url         = $integration->getSocialImageUrl( $this->slack_image_id );
+
+			if ( null !== $url ) {
+				return $url;
+			}
+		}
+
+		// Fall back to direct URL
+		if ( null !== $this->slack_image && '' !== $this->slack_image ) {
+			return $this->slack_image;
 		}
 
 		// Fall back to OG image

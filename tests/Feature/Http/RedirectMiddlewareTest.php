@@ -64,7 +64,7 @@ beforeEach( function (): void {
 
 		// Fallback route to catch all GET requests and let middleware handle redirects.
 		// This ensures the middleware runs even for URLs that don't have explicit routes.
-		Route::fallback( function () {
+		Route::fallback( function (): void {
 			abort( 404 );
 		} );
 	} );

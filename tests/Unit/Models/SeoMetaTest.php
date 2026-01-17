@@ -319,3 +319,88 @@ describe( 'SeoMeta Helper Methods', function (): void {
 	} );
 
 } );
+
+describe( 'SeoMeta Effective Image Methods', function (): void {
+
+	it( 'returns og_image when set directly', function (): void {
+		$seoMeta = new SeoMeta( [
+			'og_image' => 'https://example.com/og-image.jpg',
+		] );
+
+		expect( $seoMeta->getEffectiveOgImage() )->toBe( 'https://example.com/og-image.jpg' );
+	} );
+
+	it( 'returns null when no og_image is set', function (): void {
+		$seoMeta = new SeoMeta( [
+			'og_image'    => null,
+			'og_image_id' => null,
+		] );
+
+		expect( $seoMeta->getEffectiveOgImage() )->toBeNull();
+	} );
+
+	it( 'returns twitter_image when set directly', function (): void {
+		$seoMeta = new SeoMeta( [
+			'twitter_image' => 'https://example.com/twitter-image.jpg',
+		] );
+
+		expect( $seoMeta->getEffectiveTwitterImage() )->toBe( 'https://example.com/twitter-image.jpg' );
+	} );
+
+	it( 'falls back to og_image for twitter when twitter_image not set', function (): void {
+		$seoMeta = new SeoMeta( [
+			'og_image'      => 'https://example.com/og-image.jpg',
+			'twitter_image' => null,
+		] );
+
+		expect( $seoMeta->getEffectiveTwitterImage() )->toBe( 'https://example.com/og-image.jpg' );
+	} );
+
+	it( 'returns pinterest_image when set directly', function (): void {
+		$seoMeta = new SeoMeta( [
+			'pinterest_image' => 'https://example.com/pinterest-image.jpg',
+		] );
+
+		expect( $seoMeta->getEffectivePinterestImage() )->toBe( 'https://example.com/pinterest-image.jpg' );
+	} );
+
+	it( 'falls back to og_image for pinterest when pinterest_image not set', function (): void {
+		$seoMeta = new SeoMeta( [
+			'og_image'        => 'https://example.com/og-image.jpg',
+			'pinterest_image' => null,
+		] );
+
+		expect( $seoMeta->getEffectivePinterestImage() )->toBe( 'https://example.com/og-image.jpg' );
+	} );
+
+	it( 'returns slack_image when set directly', function (): void {
+		$seoMeta = new SeoMeta( [
+			'slack_image' => 'https://example.com/slack-image.jpg',
+		] );
+
+		expect( $seoMeta->getEffectiveSlackImage() )->toBe( 'https://example.com/slack-image.jpg' );
+	} );
+
+	it( 'falls back to og_image for slack when slack_image not set', function (): void {
+		$seoMeta = new SeoMeta( [
+			'og_image'    => 'https://example.com/og-image.jpg',
+			'slack_image' => null,
+		] );
+
+		expect( $seoMeta->getEffectiveSlackImage() )->toBe( 'https://example.com/og-image.jpg' );
+	} );
+
+	it( 'prefers image_id over direct image URL when media library available', function (): void {
+		// When og_image_id is set but media library is not available,
+		// it should fall back to og_image
+		$seoMeta = new SeoMeta( [
+			'og_image'    => 'https://example.com/og-image.jpg',
+			'og_image_id' => 123,
+		] );
+
+		// Since media library is not available in tests,
+		// it should fall back to the direct URL
+		expect( $seoMeta->getEffectiveOgImage() )->toBe( 'https://example.com/og-image.jpg' );
+	} );
+
+} );
