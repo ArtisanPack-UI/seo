@@ -1,5 +1,4 @@
 <?php
-
 /**
  * Create seo_analysis_cache table migration.
  *
@@ -7,6 +6,9 @@
  *
  * @package    ArtisanPack_UI
  * @subpackage SEO
+ *
+ * @copyright  2026 Jacob Martella
+ * @license    MIT
  *
  * @since      1.0.0
  */

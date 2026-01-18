@@ -1,5 +1,4 @@
 <?php
-
 /**
  * SEO Package Configuration.
  *
@@ -7,6 +6,9 @@
  *
  * @package    ArtisanPack_UI
  * @subpackage SEO
+ *
+ * @copyright  2026 Jacob Martella
+ * @license    MIT
  *
  * @since      1.0.0
  */
@@ -87,8 +89,8 @@ return [
 	*/
 
 	'schema' => [
-		'enabled'      => true,
-		'organization' => [
+		'enabled'       => true,
+		'organization'  => [
 			'name'  => env( 'APP_NAME', 'Laravel' ),
 			'logo'  => null,
 			'url'   => env( 'APP_URL', '' ),
@@ -125,17 +127,17 @@ return [
 			// Register sitemap content providers here
 			// 'posts' => \App\Sitemap\PostSitemapProvider::class,
 		],
-		'types' => [
+		'types'             => [
 			'standard' => true,
 			'image'    => false,
 			'video'    => false,
 			'news'     => false,
 		],
-		'news' => [
+		'news'              => [
 			'types'        => [ 'article', 'post', 'news' ], // Content types for news sitemap
 			'max_age_days' => 2, // Google News only indexes last 2 days
 		],
-		'search_engines' => [
+		'search_engines'    => [
 			// Custom search engine ping URLs (default: Google and Bing)
 			// 'google' => 'https://www.google.com/ping?sitemap=%s',
 			// 'bing'   => 'https://www.bing.com/ping?sitemap=%s',
@@ -171,7 +173,7 @@ return [
 			'/admin',
 			'/api',
 		],
-		'allow' => [],
+		'allow'    => [],
 
 		/*
 		|--------------------------------------------------------------------------
@@ -289,7 +291,7 @@ return [
 			'internal_links'    => true,
 			'content_length'    => true,
 		],
-		'thresholds' => [
+		'thresholds'       => [
 			'min_word_count'      => 300,
 			'max_keyword_density' => 3.0,
 			'min_internal_links'  => 2,
@@ -336,7 +338,7 @@ return [
 	*/
 
 	'api' => [
-		'enabled'    => true,
+		'enabled'    => false,
 		'prefix'     => 'api/seo',
 		'middleware' => [ 'api', 'auth:sanctum' ],
 		'rate_limit' => 60, // Requests per minute

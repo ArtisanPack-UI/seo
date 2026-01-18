@@ -8,6 +8,10 @@
  * @package    ArtisanPack_UI
  * @subpackage SEO
  *
+ * @author     Jacob Martella <me@jacobmartella.com>
+ * @copyright  2026 Jacob Martella
+ * @license    MIT
+ *
  * @since      1.0.0
  */
 

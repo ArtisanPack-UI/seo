@@ -1,5 +1,4 @@
 <?php
-
 /**
  * HandleRedirects Middleware.
  *
@@ -9,6 +8,8 @@
  * @subpackage SEO
  *
  * @author     Jacob Martella <me@jacobmartella.com>
+ * @copyright  2026 Jacob Martella
+ * @license    MIT
  *
  * @since      1.0.0
  */
@@ -39,12 +40,16 @@ class HandleRedirects
 	/**
 	 * The redirect service instance.
 	 *
+	 * @since 1.0.0
+	 *
 	 * @var RedirectService
 	 */
 	protected RedirectService $redirectService;
 
 	/**
 	 * Track visited paths to prevent infinite redirect loops.
+	 *
+	 * @since 1.0.0
 	 *
 	 * @var array<string>
 	 */
