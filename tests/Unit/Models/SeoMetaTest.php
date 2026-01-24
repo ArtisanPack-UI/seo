@@ -1,0 +1,406 @@
+<?php
+
+/**
+ * SeoMeta Model Tests.
+ *
+ * Unit tests for the SeoMeta Eloquent model.
+ *
+ * @package    ArtisanPack_UI
+ * @subpackage SEO
+ *
+ * @since      1.0.0
+ */
+
+declare( strict_types=1 );
+
+use ArtisanPackUI\SEO\Models\SeoMeta;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+
+uses( RefreshDatabase::class );
+
+beforeEach( function (): void {
+	// Run the migration
+	$this->artisan( 'migrate', [ '--path' => realpath( __DIR__ . '/../../../database/migrations' ) ] );
+} );
+
+describe( 'SeoMeta Model', function (): void {
+
+	it( 'can create a seo meta record', function (): void {
+		$seoMeta = SeoMeta::create( [
+			'seoable_type'     => 'App\Models\Page',
+			'seoable_id'       => 1,
+			'meta_title'       => 'Test Page Title',
+			'meta_description' => 'This is a test description for SEO purposes.',
+		] );
+
+		expect( $seoMeta )->toBeInstanceOf( SeoMeta::class )
+			->and( $seoMeta->meta_title )->toBe( 'Test Page Title' )
+			->and( $seoMeta->meta_description )->toBe( 'This is a test description for SEO purposes.' );
+	} );
+
+	it( 'casts boolean fields correctly', function (): void {
+		$seoMeta = SeoMeta::create( [
+			'seoable_type'         => 'App\Models\Page',
+			'seoable_id'           => 1,
+			'no_index'             => true,
+			'no_follow'            => true,
+			'exclude_from_sitemap' => true,
+		] );
+
+		expect( $seoMeta->no_index )->toBeTrue()
+			->and( $seoMeta->no_follow )->toBeTrue()
+			->and( $seoMeta->exclude_from_sitemap )->toBeTrue();
+	} );
+
+	it( 'casts JSON fields correctly', function (): void {
+		$schemaMarkup       = [ '@type' => 'Article', 'headline' => 'Test' ];
+		$secondaryKeywords  = [ 'keyword1', 'keyword2', 'keyword3' ];
+		$hreflang           = [ 'en' => 'https://example.com/en', 'es' => 'https://example.com/es' ];
+
+		$seoMeta = SeoMeta::create( [
+			'seoable_type'       => 'App\Models\Page',
+			'seoable_id'         => 1,
+			'schema_markup'      => $schemaMarkup,
+			'secondary_keywords' => $secondaryKeywords,
+			'hreflang'           => $hreflang,
+		] );
+
+		// Refresh from database
+		$seoMeta->refresh();
+
+		expect( $seoMeta->schema_markup )->toBe( $schemaMarkup )
+			->and( $seoMeta->secondary_keywords )->toBe( $secondaryKeywords )
+			->and( $seoMeta->hreflang )->toBe( $hreflang );
+	} );
+
+	it( 'has correct default values', function (): void {
+		$seoMeta = SeoMeta::create( [
+			'seoable_type' => 'App\Models\Page',
+			'seoable_id'   => 1,
+		] );
+
+		// Refresh from database to get default values
+		$seoMeta->refresh();
+
+		expect( $seoMeta->no_index )->toBeFalse()
+			->and( $seoMeta->no_follow )->toBeFalse()
+			->and( $seoMeta->exclude_from_sitemap )->toBeFalse()
+			->and( $seoMeta->og_type )->toBe( 'website' )
+			->and( $seoMeta->twitter_card )->toBe( 'summary_large_image' )
+			->and( (string) $seoMeta->sitemap_priority )->toBe( '0.5' )
+			->and( $seoMeta->sitemap_changefreq )->toBe( 'weekly' );
+	} );
+
+} );
+
+describe( 'SeoMeta Scopes', function (): void {
+
+	beforeEach( function (): void {
+		// Create test records
+		SeoMeta::create( [
+			'seoable_type'         => 'App\Models\Page',
+			'seoable_id'           => 1,
+			'no_index'             => false,
+			'focus_keyword'        => 'test keyword',
+			'exclude_from_sitemap' => false,
+			'schema_type'          => 'Article',
+		] );
+
+		SeoMeta::create( [
+			'seoable_type'         => 'App\Models\Page',
+			'seoable_id'           => 2,
+			'no_index'             => true,
+			'focus_keyword'        => null,
+			'exclude_from_sitemap' => true,
+			'schema_type'          => 'WebPage',
+		] );
+
+		SeoMeta::create( [
+			'seoable_type'         => 'App\Models\Post',
+			'seoable_id'           => 1,
+			'no_index'             => false,
+			'focus_keyword'        => 'another keyword',
+			'exclude_from_sitemap' => false,
+			'schema_type'          => 'Article',
+		] );
+	} );
+
+	it( 'filters indexable entries', function (): void {
+		$indexable = SeoMeta::indexable()->get();
+
+		expect( $indexable )->toHaveCount( 2 )
+			->and( $indexable->pluck( 'no_index' )->unique()->toArray() )->toBe( [ false ] );
+	} );
+
+	it( 'filters entries with focus keyword', function (): void {
+		$withKeyword = SeoMeta::withFocusKeyword()->get();
+
+		expect( $withKeyword )->toHaveCount( 2 )
+			->and( $withKeyword->pluck( 'focus_keyword' )->filter()->count() )->toBe( 2 );
+	} );
+
+	it( 'filters entries in sitemap', function (): void {
+		$inSitemap = SeoMeta::inSitemap()->get();
+
+		expect( $inSitemap )->toHaveCount( 2 )
+			->and( $inSitemap->pluck( 'exclude_from_sitemap' )->unique()->toArray() )->toBe( [ false ] );
+	} );
+
+	it( 'filters by schema type', function (): void {
+		$articles = SeoMeta::withSchemaType( 'Article' )->get();
+
+		expect( $articles )->toHaveCount( 2 )
+			->and( $articles->pluck( 'schema_type' )->unique()->toArray() )->toBe( [ 'Article' ] );
+	} );
+
+	it( 'filters by seoable type', function (): void {
+		$pages = SeoMeta::forType( 'App\Models\Page' )->get();
+
+		expect( $pages )->toHaveCount( 2 )
+			->and( $pages->pluck( 'seoable_type' )->unique()->toArray() )->toBe( [ 'App\Models\Page' ] );
+	} );
+
+} );
+
+describe( 'SeoMeta Helper Methods', function (): void {
+
+	it( 'returns effective title from meta_title', function (): void {
+		$seoMeta = new SeoMeta( [
+			'meta_title' => 'Custom SEO Title',
+		] );
+
+		expect( $seoMeta->getEffectiveTitle() )->toBe( 'Custom SEO Title' );
+	} );
+
+	it( 'returns app name when meta_title is empty', function (): void {
+		$seoMeta = new SeoMeta( [
+			'meta_title' => null,
+		] );
+
+		config( [ 'app.name' => 'Test App' ] );
+
+		expect( $seoMeta->getEffectiveTitle() )->toBe( 'Test App' );
+	} );
+
+	it( 'returns effective description from meta_description', function (): void {
+		$seoMeta = new SeoMeta( [
+			'meta_description' => 'Custom SEO description.',
+		] );
+
+		expect( $seoMeta->getEffectiveDescription() )->toBe( 'Custom SEO description.' );
+	} );
+
+	it( 'returns null when meta_description is empty', function (): void {
+		$seoMeta = new SeoMeta( [
+			'meta_description' => null,
+		] );
+
+		expect( $seoMeta->getEffectiveDescription() )->toBeNull();
+	} );
+
+	it( 'generates correct robots content for index follow', function (): void {
+		$seoMeta = new SeoMeta( [
+			'no_index'  => false,
+			'no_follow' => false,
+		] );
+
+		expect( $seoMeta->getRobotsContent() )->toBe( 'index, follow' );
+	} );
+
+	it( 'generates correct robots content for noindex', function (): void {
+		$seoMeta = new SeoMeta( [
+			'no_index'  => true,
+			'no_follow' => false,
+		] );
+
+		expect( $seoMeta->getRobotsContent() )->toBe( 'noindex' );
+	} );
+
+	it( 'generates correct robots content for noindex nofollow', function (): void {
+		$seoMeta = new SeoMeta( [
+			'no_index'  => true,
+			'no_follow' => true,
+		] );
+
+		expect( $seoMeta->getRobotsContent() )->toBe( 'noindex, nofollow' );
+	} );
+
+	it( 'includes additional robots meta directives', function (): void {
+		$seoMeta = new SeoMeta( [
+			'no_index'    => true,
+			'no_follow'   => false,
+			'robots_meta' => 'noarchive',
+		] );
+
+		expect( $seoMeta->getRobotsContent() )->toBe( 'noindex, noarchive' );
+	} );
+
+	it( 'correctly identifies indexable status', function (): void {
+		$indexable   = new SeoMeta( [ 'no_index' => false ] );
+		$noIndexable = new SeoMeta( [ 'no_index' => true ] );
+
+		expect( $indexable->isIndexable() )->toBeTrue()
+			->and( $noIndexable->isIndexable() )->toBeFalse();
+	} );
+
+	it( 'correctly identifies followable status', function (): void {
+		$followable   = new SeoMeta( [ 'no_follow' => false ] );
+		$noFollowable = new SeoMeta( [ 'no_follow' => true ] );
+
+		expect( $followable->isFollowable() )->toBeTrue()
+			->and( $noFollowable->isFollowable() )->toBeFalse();
+	} );
+
+	it( 'correctly determines sitemap inclusion', function (): void {
+		$includable = new SeoMeta( [
+			'no_index'             => false,
+			'exclude_from_sitemap' => false,
+		] );
+
+		$excludedByIndex = new SeoMeta( [
+			'no_index'             => true,
+			'exclude_from_sitemap' => false,
+		] );
+
+		$excludedManually = new SeoMeta( [
+			'no_index'             => false,
+			'exclude_from_sitemap' => true,
+		] );
+
+		expect( $includable->shouldIncludeInSitemap() )->toBeTrue()
+			->and( $excludedByIndex->shouldIncludeInSitemap() )->toBeFalse()
+			->and( $excludedManually->shouldIncludeInSitemap() )->toBeFalse();
+	} );
+
+	it( 'returns all keywords combined', function (): void {
+		$seoMeta = new SeoMeta( [
+			'focus_keyword'      => 'main keyword',
+			'secondary_keywords' => [ 'secondary1', 'secondary2' ],
+		] );
+
+		$keywords = $seoMeta->getAllKeywords();
+
+		expect( $keywords )->toBe( [ 'main keyword', 'secondary1', 'secondary2' ] );
+	} );
+
+	it( 'returns empty array when no keywords', function (): void {
+		$seoMeta = new SeoMeta( [
+			'focus_keyword'      => null,
+			'secondary_keywords' => null,
+		] );
+
+		expect( $seoMeta->getAllKeywords() )->toBe( [] );
+	} );
+
+	it( 'detects Open Graph data presence', function (): void {
+		$withOg    = new SeoMeta( [ 'og_title' => 'OG Title' ] );
+		$withoutOg = new SeoMeta( [] );
+
+		expect( $withOg->hasOpenGraphData() )->toBeTrue()
+			->and( $withoutOg->hasOpenGraphData() )->toBeFalse();
+	} );
+
+	it( 'detects Twitter Card data presence', function (): void {
+		$withTwitter    = new SeoMeta( [ 'twitter_title' => 'Twitter Title' ] );
+		$withoutTwitter = new SeoMeta( [] );
+
+		expect( $withTwitter->hasTwitterCardData() )->toBeTrue()
+			->and( $withoutTwitter->hasTwitterCardData() )->toBeFalse();
+	} );
+
+	it( 'detects schema markup presence', function (): void {
+		$withSchemaType   = new SeoMeta( [ 'schema_type' => 'Article' ] );
+		$withSchemaMarkup = new SeoMeta( [ 'schema_markup' => [ '@type' => 'Article' ] ] );
+		$withoutSchema    = new SeoMeta( [] );
+
+		expect( $withSchemaType->hasSchemaMarkup() )->toBeTrue()
+			->and( $withSchemaMarkup->hasSchemaMarkup() )->toBeTrue()
+			->and( $withoutSchema->hasSchemaMarkup() )->toBeFalse();
+	} );
+
+} );
+
+describe( 'SeoMeta Effective Image Methods', function (): void {
+
+	it( 'returns og_image when set directly', function (): void {
+		$seoMeta = new SeoMeta( [
+			'og_image' => 'https://example.com/og-image.jpg',
+		] );
+
+		expect( $seoMeta->getEffectiveOgImage() )->toBe( 'https://example.com/og-image.jpg' );
+	} );
+
+	it( 'returns null when no og_image is set', function (): void {
+		$seoMeta = new SeoMeta( [
+			'og_image'    => null,
+			'og_image_id' => null,
+		] );
+
+		expect( $seoMeta->getEffectiveOgImage() )->toBeNull();
+	} );
+
+	it( 'returns twitter_image when set directly', function (): void {
+		$seoMeta = new SeoMeta( [
+			'twitter_image' => 'https://example.com/twitter-image.jpg',
+		] );
+
+		expect( $seoMeta->getEffectiveTwitterImage() )->toBe( 'https://example.com/twitter-image.jpg' );
+	} );
+
+	it( 'falls back to og_image for twitter when twitter_image not set', function (): void {
+		$seoMeta = new SeoMeta( [
+			'og_image'      => 'https://example.com/og-image.jpg',
+			'twitter_image' => null,
+		] );
+
+		expect( $seoMeta->getEffectiveTwitterImage() )->toBe( 'https://example.com/og-image.jpg' );
+	} );
+
+	it( 'returns pinterest_image when set directly', function (): void {
+		$seoMeta = new SeoMeta( [
+			'pinterest_image' => 'https://example.com/pinterest-image.jpg',
+		] );
+
+		expect( $seoMeta->getEffectivePinterestImage() )->toBe( 'https://example.com/pinterest-image.jpg' );
+	} );
+
+	it( 'falls back to og_image for pinterest when pinterest_image not set', function (): void {
+		$seoMeta = new SeoMeta( [
+			'og_image'        => 'https://example.com/og-image.jpg',
+			'pinterest_image' => null,
+		] );
+
+		expect( $seoMeta->getEffectivePinterestImage() )->toBe( 'https://example.com/og-image.jpg' );
+	} );
+
+	it( 'returns slack_image when set directly', function (): void {
+		$seoMeta = new SeoMeta( [
+			'slack_image' => 'https://example.com/slack-image.jpg',
+		] );
+
+		expect( $seoMeta->getEffectiveSlackImage() )->toBe( 'https://example.com/slack-image.jpg' );
+	} );
+
+	it( 'falls back to og_image for slack when slack_image not set', function (): void {
+		$seoMeta = new SeoMeta( [
+			'og_image'    => 'https://example.com/og-image.jpg',
+			'slack_image' => null,
+		] );
+
+		expect( $seoMeta->getEffectiveSlackImage() )->toBe( 'https://example.com/og-image.jpg' );
+	} );
+
+	it( 'prefers image_id over direct image URL when media library available', function (): void {
+		// When og_image_id is set but media library is not available,
+		// it should fall back to og_image
+		$seoMeta = new SeoMeta( [
+			'og_image'    => 'https://example.com/og-image.jpg',
+			'og_image_id' => 123,
+		] );
+
+		// Since media library is not available in tests,
+		// it should fall back to the direct URL
+		expect( $seoMeta->getEffectiveOgImage() )->toBe( 'https://example.com/og-image.jpg' );
+	} );
+
+} );
