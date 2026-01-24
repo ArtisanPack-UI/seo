@@ -1,2 +1,6 @@
 vendor/
 .idea/
+.php-cs-fixer.cache
+
+# Claude Code local settings (contains user-specific permissions)
+.claude/settings.local.json

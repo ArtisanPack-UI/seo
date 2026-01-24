@@ -1,0 +1,8 @@
+{
+  "_comment": "Copy this file to settings.local.json and customize permissions as needed. For security, prefer narrow read-only patterns over broad write access.",
+  "permissions": {
+    "allow": [
+      "Bash(git remote -v)"
+    ]
+  }
+}
