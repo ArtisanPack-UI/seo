@@ -392,6 +392,6 @@ The robots.txt generation doesn't dispatch events by default, but you can hook i
 
 ## Next Steps
 
-- [XML Sitemaps](./sitemaps.md) - Sitemap configuration
-- [Configuration](../installation/configuration.md) - Full config reference
-- [Artisan Commands](./artisan-commands.md) - CLI tools
+- [XML Sitemaps](Sitemaps) - Sitemap configuration
+- [Configuration](Installation-Configuration) - Full config reference
+- [Artisan Commands](Artisan-Commands) - CLI tools

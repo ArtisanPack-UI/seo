@@ -301,6 +301,6 @@ When queued, the panel shows a loading state until complete.
 
 ## Next Steps
 
-- [SEO Analysis](../advanced/analysis.md) - Analysis documentation
-- [SEO Meta Editor](./seo-meta-editor.md) - Main SEO editor
-- [Configuration](../installation/configuration.md) - Analyzer settings
+- [SEO Analysis](Advanced-Analysis) - Analysis documentation
+- [SEO Meta Editor](Seo-Meta-Editor) - Main SEO editor
+- [Configuration](Installation-Configuration) - Analyzer settings

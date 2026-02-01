@@ -235,7 +235,7 @@ Or manual refresh:
 
 ## Next Steps
 
-- [SEO Meta Editor](./seo-meta-editor.md) - Edit SEO settings
-- [Redirect Manager](./redirect-manager.md) - Manage redirects
-- [Analysis Panel](./analysis-panel.md) - Content analysis
-- [Sitemaps](../advanced/sitemaps.md) - Sitemap documentation
+- [SEO Meta Editor](Seo-Meta-Editor) - Edit SEO settings
+- [Redirect Manager](Redirect-Manager) - Manage redirects
+- [Analysis Panel](Analysis-Panel) - Content analysis
+- [Sitemaps](Advanced-Sitemaps) - Sitemap documentation

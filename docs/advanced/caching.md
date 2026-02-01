@@ -378,6 +378,6 @@ Event::listen(SeoCacheCleared::class, function ($event) {
 
 ## Next Steps
 
-- [Configuration](../installation/configuration.md) - Full configuration reference
-- [Artisan Commands](./artisan-commands.md) - CLI tools
-- [Performance Tips](../troubleshooting.md) - Troubleshooting
+- [Configuration](Installation-Configuration) - Full configuration reference
+- [Artisan Commands](Artisan-Commands) - CLI tools
+- [Performance Tips](Troubleshooting) - Troubleshooting

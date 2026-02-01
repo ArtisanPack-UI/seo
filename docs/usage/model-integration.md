@@ -497,7 +497,7 @@ class Product extends Model
 
 ## Next Steps
 
-- [Meta Tags](./meta-tags.md) - Meta tag management
-- [Social Media](./social-media.md) - Open Graph and Twitter Cards
-- [Schema.org](./schema.md) - Structured data
-- [Models Reference](../api/models.md) - SeoMeta model documentation
+- [Meta Tags](Meta-Tags) - Meta tag management
+- [Social Media](Social-Media) - Open Graph and Twitter Cards
+- [Schema.org](Schema) - Structured data
+- [Models Reference](Api-Models) - SeoMeta model documentation

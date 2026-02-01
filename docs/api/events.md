@@ -379,6 +379,6 @@ SeoMeta::withoutEvents(function () {
 
 ## Next Steps
 
-- [Services](./services.md) - Service documentation
-- [Helper Functions](./helpers.md) - Helper reference
-- [Models](./models.md) - Model reference
+- [Services](Services) - Service documentation
+- [Helper Functions](Helpers) - Helper reference
+- [Models](Models) - Model reference

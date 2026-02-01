@@ -346,7 +346,7 @@ php artisan seo:generate-sitemap -vvv
 
 ## Next Steps
 
-- [Sitemaps](./sitemaps.md) - Sitemap configuration
-- [Redirects](./redirects.md) - Redirect management
-- [Caching](./caching.md) - Cache configuration
-- [Configuration](../installation/configuration.md) - Full config reference
+- [Sitemaps](Sitemaps) - Sitemap configuration
+- [Redirects](Redirects) - Redirect management
+- [Caching](Caching) - Cache configuration
+- [Configuration](Installation-Configuration) - Full config reference

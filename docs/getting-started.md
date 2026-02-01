@@ -94,12 +94,12 @@ Or use the Livewire SEO Meta Editor component in your admin panel:
 
 Now that you have the basics set up, explore these topics:
 
-- [Meta Tags](./usage/meta-tags.md) - Learn about meta tag customization and fallbacks
-- [Social Media Optimization](./usage/social-media.md) - Configure Open Graph and Twitter Cards
-- [Schema.org / JSON-LD](./usage/schema.md) - Add structured data to your pages
-- [Blade Components](./components/blade-components.md) - All available view components
-- [SEO Meta Editor](./components/seo-meta-editor.md) - Full-featured admin component
-- [Configuration](./installation/configuration.md) - Customize default settings
+- [Meta Tags](Usage-Meta-Tags) - Learn about meta tag customization and fallbacks
+- [Social Media Optimization](Usage-Social-Media) - Configure Open Graph and Twitter Cards
+- [Schema.org / JSON-LD](Usage-Schema) - Add structured data to your pages
+- [Blade Components](Components-Blade-Components) - All available view components
+- [SEO Meta Editor](Components-Seo-Meta-Editor) - Full-featured admin component
+- [Configuration](Installation-Configuration) - Customize default settings
 
 ## Quick Reference
 

@@ -12,37 +12,37 @@ This section covers advanced features of ArtisanPack UI SEO, including URL redir
 
 Manage URL redirects with support for exact matching, regex patterns, and wildcards. Track redirect hits and prevent redirect loops.
 
-[Learn more about URL Redirects →](./advanced/redirects.md)
+[Learn more about URL Redirects →](Advanced-Redirects)
 
 ### XML Sitemaps
 
 Generate comprehensive XML sitemaps including standard sitemaps, image sitemaps, video sitemaps, and news sitemaps. Automatic sitemap index generation for large sites.
 
-[Learn more about XML Sitemaps →](./advanced/sitemaps.md)
+[Learn more about XML Sitemaps →](Advanced-Sitemaps)
 
 ### Dynamic Robots.txt
 
 Generate robots.txt dynamically with global rules, bot-specific directives, and automatic sitemap inclusion.
 
-[Learn more about Robots.txt →](./advanced/robots.md)
+[Learn more about Robots.txt →](Advanced-Robots)
 
 ### SEO Analysis
 
 Analyze content for SEO quality with 8 built-in analyzers covering readability, keyword density, meta tags, headings, and more.
 
-[Learn more about SEO Analysis →](./advanced/analysis.md)
+[Learn more about SEO Analysis →](Advanced-Analysis)
 
 ### Caching
 
 Optimize performance with comprehensive caching for meta tags, analysis results, redirects, and sitemaps.
 
-[Learn more about Caching →](./advanced/caching.md)
+[Learn more about Caching →](Advanced-Caching)
 
 ### Artisan Commands
 
 Command-line tools for sitemap generation, sitemap submission, and cache management.
 
-[Learn more about Artisan Commands →](./advanced/artisan-commands.md)
+[Learn more about Artisan Commands →](Advanced-Artisan-Commands)
 
 ## Quick Reference
 
@@ -153,9 +153,9 @@ Schedule::command('seo:submit-sitemap')->weekly();
 
 ## Next Steps
 
-- [URL Redirects](./advanced/redirects.md) - Redirect management
-- [XML Sitemaps](./advanced/sitemaps.md) - Sitemap generation
-- [Robots.txt](./advanced/robots.md) - Robots.txt configuration
-- [SEO Analysis](./advanced/analysis.md) - Content analysis
-- [Caching](./advanced/caching.md) - Cache optimization
-- [Artisan Commands](./advanced/artisan-commands.md) - CLI tools
+- [URL Redirects](Advanced-Redirects) - Redirect management
+- [XML Sitemaps](Advanced-Sitemaps) - Sitemap generation
+- [Robots.txt](Advanced-Robots) - Robots.txt configuration
+- [SEO Analysis](Advanced-Analysis) - Content analysis
+- [Caching](Advanced-Caching) - Cache optimization
+- [Artisan Commands](Advanced-Artisan-Commands) - CLI tools

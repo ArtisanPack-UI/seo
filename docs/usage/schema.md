@@ -405,7 +405,7 @@ Validate your schema markup using:
 
 ## Next Steps
 
-- [Meta Tags](./meta-tags.md) - Basic meta tag management
-- [Social Media](./social-media.md) - Open Graph and Twitter Cards
-- [Hreflang](./hreflang.md) - Multi-language support
-- [Configuration](../installation/configuration.md) - Schema settings
+- [Meta Tags](Meta-Tags) - Basic meta tag management
+- [Social Media](Social-Media) - Open Graph and Twitter Cards
+- [Hreflang](Hreflang) - Multi-language support
+- [Configuration](Installation-Configuration) - Schema settings

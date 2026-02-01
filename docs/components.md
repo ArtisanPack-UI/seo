@@ -19,7 +19,7 @@ Blade components render SEO tags in your HTML `<head>` section:
 | `<x-seo-schema>` | Schema.org JSON-LD |
 | `<x-seo-hreflang>` | Hreflang link tags |
 
-[Learn more about Blade Components →](./components/blade-components.md)
+[Learn more about Blade Components →](Components-Blade-Components)
 
 ## Livewire Components
 
@@ -74,7 +74,7 @@ These components are designed for rendering SEO tags in your public-facing pages
 - Can be used without a model for static pages
 - Lightweight with no JavaScript dependencies
 
-[View Blade Components Documentation →](./components/blade-components.md)
+[View Blade Components Documentation →](Components-Blade-Components)
 
 ### Admin Components (Livewire)
 
@@ -85,7 +85,7 @@ These components provide full admin functionality:
 - Preview capabilities
 - Requires Livewire 3.x
 
-[View SEO Meta Editor Documentation →](./components/seo-meta-editor.md)
+[View SEO Meta Editor Documentation →](Components-Seo-Meta-Editor)
 
 ## Installation Requirements
 
@@ -142,8 +142,8 @@ class CustomSeoMetaEditor extends BaseSeoMetaEditor
 
 ## Next Steps
 
-- [Blade Components](./components/blade-components.md) - Complete Blade component reference
-- [SEO Meta Editor](./components/seo-meta-editor.md) - Main admin editing component
-- [Redirect Manager](./components/redirect-manager.md) - URL redirect management
-- [SEO Dashboard](./components/seo-dashboard.md) - Dashboard component
-- [Analysis Panel](./components/analysis-panel.md) - SEO analysis results
+- [Blade Components](Components-Blade-Components) - Complete Blade component reference
+- [SEO Meta Editor](Components-Seo-Meta-Editor) - Main admin editing component
+- [Redirect Manager](Components-Redirect-Manager) - URL redirect management
+- [SEO Dashboard](Components-Seo-Dashboard) - Dashboard component
+- [Analysis Panel](Components-Analysis-Panel) - SEO analysis results

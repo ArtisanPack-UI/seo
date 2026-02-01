@@ -407,6 +407,6 @@ Event::listen(SitemapSubmitted::class, function ($event) {
 
 ## Next Steps
 
-- [Robots.txt](./robots.md) - Configure robots.txt
-- [Artisan Commands](./artisan-commands.md) - CLI reference
-- [Caching](./caching.md) - Cache configuration
+- [Robots.txt](Robots) - Configure robots.txt
+- [Artisan Commands](Artisan-Commands) - CLI reference
+- [Caching](Caching) - Cache configuration

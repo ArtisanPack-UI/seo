@@ -17,7 +17,7 @@ This section documents the programmatic API for ArtisanPack UI SEO, including mo
 | `SitemapEntry` | Sitemap entry tracking |
 | `SeoAnalysisCache` | Cached analysis results |
 
-[View Models Documentation →](./api/models.md)
+[View Models Documentation →](Api-Models)
 
 ### Services
 
@@ -34,7 +34,7 @@ This section documents the programmatic API for ArtisanPack UI SEO, including mo
 | `AnalysisService` | SEO content analysis |
 | `CacheService` | Cache management |
 
-[View Services Documentation →](./api/services.md)
+[View Services Documentation →](Api-Services)
 
 ### Helper Functions
 
@@ -47,7 +47,7 @@ seoIsEnabled($feature)   // Check feature status
 seoConfig($key)          // Get config value
 ```
 
-[View Helper Functions Documentation →](./api/helpers.md)
+[View Helper Functions Documentation →](Api-Helpers)
 
 ### Events
 
@@ -58,7 +58,7 @@ seoConfig($key)          // Get config value
 | `SitemapGenerated` | After sitemap generation |
 | `RedirectHit` | When redirect is triggered |
 
-[View Events Documentation →](./api/events.md)
+[View Events Documentation →](Api-Events)
 
 ## Facades
 
@@ -171,7 +171,7 @@ InvalidConfigurationException::class;
 
 ## Next Steps
 
-- [Models](./api/models.md) - Model reference
-- [Services](./api/services.md) - Service documentation
-- [Helper Functions](./api/helpers.md) - Helper reference
-- [Events](./api/events.md) - Event reference
+- [Models](Api-Models) - Model reference
+- [Services](Api-Services) - Service documentation
+- [Helper Functions](Api-Helpers) - Helper reference
+- [Events](Api-Events) - Event reference

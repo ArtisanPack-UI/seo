@@ -290,7 +290,7 @@ $count = $hreflangService->getHreflangCount($post);
 
 ## Next Steps
 
-- [Meta Tags](./meta-tags.md) - Basic meta tag management
-- [Model Integration](./model-integration.md) - HasSeo trait reference
-- [Configuration](../installation/configuration.md) - Hreflang settings
-- [Troubleshooting](../troubleshooting.md) - Common issues and solutions
+- [Meta Tags](Meta-Tags) - Basic meta tag management
+- [Model Integration](Model-Integration) - HasSeo trait reference
+- [Configuration](Installation-Configuration) - Hreflang settings
+- [Troubleshooting](Troubleshooting) - Common issues and solutions

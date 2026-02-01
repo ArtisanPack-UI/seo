@@ -10,7 +10,7 @@ Common questions about ArtisanPack UI SEO.
 
 ### What Laravel versions are supported?
 
-ArtisanPack UI SEO supports Laravel 10, 11, and 12. See the [Requirements](./installation/requirements.md) page for full details.
+ArtisanPack UI SEO supports Laravel 10, 11, and 12. See the [Requirements](Installation-Requirements) page for full details.
 
 ### Do I need Livewire to use this package?
 
@@ -242,7 +242,7 @@ $page->updateSeoMeta([
 3. **Cache sitemaps** - Set longer TTL for sitemaps
 4. **Warm caches** - Pre-populate after deployments
 
-See [Caching](./advanced/caching.md) for details.
+See [Caching](Advanced-Caching) for details.
 
 ### How do I clear the cache?
 
@@ -319,7 +319,7 @@ We recommend using only one SEO package to avoid conflicts. If migrating, disabl
 
 ## Troubleshooting
 
-For common issues and solutions, see the [Troubleshooting](./troubleshooting.md) guide.
+For common issues and solutions, see the [Troubleshooting](Troubleshooting) guide.
 
 ## Getting Help
 

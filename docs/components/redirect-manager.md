@@ -251,6 +251,6 @@ The export button generates a CSV with all redirect data.
 
 ## Next Steps
 
-- [URL Redirects](../advanced/redirects.md) - Redirect documentation
-- [SEO Meta Editor](./seo-meta-editor.md) - Main SEO editor
-- [SEO Dashboard](./seo-dashboard.md) - Overview dashboard
+- [URL Redirects](Advanced-Redirects) - Redirect documentation
+- [SEO Meta Editor](Seo-Meta-Editor) - Main SEO editor
+- [SEO Dashboard](Seo-Dashboard) - Overview dashboard

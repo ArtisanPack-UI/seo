@@ -310,7 +310,7 @@ Display analysis results with the Livewire component:
 <livewire:seo-analysis-panel :model="$post" />
 ```
 
-[See Analysis Panel Component →](../components/analysis-panel.md)
+[See Analysis Panel Component →](Components-Analysis-Panel)
 
 ## Queue Processing
 
@@ -392,6 +392,6 @@ Each analyzer returns a score from 0-100.
 
 ## Next Steps
 
-- [Analysis Panel Component](../components/analysis-panel.md) - Display results
-- [Configuration](../installation/configuration.md) - Full config reference
-- [Caching](./caching.md) - Cache configuration
+- [Analysis Panel Component](Components-Analysis-Panel) - Display results
+- [Configuration](Installation-Configuration) - Full config reference
+- [Caching](Caching) - Cache configuration

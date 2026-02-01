@@ -348,7 +348,7 @@ Features:
 - View statistics
 - Bulk actions
 
-[See Redirect Manager Component →](../components/redirect-manager.md)
+[See Redirect Manager Component →](Components-Redirect-Manager)
 
 ## Events
 
@@ -372,6 +372,6 @@ Event::listen(RedirectHit::class, function ($event) {
 
 ## Next Steps
 
-- [Redirect Manager Component](../components/redirect-manager.md) - Admin UI
-- [XML Sitemaps](./sitemaps.md) - Sitemap generation
-- [Events](../api/events.md) - Event reference
+- [Redirect Manager Component](Components-Redirect-Manager) - Admin UI
+- [XML Sitemaps](Sitemaps) - Sitemap generation
+- [Events](Api-Events) - Event reference

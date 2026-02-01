@@ -297,6 +297,6 @@ SEO_ANALYSIS_ENABLED=true
 
 ## Next Steps
 
-- [Installation](./installation.md) - Complete installation guide
-- [Meta Tags](../usage/meta-tags.md) - Learn about meta tag management
-- [Quick Start Guide](../getting-started.md) - Get started quickly
+- [Installation](Installation) - Complete installation guide
+- [Meta Tags](Usage-Meta-Tags) - Learn about meta tag management
+- [Quick Start Guide](Getting-Started) - Get started quickly

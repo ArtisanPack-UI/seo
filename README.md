@@ -175,9 +175,9 @@ php artisan seo:clear-cache
 
 This package integrates with the ArtisanPack UI ecosystem:
 
-- [artisanpack-ui/core](https://gitlab.com/jacob-martella-web-design/artisanpack-ui/core) - Core utilities
-- [artisanpack-ui/livewire-ui-components](https://gitlab.com/jacob-martella-web-design/artisanpack-ui/livewire-ui-components) - UI components
-- [artisanpack-ui/hooks](https://gitlab.com/jacob-martella-web-design/artisanpack-ui/hooks) - WordPress-style hooks for extensibility
+- [artisanpack-ui/core](https://github.com/ArtisanPack-UI/core) - Core utilities
+- [artisanpack-ui/livewire-ui-components](https://github.com/ArtisanPack-UI/livewire-ui-components) - UI components
+- [artisanpack-ui/hooks](https://github.com/ArtisanPack-UI/hooks) - WordPress-style hooks for extensibility
 
 ## Events
 

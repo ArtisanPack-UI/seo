@@ -50,31 +50,31 @@ Render SEO tags in your views using Blade components:
 
 Basic meta tag management including titles, descriptions, robots directives, and canonical URLs.
 
-[Learn more about Meta Tags →](./usage/meta-tags.md)
+[Learn more about Meta Tags →](Usage-Meta-Tags)
 
 ### Social Media
 
 Open Graph tags for Facebook/LinkedIn, Twitter Cards, and support for Pinterest and Slack previews.
 
-[Learn more about Social Media →](./usage/social-media.md)
+[Learn more about Social Media →](Usage-Social-Media)
 
 ### Schema.org / JSON-LD
 
 Structured data markup for rich search results, including 14 built-in schema types.
 
-[Learn more about Schema.org →](./usage/schema.md)
+[Learn more about Schema.org →](Usage-Schema)
 
 ### Multi-language (Hreflang)
 
 Manage hreflang tags for international SEO and multi-language sites.
 
-[Learn more about Hreflang →](./usage/hreflang.md)
+[Learn more about Hreflang →](Usage-Hreflang)
 
 ### Model Integration
 
 Deep dive into the `HasSeo` trait and all available model methods.
 
-[Learn more about Model Integration →](./usage/model-integration.md)
+[Learn more about Model Integration →](Usage-Model-Integration)
 
 ## Quick Examples
 
@@ -196,8 +196,8 @@ The package includes Livewire components for managing SEO in your admin panel:
 
 ## Next Steps
 
-- [Meta Tags](./usage/meta-tags.md) - Detailed meta tag documentation
-- [Social Media](./usage/social-media.md) - Open Graph and Twitter Cards
-- [Schema.org](./usage/schema.md) - Structured data markup
-- [Hreflang](./usage/hreflang.md) - Multi-language support
-- [Model Integration](./usage/model-integration.md) - HasSeo trait reference
+- [Meta Tags](Usage-Meta-Tags) - Detailed meta tag documentation
+- [Social Media](Usage-Social-Media) - Open Graph and Twitter Cards
+- [Schema.org](Usage-Schema) - Structured data markup
+- [Hreflang](Usage-Hreflang) - Multi-language support
+- [Model Integration](Usage-Model-Integration) - HasSeo trait reference

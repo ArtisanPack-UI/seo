@@ -94,5 +94,5 @@ For package development and testing:
 
 ## Next Steps
 
-- [Installation](./installation.md) - Complete installation guide
-- [Configuration](./configuration.md) - Configure the package
+- [Installation](Installation) - Complete installation guide
+- [Configuration](Configuration) - Configure the package

@@ -107,6 +107,6 @@ $config = seoConfig('site.name');
 
 ## Next Steps
 
-- [Requirements](./installation/requirements.md) - System requirements and dependencies
-- [Configuration](./installation/configuration.md) - Detailed configuration options
-- [Quick Start Guide](./getting-started.md) - Get started quickly
+- [Requirements](Installation-Requirements) - System requirements and dependencies
+- [Configuration](Installation-Configuration) - Detailed configuration options
+- [Quick Start Guide](Getting-Started) - Get started quickly

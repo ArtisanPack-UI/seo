@@ -272,7 +272,7 @@ The component uses Tailwind CSS classes and daisyUI components. To customize sty
 
 ## Next Steps
 
-- [Redirect Manager](./redirect-manager.md) - Manage URL redirects
-- [Analysis Panel](./analysis-panel.md) - SEO analysis component
-- [SEO Dashboard](./seo-dashboard.md) - Overview dashboard
-- [Meta Tags](../usage/meta-tags.md) - Meta tag reference
+- [Redirect Manager](Redirect-Manager) - Manage URL redirects
+- [Analysis Panel](Analysis-Panel) - SEO analysis component
+- [SEO Dashboard](Seo-Dashboard) - Overview dashboard
+- [Meta Tags](Usage-Meta-Tags) - Meta tag reference

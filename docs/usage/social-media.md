@@ -254,7 +254,7 @@ Use these tools to validate your social meta tags:
 
 ## Next Steps
 
-- [Schema.org](./schema.md) - Add structured data
-- [Meta Tags](./meta-tags.md) - Basic meta tag management
-- [SEO Meta Editor](../components/seo-meta-editor.md) - Admin component
-- [Configuration](../installation/configuration.md) - Default settings
+- [Schema.org](Schema) - Add structured data
+- [Meta Tags](Meta-Tags) - Basic meta tag management
+- [SEO Meta Editor](Components-Seo-Meta-Editor) - Admin component
+- [Configuration](Installation-Configuration) - Default settings

@@ -356,6 +356,6 @@ public function seoMeta(): BelongsTo
 
 ## Next Steps
 
-- [Services](./services.md) - Service documentation
-- [Helper Functions](./helpers.md) - Helper reference
-- [Model Integration](../usage/model-integration.md) - HasSeo trait
+- [Services](Services) - Service documentation
+- [Helper Functions](Helpers) - Helper reference
+- [Model Integration](Usage-Model-Integration) - HasSeo trait

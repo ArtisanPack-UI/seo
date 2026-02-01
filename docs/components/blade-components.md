@@ -366,7 +366,7 @@ class PostController extends Controller
 
 ## Next Steps
 
-- [SEO Meta Editor](./seo-meta-editor.md) - Admin editing component
-- [Meta Tags](../usage/meta-tags.md) - Meta tag management
-- [Social Media](../usage/social-media.md) - Social optimization
-- [Schema.org](../usage/schema.md) - Structured data
+- [SEO Meta Editor](Seo-Meta-Editor) - Admin editing component
+- [Meta Tags](Usage-Meta-Tags) - Meta tag management
+- [Social Media](Usage-Social-Media) - Social optimization
+- [Schema.org](Usage-Schema) - Structured data

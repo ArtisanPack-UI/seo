@@ -402,6 +402,6 @@ class GenerateSeoCommand extends Command
 
 ## Next Steps
 
-- [Services](./services.md) - Full service documentation
-- [Events](./events.md) - Event reference
-- [Configuration](../installation/configuration.md) - Config options
+- [Services](Services) - Full service documentation
+- [Events](Events) - Event reference
+- [Configuration](Installation-Configuration) - Config options

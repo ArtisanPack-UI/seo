@@ -9,47 +9,47 @@ Welcome to the documentation for **ArtisanPack UI SEO**, a comprehensive Laravel
 ## Table of Contents
 
 - **Getting Started**
-  - [Quick Start Guide](./getting-started.md)
+  - [Quick Start Guide](Getting-Started)
 
 - **Installation**
-  - [Installation Overview](./installation.md)
-  - [Requirements](./installation/requirements.md)
-  - [Configuration](./installation/configuration.md)
+  - [Installation Overview](Installation)
+  - [Requirements](Installation-Requirements)
+  - [Configuration](Installation-Configuration)
 
 - **Usage**
-  - [Usage Overview](./usage.md)
-  - [Meta Tags](./usage/meta-tags.md)
-  - [Social Media (Open Graph & Twitter)](./usage/social-media.md)
-  - [Schema.org / JSON-LD](./usage/schema.md)
-  - [Hreflang (Multi-language)](./usage/hreflang.md)
-  - [Model Integration](./usage/model-integration.md)
+  - [Usage Overview](Usage)
+  - [Meta Tags](Usage-Meta-Tags)
+  - [Social Media (Open Graph & Twitter)](Usage-Social-Media)
+  - [Schema.org / JSON-LD](Usage-Schema)
+  - [Hreflang (Multi-language)](Usage-Hreflang)
+  - [Model Integration](Usage-Model-Integration)
 
 - **Components**
-  - [Components Overview](./components.md)
-  - [Blade Components](./components/blade-components.md)
-  - [SEO Meta Editor](./components/seo-meta-editor.md)
-  - [Redirect Manager](./components/redirect-manager.md)
-  - [SEO Dashboard](./components/seo-dashboard.md)
-  - [Analysis Panel](./components/analysis-panel.md)
+  - [Components Overview](Components)
+  - [Blade Components](Components-Blade-Components)
+  - [SEO Meta Editor](Components-Seo-Meta-Editor)
+  - [Redirect Manager](Components-Redirect-Manager)
+  - [SEO Dashboard](Components-Seo-Dashboard)
+  - [Analysis Panel](Components-Analysis-Panel)
 
 - **API Reference**
-  - [API Overview](./api.md)
-  - [Models](./api/models.md)
-  - [Services](./api/services.md)
-  - [Helper Functions](./api/helpers.md)
-  - [Events](./api/events.md)
+  - [API Overview](Api)
+  - [Models](Api-Models)
+  - [Services](Api-Services)
+  - [Helper Functions](Api-Helpers)
+  - [Events](Api-Events)
 
 - **Advanced**
-  - [Advanced Overview](./advanced.md)
-  - [URL Redirects](./advanced/redirects.md)
-  - [XML Sitemaps](./advanced/sitemaps.md)
-  - [Robots.txt](./advanced/robots.md)
-  - [SEO Analysis](./advanced/analysis.md)
-  - [Caching](./advanced/caching.md)
-  - [Artisan Commands](./advanced/artisan-commands.md)
+  - [Advanced Overview](Advanced)
+  - [URL Redirects](Advanced-Redirects)
+  - [XML Sitemaps](Advanced-Sitemaps)
+  - [Robots.txt](Advanced-Robots)
+  - [SEO Analysis](Advanced-Analysis)
+  - [Caching](Advanced-Caching)
+  - [Artisan Commands](Advanced-Artisan-Commands)
 
-- **[FAQ](./faq.md)**
-- **[Troubleshooting](./troubleshooting.md)**
+- **[FAQ](Faq)**
+- **[Troubleshooting](Troubleshooting)**
 
 ## Features
 

@@ -501,6 +501,6 @@ $key = $cacheService->key('meta', $post->id);
 
 ## Next Steps
 
-- [Helper Functions](./helpers.md) - Helper reference
-- [Events](./events.md) - Event reference
-- [Models](./models.md) - Model documentation
+- [Helper Functions](Helpers) - Helper reference
+- [Events](Events) - Event reference
+- [Models](Models) - Model documentation

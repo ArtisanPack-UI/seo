@@ -251,7 +251,7 @@ $metaLength = $analysis['meta_length'];
 
 ## Next Steps
 
-- [Social Media](./social-media.md) - Open Graph and Twitter Cards
-- [Schema.org](./schema.md) - Structured data markup
-- [SEO Analysis](../advanced/analysis.md) - Content analysis features
-- [Configuration](../installation/configuration.md) - Default settings
+- [Social Media](Social-Media) - Open Graph and Twitter Cards
+- [Schema.org](Schema) - Structured data markup
+- [SEO Analysis](Advanced-Analysis) - Content analysis features
+- [Configuration](Installation-Configuration) - Default settings
