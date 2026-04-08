@@ -209,12 +209,21 @@ class SEOServiceProvider extends ServiceProvider
 				'seo-migrations',
 			);
 
+			// Publish TypeScript type definitions
+			$this->publishes(
+				[
+					__DIR__ . '/../../resources/js/types' => resource_path( 'js/types/seo' ),
+				],
+				'seo-types',
+			);
+
 			// Publish all
 			$this->publishes(
 				[
 					__DIR__ . '/../../config/seo.php'       => config_path( 'seo.php' ),
 					__DIR__ . '/../../resources/views'      => resource_path( 'views/vendor/seo' ),
 					__DIR__ . '/../../database/migrations'  => database_path( 'migrations' ),
+					__DIR__ . '/../../resources/js/types'   => resource_path( 'js/types/seo' ),
 				],
 				'seo',
 			);
