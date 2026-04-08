@@ -126,7 +126,7 @@ describe( 'PUT /api/seo/schema/{modelType}/{modelId}', function (): void {
 			'schema_markup' => [ 'author' => 'John Doe' ],
 		] );
 
-		$response->assertOk()
+		$response->assertSuccessful()
 			->assertJsonPath( 'data.schema_type', 'Article' )
 			->assertJsonPath( 'data.schema_markup.author', 'John Doe' );
 
