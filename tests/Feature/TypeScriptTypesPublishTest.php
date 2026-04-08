@@ -34,7 +34,7 @@ describe( 'TypeScript Types Publishing', function (): void {
 		expect( $typesPublishable[ $sourceKey ] )->toBe( resource_path( 'js/types/seo' ) );
 	} );
 
-	it( 'includes types in the seo publish group', function (): void {
+	it( 'includes types in the seo publish group with correct destination', function (): void {
 		$publishableGroups = Illuminate\Support\ServiceProvider::$publishGroups;
 		$seoPublishable    = $publishableGroups['seo'] ?? [];
 
@@ -42,6 +42,7 @@ describe( 'TypeScript Types Publishing', function (): void {
 			->first( fn ( string $key ) => str_ends_with( $key, 'resources/js/types' ) );
 
 		expect( $sourceKey )->not->toBeNull();
+		expect( $seoPublishable[ $sourceKey ] )->toBe( resource_path( 'js/types/seo' ) );
 	} );
 
 	it( 'has all expected type definition files', function (): void {
@@ -131,13 +132,29 @@ describe( 'TypeScript Types Publishing', function (): void {
 			->and( $content )->toContain( 'robots: string' );
 	} );
 
-	it( 'open-graph types contain OpenGraph interface and type union', function (): void {
+	it( 'open-graph types contain OpenGraph interface and full type union', function (): void {
 		$content = file_get_contents( __DIR__ . '/../../resources/js/types/open-graph.d.ts' );
+		$ogTypes = [
+			'website',
+			'article',
+			'book',
+			'profile',
+			'music.song',
+			'music.album',
+			'music.playlist',
+			'music.radio_station',
+			'video.movie',
+			'video.episode',
+			'video.tv_show',
+			'video.other',
+		];
 
 		expect( $content )->toContain( 'export type OpenGraphType' )
-			->and( $content )->toContain( 'export interface OpenGraph' )
-			->and( $content )->toContain( "'website'" )
-			->and( $content )->toContain( "'article'" );
+			->and( $content )->toContain( 'export interface OpenGraph' );
+
+		foreach ( $ogTypes as $type ) {
+			expect( $content )->toContain( "'{$type}'" );
+		}
 	} );
 
 	it( 'twitter-card types contain TwitterCard interface and type union', function (): void {
