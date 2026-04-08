@@ -18,7 +18,7 @@ export type AnalyzerName =
     | 'focus_keyword'
     | 'heading_structure'
     | 'image_alt'
-    | 'internal_link'
+    | 'internal_links'
     | 'keyword_density'
     | 'meta_length'
     | 'readability';
