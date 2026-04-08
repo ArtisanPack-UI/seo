@@ -284,8 +284,12 @@ export function SchemaTab( {
 							let newValue: string | number = e.target.value;
 
 							if ( 'number' === field.type && '' !== e.target.value ) {
-								const parsed = Number( e.target.value );
-								newValue = Number.isFinite( parsed ) ? parsed : e.target.value;
+								const isComplete = /^-?\d+(\.\d+)?$/.test( e.target.value );
+
+								if ( isComplete ) {
+									const parsed = Number( e.target.value );
+									newValue = Number.isFinite( parsed ) ? parsed : e.target.value;
+								}
 							}
 
 							handleFieldChange( field.key, newValue );
