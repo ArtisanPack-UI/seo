@@ -148,6 +148,7 @@ export function useSeoAnalysis( options: UseSeoAnalysisOptions ): UseSeoAnalysis
 	const [error, setError] = useState<string | null>( null );
 	const mountedRef = useRef( true );
 	const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>( null );
+	const requestIdRef = useRef( 0 );
 	const encodedModelType = useMemo( () => encodeURIComponent( modelType ), [modelType] );
 
 	useEffect( () => {
@@ -167,12 +168,12 @@ export function useSeoAnalysis( options: UseSeoAnalysisOptions ): UseSeoAnalysis
 		setError( null );
 
 		try {
-			const response = await api.get<{ data: Record<string, unknown> }>(
+			const response = await api.get<{ data: Record<string, unknown> | null }>(
 				`/analysis/${ encodedModelType }/${ modelId }`,
 			);
 
 			if ( mountedRef.current ) {
-				setResult( normalizeResult( response.data ) );
+				setResult( response.data ? normalizeResult( response.data ) : null );
 			}
 		} catch ( err: unknown ) {
 			// 404 means no cached results — not an error
@@ -189,11 +190,14 @@ export function useSeoAnalysis( options: UseSeoAnalysisOptions ): UseSeoAnalysis
 	}, [api, encodedModelType, modelId] );
 
 	const analyze = useCallback( async ( focusKeyword?: string ): Promise<void> => {
+		requestIdRef.current += 1;
+		const currentRequestId = requestIdRef.current;
+
 		setAnalyzing( true );
 		setError( null );
 
 		try {
-			const response = await api.post<{ data: Record<string, unknown> }>(
+			const response = await api.post<{ data: Record<string, unknown> | null }>(
 				'/analysis/analyze',
 				{
 					model_type: modelType,
@@ -202,15 +206,15 @@ export function useSeoAnalysis( options: UseSeoAnalysisOptions ): UseSeoAnalysis
 				},
 			);
 
-			if ( mountedRef.current ) {
-				setResult( normalizeResult( response.data ) );
+			if ( mountedRef.current && currentRequestId === requestIdRef.current ) {
+				setResult( response.data ? normalizeResult( response.data ) : null );
 			}
 		} catch ( err ) {
-			if ( mountedRef.current ) {
+			if ( mountedRef.current && currentRequestId === requestIdRef.current ) {
 				setError( err instanceof Error ? err.message : 'Analysis failed.' );
 			}
 		} finally {
-			if ( mountedRef.current ) {
+			if ( mountedRef.current && currentRequestId === requestIdRef.current ) {
 				setAnalyzing( false );
 			}
 		}

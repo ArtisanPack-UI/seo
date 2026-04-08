@@ -95,6 +95,10 @@ export function SeoDashboard( {
 				recentRedirects,
 			} );
 
+			// Reset analysis state before fetching
+			setAnalysisScore( null );
+			setAnalysisGrade( null );
+
 			// Fetch analysis if model provided
 			if ( encodedModelType && modelId ) {
 				try {
@@ -105,7 +109,8 @@ export function SeoDashboard( {
 					setAnalysisScore( analysisResponse.data.overall_score );
 					setAnalysisGrade( analysisResponse.data.grade_label );
 				} catch {
-					// No analysis data is not an error
+					setAnalysisScore( null );
+					setAnalysisGrade( null );
 				}
 			}
 		} catch ( err ) {

@@ -10,7 +10,7 @@
  * @since      1.1.0
  */
 
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 
 import {
 	Alert,
@@ -123,6 +123,11 @@ export function RedirectManager( { className, ...apiOptions }: RedirectManagerPr
 	const [testResult, setTestResult] = useState<string | null>( null );
 	const [searchValue, setSearchValue] = useState( '' );
 	const [searchTimer, setSearchTimer] = useState<ReturnType<typeof setTimeout> | null>( null );
+
+	// Clear selection when the visible list changes (page, filters, data)
+	useEffect( () => {
+		setSelectedIds( new Set() );
+	}, [redirects, page, filters] );
 
 	// Debounced search
 	const handleSearchChange = useCallback( ( value: string ): void => {
@@ -457,28 +462,38 @@ export function RedirectManager( { className, ...apiOptions }: RedirectManagerPr
 									</th>
 									<th
 										className="cursor-pointer select-none"
+										tabIndex={ 0 }
 										onClick={ () => handleSort( 'from_path' ) }
+										onKeyDown={ ( e ) => { if ( 'Enter' === e.key || ' ' === e.key ) { e.preventDefault(); handleSort( 'from_path' ); } } }
 										aria-sort={ sort.field === 'from_path' ? ( 'asc' === sort.direction ? 'ascending' : 'descending' ) : undefined }
 									>
 										From{ sortIndicator( 'from_path' ) }
 									</th>
 									<th
 										className="cursor-pointer select-none"
+										tabIndex={ 0 }
 										onClick={ () => handleSort( 'to_path' ) }
+										onKeyDown={ ( e ) => { if ( 'Enter' === e.key || ' ' === e.key ) { e.preventDefault(); handleSort( 'to_path' ); } } }
 										aria-sort={ sort.field === 'to_path' ? ( 'asc' === sort.direction ? 'ascending' : 'descending' ) : undefined }
 									>
 										To{ sortIndicator( 'to_path' ) }
 									</th>
 									<th
 										className="cursor-pointer select-none w-24"
+										tabIndex={ 0 }
 										onClick={ () => handleSort( 'status_code' ) }
+										onKeyDown={ ( e ) => { if ( 'Enter' === e.key || ' ' === e.key ) { e.preventDefault(); handleSort( 'status_code' ); } } }
+										aria-sort={ sort.field === 'status_code' ? ( 'asc' === sort.direction ? 'ascending' : 'descending' ) : undefined }
 									>
 										Status{ sortIndicator( 'status_code' ) }
 									</th>
 									<th className="w-24">Type</th>
 									<th
 										className="cursor-pointer select-none w-20"
+										tabIndex={ 0 }
 										onClick={ () => handleSort( 'hits' ) }
+										onKeyDown={ ( e ) => { if ( 'Enter' === e.key || ' ' === e.key ) { e.preventDefault(); handleSort( 'hits' ); } } }
+										aria-sort={ sort.field === 'hits' ? ( 'asc' === sort.direction ? 'ascending' : 'descending' ) : undefined }
 									>
 										Hits{ sortIndicator( 'hits' ) }
 									</th>

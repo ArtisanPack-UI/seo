@@ -71,8 +71,16 @@ export function SitemapTab( { data, onChange, errors = {} }: SitemapTabProps ): 
 						label="Priority"
 						value={ data.sitemap_priority ?? '' }
 						onChange={ ( e ) => {
-							const value = e.target.value;
-							onChange( 'sitemap_priority', value ? parseFloat( value ) : null );
+							const trimmed = e.target.value.trim();
+
+							if ( !trimmed ) {
+								onChange( 'sitemap_priority', null );
+
+								return;
+							}
+
+							const parsed = parseFloat( trimmed );
+							onChange( 'sitemap_priority', Number.isFinite( parsed ) ? parsed : null );
 						} }
 						type="number"
 						min={ 0 }

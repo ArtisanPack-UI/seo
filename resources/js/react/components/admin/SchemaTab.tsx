@@ -184,6 +184,7 @@ export function SchemaTab( {
 
 	const fetchSchema = useCallback( async (): Promise<void> => {
 		setLoadingSchema( true );
+		setSchemaError( null );
 
 		try {
 			const response = await api.get<{ data: SchemaResponse }>(
@@ -233,10 +234,7 @@ export function SchemaTab( {
 				onChange={ ( e ) => {
 					const value = e.target.value || null;
 					onSchemaTypeChange( value );
-
-					if ( !value ) {
-						onSchemaMarkupChange( {} );
-					}
+					onSchemaMarkupChange( {} );
 				} }
 				options={ typeOptions }
 				optionValue="value"

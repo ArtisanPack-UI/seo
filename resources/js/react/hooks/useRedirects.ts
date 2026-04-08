@@ -112,7 +112,7 @@ export function useRedirects( options: UseApiOptions ): UseRedirectsReturn {
 		const params: Record<string, string> = {
 			page: String( page ),
 			sort_by: sort.field,
-			sort_direction: sort.direction,
+			sort_order: sort.direction,
 		};
 
 		if ( filters.search ) {
@@ -160,8 +160,8 @@ export function useRedirects( options: UseApiOptions ): UseRedirectsReturn {
 			const response = await api.post<{ data: Redirect }>( '/redirects', data );
 
 			if ( mountedRef.current ) {
-				setMutating( false );
 				await fetchRedirects();
+				setMutating( false );
 			}
 
 			return response.data;
@@ -194,8 +194,8 @@ export function useRedirects( options: UseApiOptions ): UseRedirectsReturn {
 			const response = await api.put<{ data: Redirect }>( `/redirects/${ id }`, data );
 
 			if ( mountedRef.current ) {
-				setMutating( false );
 				await fetchRedirects();
+				setMutating( false );
 			}
 
 			return response.data;
@@ -224,8 +224,8 @@ export function useRedirects( options: UseApiOptions ): UseRedirectsReturn {
 			await api.del( `/redirects/${ id }` );
 
 			if ( mountedRef.current ) {
-				setMutating( false );
 				await fetchRedirects();
+				setMutating( false );
 			}
 
 			return true;
@@ -257,8 +257,8 @@ export function useRedirects( options: UseApiOptions ): UseRedirectsReturn {
 			await api.post( '/redirects/bulk', body );
 
 			if ( mountedRef.current ) {
-				setMutating( false );
 				await fetchRedirects();
+				setMutating( false );
 			}
 
 			return true;

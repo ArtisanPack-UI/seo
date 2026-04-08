@@ -87,7 +87,7 @@ export function useSeoMeta( options: UseSeoMetaOptions ): UseSeoMetaReturn {
 		setError( null );
 
 		try {
-			const response = await api.get<{ data: SeoMetaResponse }>(
+			const response = await api.get<{ data: SeoMetaResponse | null }>(
 				`/meta/${ encodedModelType }/${ modelId }`,
 			);
 
