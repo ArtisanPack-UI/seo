@@ -55,8 +55,8 @@ class UpdateRedirectRequest extends FormRequest
 	public function rules(): array
 	{
 		return [
-			'from_path'   => [ 'nullable', 'string', 'max:2048' ],
-			'to_path'     => [ 'nullable', 'string', 'max:2048' ],
+			'from_path'   => [ 'nullable', 'string', 'max:500' ],
+			'to_path'     => [ 'nullable', 'string', 'max:500' ],
 			'status_code' => [ 'nullable', 'integer', Rule::in( Redirect::VALID_STATUS_CODES ) ],
 			'match_type'  => [ 'nullable', 'string', Rule::in( Redirect::VALID_MATCH_TYPES ) ],
 			'is_active'   => [ 'nullable', 'boolean' ],
