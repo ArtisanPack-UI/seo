@@ -217,6 +217,14 @@ class SEOServiceProvider extends ServiceProvider
 				'seo-types',
 			);
 
+			// Publish React components
+			$this->publishes(
+				[
+					__DIR__ . '/../../resources/js/react' => resource_path( 'js/vendor/seo/react' ),
+				],
+				'seo-react',
+			);
+
 			// Publish all
 			$this->publishes(
 				[
@@ -224,6 +232,7 @@ class SEOServiceProvider extends ServiceProvider
 					__DIR__ . '/../../resources/views'      => resource_path( 'views/vendor/seo' ),
 					__DIR__ . '/../../database/migrations'  => database_path( 'migrations' ),
 					__DIR__ . '/../../resources/js/types'   => resource_path( 'js/types/seo' ),
+					__DIR__ . '/../../resources/js/react'   => resource_path( 'js/vendor/seo/react' ),
 				],
 				'seo',
 			);
