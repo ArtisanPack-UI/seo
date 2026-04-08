@@ -217,8 +217,13 @@ class RedirectApiController extends Controller
 			$affected   = $this->redirectService->bulkUpdateStatusCode( $ids, $statusCode );
 		}
 
+		$message = match ( $action ) {
+			'delete' => __( ':count redirects deleted.', [ 'count' => $affected ] ),
+			default  => __( ':count redirects updated.', [ 'count' => $affected ] ),
+		};
+
 		return response()->json( [
-			'message'  => __( ':count redirects updated.', [ 'count' => $affected ] ),
+			'message'  => $message,
 			'affected' => $affected,
 		] );
 	}
