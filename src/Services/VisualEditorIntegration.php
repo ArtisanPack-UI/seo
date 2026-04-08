@@ -22,6 +22,7 @@ use ArtisanPackUI\SEO\Models\SeoMeta;
 use ArtisanPackUI\SEO\Support\PackageDetector;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
+use function addFilter;
 
 /**
  * VisualEditorIntegration class.
@@ -107,7 +108,7 @@ class VisualEditorIntegration
 			return;
 		}
 
-		\addFilter( 'visual_editor.pre_publish_checks', function ( Collection $checks, Model $page ) {
+		addFilter( 'visual_editor.pre_publish_checks', function ( Collection $checks, Model $page ) {
 			return $checks->merge( $this->getSeoChecks( $page ) );
 		} );
 	}
