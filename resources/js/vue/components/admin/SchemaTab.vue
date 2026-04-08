@@ -11,7 +11,7 @@
 -->
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 
 import { Alert, Input, Loading, Select, Textarea } from '@artisanpack-ui/vue';
 
@@ -156,7 +156,7 @@ const emit = defineEmits<{
 }>();
 
 const api              = useApi( props.apiOptions );
-const encodedModelType = encodeURIComponent( props.modelType );
+const encodedModelType = computed( () => encodeURIComponent( props.modelType ) );
 const schemaData       = ref<SchemaResponse | null>( null );
 const loadingSchema    = ref( true );
 const schemaError      = ref<string | null>( null );
@@ -181,7 +181,7 @@ async function fetchSchema(): Promise<void> {
 
 	try {
 		const response = await api.get<{ data: SchemaResponse }>(
-			`/schema/${ encodedModelType }/${ props.modelId }`,
+			`/schema/${ encodedModelType.value }/${ props.modelId }`,
 		);
 
 		if ( currentRequestId === requestId ) {
@@ -227,6 +227,8 @@ function handleNumberInput( key: string, rawValue: string ): void {
 }
 
 onMounted( fetchSchema );
+
+watch( () => [props.modelType, props.modelId], fetchSchema );
 </script>
 
 <template>

@@ -141,6 +141,9 @@ export function useSeoAnalysis( options: UseSeoAnalysisOptions ): UseSeoAnalysis
 	} );
 
 	async function fetchCached(): Promise<void> {
+		requestId += 1;
+		const currentRequestId = requestId;
+
 		loading.value = true;
 		error.value   = null;
 
@@ -149,17 +152,17 @@ export function useSeoAnalysis( options: UseSeoAnalysisOptions ): UseSeoAnalysis
 				`/analysis/${ encodedModelType }/${ modelId }`,
 			);
 
-			if ( mounted ) {
+			if ( mounted && currentRequestId === requestId ) {
 				result.value = response.data ? normalizeResult( response.data ) : null;
 			}
 		} catch ( err: unknown ) {
 			const is404 = err && typeof err === 'object' && 'status' in err && 404 === ( err as { status: number } ).status;
 
-			if ( !is404 && mounted ) {
+			if ( !is404 && mounted && currentRequestId === requestId ) {
 				error.value = err instanceof Error ? err.message : 'Failed to load analysis.';
 			}
 		} finally {
-			if ( mounted ) {
+			if ( mounted && currentRequestId === requestId ) {
 				loading.value = false;
 			}
 		}

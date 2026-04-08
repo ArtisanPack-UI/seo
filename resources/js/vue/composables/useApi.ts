@@ -64,6 +64,10 @@ export interface UseApiReturn {
  * Reads a CSRF token from a meta tag if present.
  */
 function getMetaCsrfToken(): string | null {
+	if ( 'undefined' === typeof document ) {
+		return null;
+	}
+
 	const meta = document.querySelector( 'meta[name="csrf-token"]' );
 
 	return meta?.getAttribute( 'content' ) ?? null;
@@ -73,6 +77,10 @@ function getMetaCsrfToken(): string | null {
  * Reads the XSRF-TOKEN cookie set by Laravel Sanctum.
  */
 function getXsrfToken(): string | null {
+	if ( 'undefined' === typeof document ) {
+		return null;
+	}
+
 	const match = document.cookie.match( /(?:^|;\s*)XSRF-TOKEN=([^;]*)/ );
 
 	return match ? decodeURIComponent( match[1] ) : null;
@@ -129,7 +137,8 @@ export function useApi( options: UseApiOptions ): UseApiReturn {
 	}
 
 	function buildUrl( path: string, params?: Record<string, string> ): string {
-		const url = new URL( `${ baseUrl }${ path }`, window.location.origin );
+		const origin = 'undefined' !== typeof window ? window.location.origin : 'http://localhost';
+		const url    = new URL( `${ baseUrl }${ path }`, origin );
 
 		if ( params ) {
 			for ( const [key, value] of Object.entries( params ) ) {
@@ -150,7 +159,7 @@ export function useApi( options: UseApiOptions ): UseApiReturn {
 		if ( 422 === response.status ) {
 			try {
 				const data = await response.json();
-				throw new ApiValidationError( data.message, data.errors, 422 );
+				throw new ApiValidationError( data.message ?? 'Validation failed.', data.errors ?? {}, 422 );
 			} catch ( err ) {
 				if ( err instanceof ApiValidationError ) {
 					throw err;

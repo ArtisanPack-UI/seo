@@ -11,6 +11,8 @@
 -->
 
 <script setup lang="ts">
+import { ref, watch } from 'vue';
+
 import { Checkbox, Input, Select } from '@artisanpack-ui/vue';
 
 import type { SeoMetaResponse } from '../../../types/seo-data';
@@ -26,7 +28,7 @@ const CHANGEFREQ_OPTIONS = [
 	{ value: 'never', name: 'Never' },
 ];
 
-defineProps<{
+const props = defineProps<{
 	data: SeoMetaResponse;
 	errors?: Record<string, string[]>;
 }>();
@@ -35,8 +37,15 @@ const emit = defineEmits<{
 	'change': [field: string, value: unknown];
 }>();
 
-function handlePriorityChange( rawValue: string ): void {
-	const trimmed = String( rawValue ).trim();
+const priorityStr = ref( String( props.data.sitemap_priority ?? '' ) );
+
+// Sync from parent when data changes externally
+watch( () => props.data.sitemap_priority, ( newVal ) => {
+	priorityStr.value = String( newVal ?? '' );
+} );
+
+function commitPriority(): void {
+	const trimmed = priorityStr.value.trim();
 
 	if ( !trimmed ) {
 		emit( 'change', 'sitemap_priority', null );
@@ -72,8 +81,8 @@ function handlePriorityChange( rawValue: string ): void {
 
 			<Input
 				label="Priority"
-				:model-value="data.sitemap_priority ?? ''"
-				@update:model-value="handlePriorityChange( String( $event ) )"
+				v-model="priorityStr"
+				@blur="commitPriority"
 				type="number"
 				:min="0"
 				:max="1"

@@ -11,7 +11,7 @@
 -->
 
 <script setup lang="ts">
-import { onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 
 import { Alert, Badge, Card, Loading, Stat } from '@artisanpack-ui/vue';
 
@@ -47,7 +47,7 @@ const api = useApi( {
 	credentials: props.credentials,
 } );
 
-const encodedModelType = props.modelType ? encodeURIComponent( props.modelType ) : null;
+const encodedModelType = computed( () => props.modelType ? encodeURIComponent( props.modelType ) : null );
 
 const stats          = ref<DashboardStats | null>( null );
 const analysisScore  = ref<number | null>( null );
@@ -85,11 +85,11 @@ async function fetchDashboardData(): Promise<void> {
 		analysisScore.value = null;
 		analysisGrade.value = null;
 
-		if ( encodedModelType && props.modelId ) {
+		if ( encodedModelType.value && props.modelId ) {
 			try {
 				const analysisResponse = await api.get<{
 					data: { overall_score: number; grade_label: string };
-				}>( `/analysis/${ encodedModelType }/${ props.modelId }` );
+				}>( `/analysis/${ encodedModelType.value }/${ props.modelId }` );
 
 				analysisScore.value = analysisResponse.data.overall_score;
 				analysisGrade.value = analysisResponse.data.grade_label;
@@ -106,6 +106,8 @@ async function fetchDashboardData(): Promise<void> {
 }
 
 onMounted( fetchDashboardData );
+
+watch( () => [props.modelType, props.modelId], fetchDashboardData );
 </script>
 
 <template>
