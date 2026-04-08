@@ -23,7 +23,8 @@ use Illuminate\Http\Resources\Json\JsonResource;
 /**
  * RedirectResource class.
  *
- * Transforms Redirect model data for API responses.
+ * Transforms Redirect model data for API responses with
+ * computed labels and classification fields.
  *
  * @package    ArtisanPack_UI
  * @subpackage SEO
@@ -52,6 +53,8 @@ class RedirectResource extends JsonResource
 			'match_type'        => $this->match_type,
 			'match_type_label'  => $this->getMatchTypeLabel(),
 			'is_active'         => $this->is_active,
+			'is_permanent'      => $this->isPermanent(),
+			'is_temporary'      => $this->isTemporary(),
 			'hits'              => $this->hits,
 			'last_hit_at'       => $this->last_hit_at?->toIso8601String(),
 			'notes'             => $this->notes,
