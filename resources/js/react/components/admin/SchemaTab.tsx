@@ -10,7 +10,7 @@
  * @since      1.1.0
  */
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { Alert, Input, Loading, Select, Textarea } from '@artisanpack-ui/react';
 
@@ -181,8 +181,12 @@ export function SchemaTab( {
 	const [loadingSchema, setLoadingSchema] = useState( true );
 	const [schemaError, setSchemaError] = useState<string | null>( null );
 	const encodedModelType = useMemo( () => encodeURIComponent( modelType ), [modelType] );
+	const requestIdRef = useRef( 0 );
 
 	const fetchSchema = useCallback( async (): Promise<void> => {
+		requestIdRef.current += 1;
+		const currentRequestId = requestIdRef.current;
+
 		setLoadingSchema( true );
 		setSchemaError( null );
 
@@ -190,11 +194,18 @@ export function SchemaTab( {
 			const response = await api.get<{ data: SchemaResponse }>(
 				`/schema/${ encodedModelType }/${ modelId }`,
 			);
-			setSchemaData( response.data );
+
+			if ( currentRequestId === requestIdRef.current ) {
+				setSchemaData( response.data );
+			}
 		} catch {
-			setSchemaError( 'Failed to load schema data.' );
+			if ( currentRequestId === requestIdRef.current ) {
+				setSchemaError( 'Failed to load schema data.' );
+			}
 		} finally {
-			setLoadingSchema( false );
+			if ( currentRequestId === requestIdRef.current ) {
+				setLoadingSchema( false );
+			}
 		}
 	}, [api, encodedModelType, modelId] );
 
@@ -270,9 +281,13 @@ export function SchemaTab( {
 						label={ field.label }
 						value={ String( value ) }
 						onChange={ ( e ) => {
-							const newValue = 'number' === field.type
-								? ( e.target.value ? Number( e.target.value ) : '' )
-								: e.target.value;
+							let newValue: string | number = e.target.value;
+
+							if ( 'number' === field.type && '' !== e.target.value ) {
+								const parsed = Number( e.target.value );
+								newValue = Number.isFinite( parsed ) ? parsed : e.target.value;
+							}
+
 							handleFieldChange( field.key, newValue );
 						} }
 						type={ field.type }

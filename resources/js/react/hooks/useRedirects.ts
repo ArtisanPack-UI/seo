@@ -96,6 +96,7 @@ export function useRedirects( options: UseApiOptions ): UseRedirectsReturn {
 	} );
 	const [page, setPageState] = useState( 1 );
 	const mountedRef = useRef( true );
+	const fetchRequestIdRef = useRef( 0 );
 
 	useEffect( () => {
 		mountedRef.current = true;
@@ -106,6 +107,9 @@ export function useRedirects( options: UseApiOptions ): UseRedirectsReturn {
 	}, [] );
 
 	const fetchRedirects = useCallback( async (): Promise<void> => {
+		fetchRequestIdRef.current += 1;
+		const currentRequestId = fetchRequestIdRef.current;
+
 		setLoading( true );
 		setError( null );
 
@@ -134,16 +138,16 @@ export function useRedirects( options: UseApiOptions ): UseRedirectsReturn {
 		try {
 			const response = await api.get<PaginatedRedirects>( '/redirects', params );
 
-			if ( mountedRef.current ) {
+			if ( mountedRef.current && currentRequestId === fetchRequestIdRef.current ) {
 				setRedirects( response.data );
 				setMeta( response.meta );
 			}
 		} catch ( err ) {
-			if ( mountedRef.current ) {
+			if ( mountedRef.current && currentRequestId === fetchRequestIdRef.current ) {
 				setError( err instanceof Error ? err.message : 'Failed to load redirects.' );
 			}
 		} finally {
-			if ( mountedRef.current ) {
+			if ( mountedRef.current && currentRequestId === fetchRequestIdRef.current ) {
 				setLoading( false );
 			}
 		}

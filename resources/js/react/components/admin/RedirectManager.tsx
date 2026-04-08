@@ -10,7 +10,7 @@
  * @since      1.1.0
  */
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import {
 	Alert,
@@ -129,6 +129,10 @@ export function RedirectManager( { className, ...apiOptions }: RedirectManagerPr
 		setSelectedIds( new Set() );
 	}, [redirects, page, filters] );
 
+	// Keep a ref to latest filters so the debounced callback never closes over stale state
+	const filtersRef = useRef( filters );
+	filtersRef.current = filters;
+
 	// Debounced search
 	const handleSearchChange = useCallback( ( value: string ): void => {
 		setSearchValue( value );
@@ -138,10 +142,10 @@ export function RedirectManager( { className, ...apiOptions }: RedirectManagerPr
 		}
 
 		const timer = setTimeout( () => {
-			setFilters( { ...filters, search: value || undefined } );
+			setFilters( { ...filtersRef.current, search: value || undefined } );
 		}, 300 );
 		setSearchTimer( timer );
-	}, [filters, setFilters, searchTimer] );
+	}, [setFilters, searchTimer] );
 
 	// Form handlers
 	const openCreate = useCallback( (): void => {
@@ -248,7 +252,9 @@ export function RedirectManager( { className, ...apiOptions }: RedirectManagerPr
 
 		const result = await testUrl( testUrlValue );
 
-		if ( result?.matched ) {
+		if ( null === result ) {
+			setTestResult( 'Error testing URL — please try again.' );
+		} else if ( result.matched ) {
 			setTestResult( `Matches redirect #${ result.matched.id }: ${ result.matched.from_path } -> ${ result.resolved_destination }` );
 		} else {
 			setTestResult( 'No matching redirect found.' );
