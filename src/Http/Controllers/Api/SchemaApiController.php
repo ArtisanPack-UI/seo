@@ -18,6 +18,7 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\SEO\Http\Controllers\Api;
 
 use ArtisanPackUI\SEO\Http\Requests\Api\UpdateSchemaRequest;
+use ArtisanPackUI\SEO\Http\Resources\SchemaResource;
 use ArtisanPackUI\SEO\Schema\SchemaFactory;
 use ArtisanPackUI\SEO\Services\SchemaService;
 use ArtisanPackUI\SEO\Services\SeoService;
@@ -80,7 +81,7 @@ class SchemaApiController extends Controller
 	 *
 	 * @return JsonResponse
 	 */
-	public function show( string $modelType, int $modelId ): JsonResponse
+	public function show( string $modelType, int $modelId ): JsonResponse|SchemaResource
 	{
 		$model = $this->resolveModel( $modelType, $modelId );
 
@@ -99,13 +100,11 @@ class SchemaApiController extends Controller
 			// Schema generation may fail if type cannot be resolved
 		}
 
-		return response()->json( [
-			'data' => [
-				'schema_type'   => $seoMeta?->schema_type,
-				'schema_markup' => $seoMeta?->schema_markup,
-				'generated'     => $generated,
-			],
-		] );
+		return new SchemaResource(
+			$seoMeta,
+			$generated,
+			$this->schemaFactory->getSupportedTypes(),
+		);
 	}
 
 	/**
@@ -119,7 +118,7 @@ class SchemaApiController extends Controller
 	 *
 	 * @return JsonResponse
 	 */
-	public function update( UpdateSchemaRequest $request, string $modelType, int $modelId ): JsonResponse
+	public function update( UpdateSchemaRequest $request, string $modelType, int $modelId ): JsonResponse|SchemaResource
 	{
 		$model = $this->resolveModel( $modelType, $modelId );
 
@@ -138,13 +137,11 @@ class SchemaApiController extends Controller
 			// Schema generation may fail if type cannot be resolved
 		}
 
-		return response()->json( [
-			'data' => [
-				'schema_type'   => $seoMeta->schema_type,
-				'schema_markup' => $seoMeta->schema_markup,
-				'generated'     => $generated,
-			],
-		] );
+		return new SchemaResource(
+			$seoMeta,
+			$generated,
+			$this->schemaFactory->getSupportedTypes(),
+		);
 	}
 
 	/**

@@ -159,10 +159,9 @@ describe( 'SeoMetaResource', function (): void {
 		$seoMeta = $page->seoMeta()->create( [ 'meta_title' => 'Test' ] );
 
 		$resource = new SeoMetaResource( $seoMeta );
-		$result   = $resource->toArray( Request::create( '/' ) );
+		$result   = $resource->resolve( Request::create( '/' ) );
 
-		expect( $result )->toHaveKey( 'analysis_cache' );
-		// whenLoaded returns MissingValue when not loaded
+		expect( $result )->not->toHaveKey( 'analysis_cache' );
 	} );
 
 	it( 'includes pinterest and slack fields', function (): void {
