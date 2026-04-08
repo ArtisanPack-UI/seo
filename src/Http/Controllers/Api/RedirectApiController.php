@@ -106,7 +106,7 @@ class RedirectApiController extends Controller
 			: 'desc';
 		$query->orderBy( $sortBy, $sortOrder );
 
-		$perPage = min( (int) $request->input( 'per_page', 15 ), 100 );
+		$perPage = max( min( (int) $request->input( 'per_page', 15 ), 100 ), 1 );
 
 		return RedirectResource::collection( $query->paginate( $perPage ) );
 	}
