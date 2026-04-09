@@ -1,0 +1,245 @@
+/**
+ * useApi composable for authenticated API communication.
+ *
+ * Provides typed methods for GET, POST, PUT, and DELETE requests
+ * to the SEO REST API with error handling and CSRF token support.
+ *
+ * @package    ArtisanPack_UI
+ * @subpackage SEO
+ *
+ * @since      1.1.0
+ */
+
+import { onUnmounted } from 'vue';
+
+/** Error class for API responses with validation errors. */
+export class ApiValidationError extends Error {
+	public readonly errors: Record<string, string[]>;
+	public readonly status: number;
+
+	constructor( message: string, errors: Record<string, string[]>, status: number ) {
+		super( message );
+		this.name = 'ApiValidationError';
+		this.errors = errors;
+		this.status = status;
+	}
+}
+
+/** Error class for general API errors. */
+export class ApiError extends Error {
+	public readonly status: number;
+
+	constructor( message: string, status: number ) {
+		super( message );
+		this.name = 'ApiError';
+		this.status = status;
+	}
+}
+
+/** Options for configuring the useApi composable. */
+export interface UseApiOptions {
+	/** Base URL for the SEO API (e.g. "/api/seo"). */
+	baseUrl: string;
+	/** Optional CSRF token for non-API middleware. */
+	csrfToken?: string;
+	/** Optional authorization header value (e.g. "Bearer token"). */
+	authorization?: string;
+	/** Fetch credentials mode. Defaults to 'include' for cross-origin Sanctum support. */
+	credentials?: RequestCredentials;
+}
+
+/** Return type of the useApi composable. */
+export interface UseApiReturn {
+	/** Perform a GET request. */
+	get: <T>( path: string, params?: Record<string, string> ) => Promise<T>;
+	/** Perform a POST request with JSON body. */
+	post: <T>( path: string, body?: unknown ) => Promise<T>;
+	/** Perform a PUT request with JSON body. */
+	put: <T>( path: string, body?: unknown ) => Promise<T>;
+	/** Perform a DELETE request. */
+	del: <T = void>( path: string ) => Promise<T>;
+}
+
+/**
+ * Reads a CSRF token from a meta tag if present.
+ */
+function getMetaCsrfToken(): string | null {
+	if ( 'undefined' === typeof document ) {
+		return null;
+	}
+
+	const meta = document.querySelector( 'meta[name="csrf-token"]' );
+
+	return meta?.getAttribute( 'content' ) ?? null;
+}
+
+/**
+ * Reads the XSRF-TOKEN cookie set by Laravel Sanctum.
+ */
+function getXsrfToken(): string | null {
+	if ( 'undefined' === typeof document ) {
+		return null;
+	}
+
+	const match = document.cookie.match( /(?:^|;\s*)XSRF-TOKEN=([^;]*)/ );
+
+	return match ? decodeURIComponent( match[1] ) : null;
+}
+
+/**
+ * Vue composable for making authenticated API calls.
+ *
+ * @example
+ * ```ts
+ * const { get, post, put, del } = useApi({ baseUrl: '/api/seo' });
+ * const meta = await get<{ data: SeoMetaResponse }>('/meta/post/1');
+ * ```
+ */
+export function useApi( options: UseApiOptions ): UseApiReturn {
+	const { baseUrl, csrfToken, authorization, credentials = 'include' } = options;
+	const abortControllers = new Map<string, AbortController>();
+
+	onUnmounted( () => {
+		for ( const controller of abortControllers.values() ) {
+			controller.abort();
+		}
+
+		abortControllers.clear();
+	} );
+
+	function buildHeaders(): Record<string, string> {
+		const headers: Record<string, string> = {
+			'Accept': 'application/json',
+			'Content-Type': 'application/json',
+		};
+
+		if ( csrfToken ) {
+			headers['X-CSRF-TOKEN'] = csrfToken;
+		} else {
+			const xsrfToken = getXsrfToken();
+
+			if ( xsrfToken ) {
+				headers['X-XSRF-TOKEN'] = xsrfToken;
+			} else {
+				const metaToken = getMetaCsrfToken();
+
+				if ( metaToken ) {
+					headers['X-CSRF-TOKEN'] = metaToken;
+				}
+			}
+		}
+
+		if ( authorization ) {
+			headers['Authorization'] = authorization;
+		}
+
+		return headers;
+	}
+
+	function buildUrl( path: string, params?: Record<string, string> ): string {
+		const origin = 'undefined' !== typeof window ? window.location.origin : 'http://localhost';
+		const url    = new URL( `${ baseUrl }${ path }`, origin );
+
+		if ( params ) {
+			for ( const [key, value] of Object.entries( params ) ) {
+				if ( value !== undefined && value !== '' ) {
+					url.searchParams.set( key, value );
+				}
+			}
+		}
+
+		return url.toString();
+	}
+
+	async function handleResponse<T>( response: Response ): Promise<T> {
+		if ( 204 === response.status ) {
+			return undefined as T;
+		}
+
+		if ( 422 === response.status ) {
+			try {
+				const data = await response.json();
+				throw new ApiValidationError( data.message ?? 'Validation failed.', data.errors ?? {}, 422 );
+			} catch ( err ) {
+				if ( err instanceof ApiValidationError ) {
+					throw err;
+				}
+
+				throw new ApiValidationError( 'Validation failed.', {}, 422 );
+			}
+		}
+
+		if ( !response.ok ) {
+			let message = `Request failed with status ${ response.status }`;
+
+			try {
+				const data = await response.json();
+				message = data.message;
+			} catch {
+				// Use the default message
+			}
+
+			throw new ApiError( message, response.status );
+		}
+
+		return response.json() as Promise<T>;
+	}
+
+	async function get<T>( path: string, params?: Record<string, string> ): Promise<T> {
+		const url = buildUrl( path, params );
+		const key = `GET:${ url }`;
+		abortControllers.get( key )?.abort();
+
+		const controller = new AbortController();
+		abortControllers.set( key, controller );
+
+		try {
+			const response = await fetch( url, {
+				method: 'GET',
+				headers: buildHeaders(),
+				credentials,
+				signal: controller.signal,
+			} );
+
+			return handleResponse<T>( response );
+		} finally {
+			if ( abortControllers.get( key ) === controller ) {
+				abortControllers.delete( key );
+			}
+		}
+	}
+
+	async function post<T>( path: string, body?: unknown ): Promise<T> {
+		const response = await fetch( buildUrl( path ), {
+			method: 'POST',
+			headers: buildHeaders(),
+			credentials,
+			body: body !== undefined ? JSON.stringify( body ) : undefined,
+		} );
+
+		return handleResponse<T>( response );
+	}
+
+	async function put<T>( path: string, body?: unknown ): Promise<T> {
+		const response = await fetch( buildUrl( path ), {
+			method: 'PUT',
+			headers: buildHeaders(),
+			credentials,
+			body: body !== undefined ? JSON.stringify( body ) : undefined,
+		} );
+
+		return handleResponse<T>( response );
+	}
+
+	async function del<T = void>( path: string ): Promise<T> {
+		const response = await fetch( buildUrl( path ), {
+			method: 'DELETE',
+			headers: buildHeaders(),
+			credentials,
+		} );
+
+		return handleResponse<T>( response );
+	}
+
+	return { get, post, put, del };
+}

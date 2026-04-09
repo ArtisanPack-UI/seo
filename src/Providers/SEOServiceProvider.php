@@ -225,6 +225,14 @@ class SEOServiceProvider extends ServiceProvider
 				'seo-react',
 			);
 
+			// Publish Vue components
+			$this->publishes(
+				[
+					__DIR__ . '/../../resources/js/vue' => resource_path( 'js/vendor/seo/vue' ),
+				],
+				'seo-vue',
+			);
+
 			// Publish all
 			$this->publishes(
 				[
@@ -233,6 +241,7 @@ class SEOServiceProvider extends ServiceProvider
 					__DIR__ . '/../../database/migrations'  => database_path( 'migrations' ),
 					__DIR__ . '/../../resources/js/types'   => resource_path( 'js/types/seo' ),
 					__DIR__ . '/../../resources/js/react'   => resource_path( 'js/vendor/seo/react' ),
+					__DIR__ . '/../../resources/js/vue'     => resource_path( 'js/vendor/seo/vue' ),
 				],
 				'seo',
 			);
