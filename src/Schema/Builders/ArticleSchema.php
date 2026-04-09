@@ -44,6 +44,43 @@ class ArticleSchema extends AbstractSchema
 	}
 
 	/**
+	 * Get a human-readable description of this schema type.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @return string
+	 */
+	public function getDescription(): string
+	{
+		return __( 'An article, such as a news article or piece of investigative report' );
+	}
+
+	/**
+	 * Get the field definitions for this schema type.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @return array<int, array{name: string, type: string, label: string, required: bool, description: string}>
+	 */
+	public function getFieldDefinitions(): array
+	{
+		return [
+			[ 'name' => 'headline', 'type' => 'text', 'label' => __( 'Headline' ), 'required' => true, 'description' => __( 'The headline of the article' ) ],
+			[ 'name' => 'description', 'type' => 'textarea', 'label' => __( 'Description' ), 'required' => false, 'description' => __( 'A short description of the article' ) ],
+			[ 'name' => 'image', 'type' => 'image', 'label' => __( 'Image' ), 'required' => false, 'description' => __( 'URL of the article image' ) ],
+			[ 'name' => 'author', 'type' => 'person', 'label' => __( 'Author' ), 'required' => true, 'description' => __( 'The author of the article' ) ],
+			[ 'name' => 'publisher', 'type' => 'organization', 'label' => __( 'Publisher' ), 'required' => true, 'description' => __( 'The publisher of the article' ) ],
+			[ 'name' => 'datePublished', 'type' => 'datetime', 'label' => __( 'Date Published' ), 'required' => true, 'description' => __( 'The date the article was published' ) ],
+			[ 'name' => 'dateModified', 'type' => 'datetime', 'label' => __( 'Date Modified' ), 'required' => false, 'description' => __( 'The date the article was last modified' ) ],
+			[ 'name' => 'articleBody', 'type' => 'textarea', 'label' => __( 'Article Body' ), 'required' => false, 'description' => __( 'The full text of the article' ) ],
+			[ 'name' => 'wordCount', 'type' => 'number', 'label' => __( 'Word Count' ), 'required' => false, 'description' => __( 'The number of words in the article' ) ],
+			[ 'name' => 'keywords', 'type' => 'text', 'label' => __( 'Keywords' ), 'required' => false, 'description' => __( 'Keywords or tags for the article' ) ],
+			[ 'name' => 'articleSection', 'type' => 'text', 'label' => __( 'Article Section' ), 'required' => false, 'description' => __( 'The section or category of the article' ) ],
+			[ 'name' => 'inLanguage', 'type' => 'text', 'label' => __( 'Language' ), 'required' => false, 'description' => __( 'The language of the article (e.g. "en")' ) ],
+		];
+	}
+
+	/**
 	 * Generate the schema data array.
 	 *
 	 * @since 1.0.0

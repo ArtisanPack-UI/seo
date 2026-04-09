@@ -51,4 +51,25 @@ interface SchemaTypeContract
 	 * @return string
 	 */
 	public function getType(): string;
+
+	/**
+	 * Get a human-readable description of this schema type.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @return string
+	 */
+	public function getDescription(): string;
+
+	/**
+	 * Get the field definitions for this schema type.
+	 *
+	 * Returns an array of field definitions that describe the fields
+	 * accepted by this schema type, enabling dynamic form rendering.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @return array<int, array{name: string, type: string, label: string, required: bool, description: string, options?: array<int, string>}>
+	 */
+	public function getFieldDefinitions(): array;
 }

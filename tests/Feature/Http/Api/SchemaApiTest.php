@@ -63,18 +63,138 @@ afterEach( function (): void {
 
 describe( 'GET /api/seo/schema/types', function (): void {
 
-	it( 'returns list of available schema types', function (): void {
+	it( 'returns list of available schema types with field definitions', function (): void {
 		$response = $this->getJson( '/api/seo/schema/types' );
 
 		$response->assertOk()
-			->assertJsonStructure( [ 'data' ] );
+			->assertJsonStructure( [
+				'data' => [
+					'*' => [
+						'name',
+						'label',
+						'description',
+						'fields',
+					],
+				],
+			] );
 
-		$types = $response->json( 'data' );
+		$types     = $response->json( 'data' );
+		$typeNames = array_column( $types, 'name' );
 
-		expect( $types )->toContain( 'Article' )
+		expect( $typeNames )->toContain( 'Article' )
 			->toContain( 'WebPage' )
 			->toContain( 'Product' )
 			->toContain( 'Organization' );
+	} );
+
+	it( 'returns all 13 schema types', function (): void {
+		$response = $this->getJson( '/api/seo/schema/types' );
+
+		$types = $response->json( 'data' );
+
+		expect( $types )->toHaveCount( 13 );
+	} );
+
+	it( 'includes field definitions for each type', function (): void {
+		$response = $this->getJson( '/api/seo/schema/types' );
+
+		$types = $response->json( 'data' );
+
+		foreach ( $types as $type ) {
+			expect( $type )->toHaveKey( 'fields' )
+				->and( $type['fields'] )->toBeArray();
+		}
+	} );
+
+	it( 'returns correct field structure for Organization type', function (): void {
+		$response = $this->getJson( '/api/seo/schema/types' );
+
+		$types = $response->json( 'data' );
+		$org   = collect( $types )->firstWhere( 'name', 'Organization' );
+
+		expect( $org )->not->toBeNull()
+			->and( $org['description'] )->not->toBeEmpty();
+
+		$fieldNames = array_column( $org['fields'], 'name' );
+
+		expect( $fieldNames )->toContain( 'name' )
+			->toContain( 'url' )
+			->toContain( 'logo' )
+			->toContain( 'sameAs' );
+	} );
+
+	it( 'returns required flag on fields', function (): void {
+		$response = $this->getJson( '/api/seo/schema/types' );
+
+		$types   = $response->json( 'data' );
+		$product = collect( $types )->firstWhere( 'name', 'Product' );
+		$fields  = collect( $product['fields'] );
+
+		$nameField  = $fields->firstWhere( 'name', 'name' );
+		$colorField = $fields->firstWhere( 'name', 'color' );
+
+		expect( $nameField['required'] )->toBeTrue()
+			->and( $colorField['required'] )->toBeFalse();
+	} );
+
+	it( 'returns options for select fields', function (): void {
+		$response = $this->getJson( '/api/seo/schema/types' );
+
+		$types  = $response->json( 'data' );
+		$event  = collect( $types )->firstWhere( 'name', 'Event' );
+		$fields = collect( $event['fields'] );
+
+		$statusField = $fields->firstWhere( 'name', 'eventStatus' );
+
+		expect( $statusField['type'] )->toBe( 'select' )
+			->and( $statusField )->toHaveKey( 'options' )
+			->and( $statusField['options'] )->toContain( 'Scheduled' )
+			->and( $statusField['options'] )->toContain( 'Cancelled' );
+	} );
+
+	it( 'inherits parent fields for LocalBusiness', function (): void {
+		$response = $this->getJson( '/api/seo/schema/types' );
+
+		$types      = $response->json( 'data' );
+		$lb         = collect( $types )->firstWhere( 'name', 'LocalBusiness' );
+		$fieldNames = array_column( $lb['fields'], 'name' );
+
+		// Inherited from Organization
+		expect( $fieldNames )->toContain( 'name' )
+			->toContain( 'url' );
+
+		// LocalBusiness-specific
+		expect( $fieldNames )->toContain( 'priceRange' )
+			->toContain( 'openingHours' )
+			->toContain( 'geo' );
+	} );
+
+	it( 'inherits parent fields for BlogPosting from Article', function (): void {
+		$response = $this->getJson( '/api/seo/schema/types' );
+
+		$types       = $response->json( 'data' );
+		$blogPosting = collect( $types )->firstWhere( 'name', 'BlogPosting' );
+		$fieldNames  = array_column( $blogPosting['fields'], 'name' );
+
+		// Inherited from Article
+		expect( $fieldNames )->toContain( 'headline' )
+			->toContain( 'author' )
+			->toContain( 'datePublished' );
+	} );
+
+	it( 'returns field type and label for each field', function (): void {
+		$response = $this->getJson( '/api/seo/schema/types' );
+
+		$types   = $response->json( 'data' );
+		$article = collect( $types )->firstWhere( 'name', 'Article' );
+
+		foreach ( $article['fields'] as $field ) {
+			expect( $field )->toHaveKey( 'name' )
+				->toHaveKey( 'type' )
+				->toHaveKey( 'label' )
+				->toHaveKey( 'required' )
+				->toHaveKey( 'description' );
+		}
 	} );
 } );
 

@@ -51,6 +51,34 @@ abstract class AbstractSchema implements SchemaTypeContract
 	}
 
 	/**
+	 * Get a human-readable description of this schema type.
+	 *
+	 * Subclasses should override this to provide a meaningful description.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @return string
+	 */
+	public function getDescription(): string
+	{
+		return '';
+	}
+
+	/**
+	 * Get the field definitions for this schema type.
+	 *
+	 * Subclasses should override this to provide field metadata.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @return array<int, array{name: string, type: string, label: string, required: bool, description: string, options?: array<int, string>}>
+	 */
+	public function getFieldDefinitions(): array
+	{
+		return [];
+	}
+
+	/**
 	 * Get the base schema structure.
 	 *
 	 * @since 1.0.0

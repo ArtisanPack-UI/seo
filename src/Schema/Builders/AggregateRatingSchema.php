@@ -44,6 +44,37 @@ class AggregateRatingSchema extends AbstractSchema
 	}
 
 	/**
+	 * Get a human-readable description of this schema type.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @return string
+	 */
+	public function getDescription(): string
+	{
+		return __( 'An aggregate rating based on multiple reviews or ratings' );
+	}
+
+	/**
+	 * Get the field definitions for this schema type.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @return array<int, array{name: string, type: string, label: string, required: bool, description: string}>
+	 */
+	public function getFieldDefinitions(): array
+	{
+		return [
+			[ 'name' => 'ratingValue', 'type' => 'number', 'label' => __( 'Rating Value' ), 'required' => true, 'description' => __( 'The average rating value' ) ],
+			[ 'name' => 'bestRating', 'type' => 'number', 'label' => __( 'Best Rating' ), 'required' => false, 'description' => __( 'The highest possible rating (default: 5)' ) ],
+			[ 'name' => 'worstRating', 'type' => 'number', 'label' => __( 'Worst Rating' ), 'required' => false, 'description' => __( 'The lowest possible rating (default: 1)' ) ],
+			[ 'name' => 'ratingCount', 'type' => 'number', 'label' => __( 'Rating Count' ), 'required' => true, 'description' => __( 'The total number of ratings' ) ],
+			[ 'name' => 'reviewCount', 'type' => 'number', 'label' => __( 'Review Count' ), 'required' => false, 'description' => __( 'The total number of written reviews' ) ],
+			[ 'name' => 'itemReviewed', 'type' => 'thing', 'label' => __( 'Item Reviewed' ), 'required' => false, 'description' => __( 'The item being rated' ) ],
+		];
+	}
+
+	/**
 	 * Generate the schema data array.
 	 *
 	 * @since 1.0.0

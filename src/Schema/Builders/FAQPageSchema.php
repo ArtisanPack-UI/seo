@@ -44,6 +44,35 @@ class FAQPageSchema extends AbstractSchema
 	}
 
 	/**
+	 * Get a human-readable description of this schema type.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @return string
+	 */
+	public function getDescription(): string
+	{
+		return __( 'A page containing a list of frequently asked questions and answers' );
+	}
+
+	/**
+	 * Get the field definitions for this schema type.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @return array<int, array{name: string, type: string, label: string, required: bool, description: string}>
+	 */
+	public function getFieldDefinitions(): array
+	{
+		return [
+			[ 'name' => 'name', 'type' => 'text', 'label' => __( 'Page Name' ), 'required' => false, 'description' => __( 'The name of the FAQ page' ) ],
+			[ 'name' => 'description', 'type' => 'textarea', 'label' => __( 'Description' ), 'required' => false, 'description' => __( 'A description of the FAQ page' ) ],
+			[ 'name' => 'url', 'type' => 'url', 'label' => __( 'URL' ), 'required' => false, 'description' => __( 'URL of the FAQ page' ) ],
+			[ 'name' => 'questions', 'type' => 'faq_list', 'label' => __( 'Questions' ), 'required' => true, 'description' => __( 'List of question and answer pairs' ) ],
+		];
+	}
+
+	/**
 	 * Generate the schema data array.
 	 *
 	 * @since 1.0.0
