@@ -18,6 +18,7 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\SEO\Providers;
 
 use ArtisanPackUI\SEO\Console\Commands\GenerateSitemapCommand;
+use ArtisanPackUI\SEO\Console\Commands\InstallFrontend;
 use ArtisanPackUI\SEO\Console\Commands\SubmitSitemapCommand;
 use ArtisanPackUI\SEO\Http\Middleware\HandleRedirects;
 use ArtisanPackUI\SEO\Livewire\HreflangEditor;
@@ -349,6 +350,7 @@ class SEOServiceProvider extends ServiceProvider
 		if ( $this->app->runningInConsole() ) {
 			$this->commands( [
 				GenerateSitemapCommand::class,
+				InstallFrontend::class,
 				SubmitSitemapCommand::class,
 			] );
 		}
