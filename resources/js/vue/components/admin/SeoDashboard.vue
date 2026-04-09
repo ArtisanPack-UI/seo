@@ -54,8 +54,12 @@ const analysisScore  = ref<number | null>( null );
 const analysisGrade  = ref<string | null>( null );
 const isLoading      = ref( true );
 const error          = ref<string | null>( null );
+let latestRequestId  = 0;
 
 async function fetchDashboardData(): Promise<void> {
+	latestRequestId += 1;
+	const currentRequestId = latestRequestId;
+
 	isLoading.value = true;
 	error.value     = null;
 
@@ -65,9 +69,17 @@ async function fetchDashboardData(): Promise<void> {
 			meta: { total: number };
 		}>( '/redirects', { per_page: '5', sort_by: 'created_at', sort_order: 'desc' } );
 
+		if ( currentRequestId !== latestRequestId ) {
+			return;
+		}
+
 		const activeResponse = await api.get<{
 			meta: { total: number };
 		}>( '/redirects', { per_page: '1', is_active: '1' } );
+
+		if ( currentRequestId !== latestRequestId ) {
+			return;
+		}
 
 		const totalRedirects  = recentResponse.meta?.total ?? recentResponse.data.length;
 		const activeRedirects = activeResponse.meta?.total ?? 0;
@@ -81,7 +93,6 @@ async function fetchDashboardData(): Promise<void> {
 			recentRedirects,
 		};
 
-		// Reset analysis state
 		analysisScore.value = null;
 		analysisGrade.value = null;
 
@@ -91,17 +102,25 @@ async function fetchDashboardData(): Promise<void> {
 					data: { overall_score: number; grade_label: string };
 				}>( `/analysis/${ encodedModelType.value }/${ props.modelId }` );
 
-				analysisScore.value = analysisResponse.data.overall_score;
-				analysisGrade.value = analysisResponse.data.grade_label;
+				if ( currentRequestId === latestRequestId ) {
+					analysisScore.value = analysisResponse.data.overall_score;
+					analysisGrade.value = analysisResponse.data.grade_label;
+				}
 			} catch {
-				analysisScore.value = null;
-				analysisGrade.value = null;
+				if ( currentRequestId === latestRequestId ) {
+					analysisScore.value = null;
+					analysisGrade.value = null;
+				}
 			}
 		}
 	} catch ( err ) {
-		error.value = err instanceof Error ? err.message : 'Failed to load dashboard data.';
+		if ( currentRequestId === latestRequestId ) {
+			error.value = err instanceof Error ? err.message : 'Failed to load dashboard data.';
+		}
 	} finally {
-		isLoading.value = false;
+		if ( currentRequestId === latestRequestId ) {
+			isLoading.value = false;
+		}
 	}
 }
 
