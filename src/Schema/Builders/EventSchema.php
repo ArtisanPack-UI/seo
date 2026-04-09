@@ -44,6 +44,44 @@ class EventSchema extends AbstractSchema
 	}
 
 	/**
+	 * Get a human-readable description of this schema type.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @return string
+	 */
+	public function getDescription(): string
+	{
+		return __( 'An event happening at a certain time and location' );
+	}
+
+	/**
+	 * Get the field definitions for this schema type.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @return array<int, array{name: string, type: string, label: string, required: bool, description: string, options?: array<int, string>}>
+	 */
+	public function getFieldDefinitions(): array
+	{
+		return [
+			[ 'name' => 'name', 'type' => 'text', 'label' => __( 'Event Name' ), 'required' => true, 'description' => __( 'The name of the event' ) ],
+			[ 'name' => 'description', 'type' => 'textarea', 'label' => __( 'Description' ), 'required' => false, 'description' => __( 'A description of the event' ) ],
+			[ 'name' => 'url', 'type' => 'url', 'label' => __( 'URL' ), 'required' => false, 'description' => __( 'URL of the event page' ) ],
+			[ 'name' => 'image', 'type' => 'image', 'label' => __( 'Image' ), 'required' => false, 'description' => __( 'URL of the event image' ) ],
+			[ 'name' => 'startDate', 'type' => 'datetime', 'label' => __( 'Start Date' ), 'required' => true, 'description' => __( 'The start date and time of the event' ) ],
+			[ 'name' => 'endDate', 'type' => 'datetime', 'label' => __( 'End Date' ), 'required' => false, 'description' => __( 'The end date and time of the event' ) ],
+			[ 'name' => 'location', 'type' => 'location', 'label' => __( 'Location' ), 'required' => true, 'description' => __( 'The location of the event' ) ],
+			[ 'name' => 'virtualLocation', 'type' => 'url', 'label' => __( 'Virtual Location URL' ), 'required' => false, 'description' => __( 'URL for online/virtual events' ) ],
+			[ 'name' => 'eventStatus', 'type' => 'select', 'label' => __( 'Event Status' ), 'required' => false, 'description' => __( 'The current status of the event' ), 'options' => [ 'Scheduled', 'Cancelled', 'Postponed', 'Rescheduled', 'MovedOnline' ] ],
+			[ 'name' => 'eventAttendanceMode', 'type' => 'select', 'label' => __( 'Attendance Mode' ), 'required' => false, 'description' => __( 'How attendees can participate' ), 'options' => [ 'Offline', 'Online', 'Mixed' ] ],
+			[ 'name' => 'organizer', 'type' => 'organization', 'label' => __( 'Organizer' ), 'required' => false, 'description' => __( 'The organization hosting the event' ) ],
+			[ 'name' => 'performer', 'type' => 'person', 'label' => __( 'Performer' ), 'required' => false, 'description' => __( 'The performer at the event' ) ],
+			[ 'name' => 'offers', 'type' => 'offer', 'label' => __( 'Offers' ), 'required' => false, 'description' => __( 'Ticket pricing and availability' ) ],
+		];
+	}
+
+	/**
 	 * Generate the schema data array.
 	 *
 	 * @since 1.0.0

@@ -56,7 +56,10 @@ class SchemaApiController extends Controller
 	}
 
 	/**
-	 * List available schema types.
+	 * List available schema types with field definitions.
+	 *
+	 * Returns full type metadata including descriptions and field
+	 * definitions for dynamic form rendering in frontend editors.
 	 *
 	 * @since 1.1.0
 	 *
@@ -64,10 +67,10 @@ class SchemaApiController extends Controller
 	 */
 	public function types(): JsonResponse
 	{
-		$supportedTypes = $this->schemaFactory->getSupportedTypes();
+		$typeDefinitions = $this->schemaFactory->getTypeDefinitions();
 
 		return response()->json( [
-			'data' => $supportedTypes,
+			'data' => $typeDefinitions,
 		] );
 	}
 

@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - Unreleased
+
+### Added
+
+- **Schema Type Field Definitions API**: `GET /api/seo/schema/types` now returns rich metadata including descriptions and field definitions for each schema type, enabling dynamic form rendering in React/Vue editors (#35)
+- **`seo:install-frontend` Artisan Command**: Publishes React or Vue SEO components and TypeScript type definitions with `--stack` and `--force` options (#34)
+- **Publishable Asset Scaffolding**: Publish tags `seo-react`, `seo-vue`, and `seo-types` for frontend component distribution
+
+### Changed
+
+- **Breaking: `SchemaTypeContract` interface gained two new methods** — `getDescription(): string` and `getFieldDefinitions(): array` were added in 1.1.0. External classes that directly implement `SchemaTypeContract` must add these methods. Classes that extend `AbstractSchema` (the recommended approach) are unaffected, as `AbstractSchema` provides default implementations returning an empty string and empty array respectively. To migrate, either implement both methods in your custom class, or switch to extending `AbstractSchema` instead of implementing `SchemaTypeContract` directly.
+
 ## [1.0.0] - 2026-01-23
 
 ### First Stable Release

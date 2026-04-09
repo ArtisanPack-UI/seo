@@ -45,6 +45,37 @@ class LocalBusinessSchema extends OrganizationSchema
 	}
 
 	/**
+	 * Get a human-readable description of this schema type.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @return string
+	 */
+	public function getDescription(): string
+	{
+		return __( 'A local business or physical store with location-specific details' );
+	}
+
+	/**
+	 * Get the field definitions for this schema type.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @return array<int, array{name: string, type: string, label: string, required: bool, description: string}>
+	 */
+	public function getFieldDefinitions(): array
+	{
+		return array_merge( parent::getFieldDefinitions(), [
+			[ 'name' => 'priceRange', 'type' => 'text', 'label' => __( 'Price Range' ), 'required' => false, 'description' => __( 'The price range of the business (e.g. "$$")' ) ],
+			[ 'name' => 'openingHours', 'type' => 'opening_hours', 'label' => __( 'Opening Hours' ), 'required' => false, 'description' => __( 'Business opening hours' ) ],
+			[ 'name' => 'geo', 'type' => 'geo', 'label' => __( 'Geo Coordinates' ), 'required' => false, 'description' => __( 'Latitude and longitude of the business' ) ],
+			[ 'name' => 'areaServed', 'type' => 'text', 'label' => __( 'Area Served' ), 'required' => false, 'description' => __( 'The geographic area served by the business' ) ],
+			[ 'name' => 'paymentAccepted', 'type' => 'text', 'label' => __( 'Payment Accepted' ), 'required' => false, 'description' => __( 'Payment methods accepted' ) ],
+			[ 'name' => 'currenciesAccepted', 'type' => 'text', 'label' => __( 'Currencies Accepted' ), 'required' => false, 'description' => __( 'Currencies accepted for payment' ) ],
+		] );
+	}
+
+	/**
 	 * Generate the schema data array.
 	 *
 	 * @since 1.0.0

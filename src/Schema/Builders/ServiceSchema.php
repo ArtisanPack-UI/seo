@@ -44,6 +44,42 @@ class ServiceSchema extends AbstractSchema
 	}
 
 	/**
+	 * Get a human-readable description of this schema type.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @return string
+	 */
+	public function getDescription(): string
+	{
+		return __( 'A service provided by an organization or individual' );
+	}
+
+	/**
+	 * Get the field definitions for this schema type.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @return array<int, array{name: string, type: string, label: string, required: bool, description: string}>
+	 */
+	public function getFieldDefinitions(): array
+	{
+		return [
+			[ 'name' => 'name', 'type' => 'text', 'label' => __( 'Service Name' ), 'required' => true, 'description' => __( 'The name of the service' ) ],
+			[ 'name' => 'description', 'type' => 'textarea', 'label' => __( 'Description' ), 'required' => false, 'description' => __( 'A description of the service' ) ],
+			[ 'name' => 'url', 'type' => 'url', 'label' => __( 'URL' ), 'required' => false, 'description' => __( 'URL of the service page' ) ],
+			[ 'name' => 'image', 'type' => 'image', 'label' => __( 'Image' ), 'required' => false, 'description' => __( 'URL of the service image' ) ],
+			[ 'name' => 'provider', 'type' => 'organization', 'label' => __( 'Provider' ), 'required' => false, 'description' => __( 'The organization providing the service' ) ],
+			[ 'name' => 'areaServed', 'type' => 'text', 'label' => __( 'Area Served' ), 'required' => false, 'description' => __( 'The geographic area where the service is available' ) ],
+			[ 'name' => 'serviceType', 'type' => 'text', 'label' => __( 'Service Type' ), 'required' => false, 'description' => __( 'The type of service' ) ],
+			[ 'name' => 'category', 'type' => 'text', 'label' => __( 'Category' ), 'required' => false, 'description' => __( 'The category of the service' ) ],
+			[ 'name' => 'offers', 'type' => 'offer', 'label' => __( 'Offers' ), 'required' => false, 'description' => __( 'Pricing information for the service' ) ],
+			[ 'name' => 'aggregateRating', 'type' => 'aggregate_rating', 'label' => __( 'Aggregate Rating' ), 'required' => false, 'description' => __( 'Average rating and review count' ) ],
+			[ 'name' => 'brand', 'type' => 'text', 'label' => __( 'Brand' ), 'required' => false, 'description' => __( 'The brand associated with the service' ) ],
+		];
+	}
+
+	/**
 	 * Generate the schema data array.
 	 *
 	 * @since 1.0.0

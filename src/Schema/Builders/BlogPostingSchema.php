@@ -41,4 +41,16 @@ class BlogPostingSchema extends ArticleSchema
 	{
 		return 'BlogPosting';
 	}
+
+	/**
+	 * Get a human-readable description of this schema type.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @return string
+	 */
+	public function getDescription(): string
+	{
+		return __( 'A blog post or blog entry' );
+	}
 }

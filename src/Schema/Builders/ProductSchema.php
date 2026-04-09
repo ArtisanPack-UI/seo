@@ -44,6 +44,45 @@ class ProductSchema extends AbstractSchema
 	}
 
 	/**
+	 * Get a human-readable description of this schema type.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @return string
+	 */
+	public function getDescription(): string
+	{
+		return __( 'A product offered for sale, including pricing and availability' );
+	}
+
+	/**
+	 * Get the field definitions for this schema type.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @return array<int, array{name: string, type: string, label: string, required: bool, description: string, options?: array<int, string>}>
+	 */
+	public function getFieldDefinitions(): array
+	{
+		return [
+			[ 'name' => 'name', 'type' => 'text', 'label' => __( 'Product Name' ), 'required' => true, 'description' => __( 'The name of the product' ) ],
+			[ 'name' => 'description', 'type' => 'textarea', 'label' => __( 'Description' ), 'required' => false, 'description' => __( 'A description of the product' ) ],
+			[ 'name' => 'image', 'type' => 'image', 'label' => __( 'Image' ), 'required' => false, 'description' => __( 'URL of the product image' ) ],
+			[ 'name' => 'url', 'type' => 'url', 'label' => __( 'URL' ), 'required' => false, 'description' => __( 'URL of the product page' ) ],
+			[ 'name' => 'sku', 'type' => 'text', 'label' => __( 'SKU' ), 'required' => false, 'description' => __( 'Stock keeping unit identifier' ) ],
+			[ 'name' => 'gtin', 'type' => 'text', 'label' => __( 'GTIN/EAN/UPC' ), 'required' => false, 'description' => __( 'Global trade item number' ) ],
+			[ 'name' => 'mpn', 'type' => 'text', 'label' => __( 'MPN' ), 'required' => false, 'description' => __( 'Manufacturer part number' ) ],
+			[ 'name' => 'brand', 'type' => 'text', 'label' => __( 'Brand' ), 'required' => false, 'description' => __( 'The brand of the product' ) ],
+			[ 'name' => 'offers', 'type' => 'offer', 'label' => __( 'Offers' ), 'required' => false, 'description' => __( 'Pricing and availability information' ) ],
+			[ 'name' => 'aggregateRating', 'type' => 'aggregate_rating', 'label' => __( 'Aggregate Rating' ), 'required' => false, 'description' => __( 'Average rating and review count' ) ],
+			[ 'name' => 'reviews', 'type' => 'review_list', 'label' => __( 'Reviews' ), 'required' => false, 'description' => __( 'Customer reviews for the product' ) ],
+			[ 'name' => 'category', 'type' => 'text', 'label' => __( 'Category' ), 'required' => false, 'description' => __( 'The product category' ) ],
+			[ 'name' => 'color', 'type' => 'text', 'label' => __( 'Color' ), 'required' => false, 'description' => __( 'The color of the product' ) ],
+			[ 'name' => 'material', 'type' => 'text', 'label' => __( 'Material' ), 'required' => false, 'description' => __( 'The material the product is made from' ) ],
+		];
+	}
+
+	/**
 	 * Generate the schema data array.
 	 *
 	 * @since 1.0.0
