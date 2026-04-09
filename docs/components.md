@@ -113,6 +113,24 @@ Livewire components require:
 </html>
 ```
 
+## React & Vue Components
+
+> Added in v1.1.0
+
+The package also provides publishable React and Vue components for building custom SEO admin interfaces in JavaScript frontends. These are published to your application using the `seo:install-frontend` Artisan command.
+
+```bash
+# Install React components
+php artisan seo:install-frontend --stack=react
+
+# Install Vue components
+php artisan seo:install-frontend --stack=vue
+```
+
+Components are published to `resources/js/vendor/seo/{react|vue}/`, with shared TypeScript type definitions in `resources/js/types/seo/`.
+
+[Learn more about Frontend Scaffolding →](Advanced-Frontend-Scaffolding)
+
 ## Customizing Components
 
 ### Publishing Views

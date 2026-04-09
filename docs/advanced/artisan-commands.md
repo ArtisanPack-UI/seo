@@ -216,6 +216,45 @@ php artisan seo:test-redirect /some/path
 #   Destination: /other/path
 ```
 
+## Frontend Commands
+
+### Install Frontend Components
+
+> Added in v1.1.0
+
+Publish React or Vue SEO components and TypeScript type definitions to your application.
+
+```bash
+# Interactive prompt to choose stack
+php artisan seo:install-frontend
+
+# Install React components directly
+php artisan seo:install-frontend --stack=react
+
+# Install Vue components directly
+php artisan seo:install-frontend --stack=vue
+
+# Overwrite existing files
+php artisan seo:install-frontend --stack=react --force
+```
+
+**Options:**
+
+| Option | Description |
+|--------|-------------|
+| `--stack` | Frontend stack to install (`react` or `vue`) |
+| `--force` | Overwrite existing published files |
+
+**Published Files:**
+
+| Tag | Destination |
+|-----|-------------|
+| `seo-react` | `resources/js/vendor/seo/react/` |
+| `seo-vue` | `resources/js/vendor/seo/vue/` |
+| `seo-types` | `resources/js/types/seo/` |
+
+The command publishes both the framework-specific components and shared TypeScript type definitions. See the [Frontend Scaffolding](Advanced-Frontend-Scaffolding) guide for detailed usage.
+
 ## Utility Commands
 
 ### SEO Status

@@ -118,6 +118,34 @@ class SchemaFactory
 	}
 
 	/**
+	 * Get type definitions including descriptions and field metadata.
+	 *
+	 * Creates a temporary instance of each builder to extract its
+	 * description and field definitions for API consumers.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @return array<int, array{name: string, label: string, description: string, fields: array<int, array{name: string, type: string, label: string, required: bool, description: string, options?: array<int, string>}>}>
+	 */
+	public function getTypeDefinitions(): array
+	{
+		$definitions = [];
+
+		foreach ( $this->types as $typeName => $builderClass ) {
+			$builder = new $builderClass();
+
+			$definitions[] = [
+				'name'        => $typeName,
+				'label'       => $typeName,
+				'description' => $builder->getDescription(),
+				'fields'      => $builder->getFieldDefinitions(),
+			];
+		}
+
+		return $definitions;
+	}
+
+	/**
 	 * Register a custom schema type builder.
 	 *
 	 * @since 1.0.0

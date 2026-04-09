@@ -348,6 +348,36 @@ class RedirectService
 	}
 
 	/**
+	 * Bulk update the status code for multiple redirects.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @param  array<int, int>  $ids         The redirect IDs to update.
+	 * @param  int              $statusCode  The new status code.
+	 *
+	 * @throws InvalidArgumentException If the status code is invalid.
+	 *
+	 * @return int The number of affected records.
+	 */
+	public function bulkUpdateStatusCode( array $ids, int $statusCode ): int
+	{
+		if ( ! in_array( $statusCode, Redirect::VALID_STATUS_CODES, true ) ) {
+			throw new InvalidArgumentException(
+				sprintf(
+					__( 'Invalid status code. Must be one of: %s' ),
+					implode( ', ', Redirect::VALID_STATUS_CODES ),
+				),
+			);
+		}
+
+		$affected = Redirect::whereIn( 'id', $ids )->update( [ 'status_code' => $statusCode ] );
+
+		$this->clearCache();
+
+		return $affected;
+	}
+
+	/**
 	 * Clear the redirect cache.
 	 *
 	 * @since 1.0.0

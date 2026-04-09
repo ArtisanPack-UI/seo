@@ -46,6 +46,39 @@ class OrganizationSchema extends AbstractSchema
 	}
 
 	/**
+	 * Get a human-readable description of this schema type.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @return string
+	 */
+	public function getDescription(): string
+	{
+		return __( 'An organization such as a company, non-profit, or agency' );
+	}
+
+	/**
+	 * Get the field definitions for this schema type.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @return array<int, array{name: string, type: string, label: string, required: bool, description: string}>
+	 */
+	public function getFieldDefinitions(): array
+	{
+		return [
+			[ 'name' => 'name', 'type' => 'text', 'label' => __( 'Organization Name' ), 'required' => true, 'description' => __( 'The name of the organization' ) ],
+			[ 'name' => 'url', 'type' => 'url', 'label' => __( 'Website URL' ), 'required' => true, 'description' => __( 'The URL of the organization website' ) ],
+			[ 'name' => 'logo', 'type' => 'image', 'label' => __( 'Logo' ), 'required' => false, 'description' => __( 'URL of the organization logo' ) ],
+			[ 'name' => 'email', 'type' => 'email', 'label' => __( 'Email' ), 'required' => false, 'description' => __( 'Contact email address' ) ],
+			[ 'name' => 'phone', 'type' => 'text', 'label' => __( 'Phone' ), 'required' => false, 'description' => __( 'Contact phone number' ) ],
+			[ 'name' => 'description', 'type' => 'textarea', 'label' => __( 'Description' ), 'required' => false, 'description' => __( 'A description of the organization' ) ],
+			[ 'name' => 'address', 'type' => 'address', 'label' => __( 'Address' ), 'required' => false, 'description' => __( 'Physical address of the organization' ) ],
+			[ 'name' => 'sameAs', 'type' => 'url_list', 'label' => __( 'Social Profiles' ), 'required' => false, 'description' => __( 'URLs of social media profiles' ) ],
+		];
+	}
+
+	/**
 	 * Generate the schema data array.
 	 *
 	 * Uses CMS framework data when available, falling back to config values.

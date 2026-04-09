@@ -44,6 +44,38 @@ class ReviewSchema extends AbstractSchema
 	}
 
 	/**
+	 * Get a human-readable description of this schema type.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @return string
+	 */
+	public function getDescription(): string
+	{
+		return __( 'A review of a product, service, or other item' );
+	}
+
+	/**
+	 * Get the field definitions for this schema type.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @return array<int, array{name: string, type: string, label: string, required: bool, description: string}>
+	 */
+	public function getFieldDefinitions(): array
+	{
+		return [
+			[ 'name' => 'name', 'type' => 'text', 'label' => __( 'Review Title' ), 'required' => false, 'description' => __( 'The title of the review' ) ],
+			[ 'name' => 'reviewBody', 'type' => 'textarea', 'label' => __( 'Review Body' ), 'required' => true, 'description' => __( 'The full text of the review' ) ],
+			[ 'name' => 'author', 'type' => 'person', 'label' => __( 'Author' ), 'required' => true, 'description' => __( 'The author of the review' ) ],
+			[ 'name' => 'rating', 'type' => 'number', 'label' => __( 'Rating' ), 'required' => false, 'description' => __( 'The rating given in the review' ) ],
+			[ 'name' => 'datePublished', 'type' => 'datetime', 'label' => __( 'Date Published' ), 'required' => false, 'description' => __( 'The date the review was published' ) ],
+			[ 'name' => 'itemReviewed', 'type' => 'thing', 'label' => __( 'Item Reviewed' ), 'required' => false, 'description' => __( 'The item being reviewed' ) ],
+			[ 'name' => 'publisher', 'type' => 'organization', 'label' => __( 'Publisher' ), 'required' => false, 'description' => __( 'The publisher of the review' ) ],
+		];
+	}
+
+	/**
 	 * Generate the schema data array.
 	 *
 	 * @since 1.0.0

@@ -344,6 +344,130 @@ $product->updateSeoMeta([
 ]);
 ```
 
+## Schema Type Definitions API
+
+> Added in v1.1.0
+
+The package provides a Schema Type Definitions API that returns rich metadata for each schema type, including human-readable descriptions and field definitions. This is designed for building dynamic schema editing forms in React or Vue frontends.
+
+### API Endpoint
+
+```
+GET /api/seo/schema/types
+```
+
+### Response Format
+
+```json
+{
+    "data": [
+        {
+            "name": "Article",
+            "label": "Article",
+            "description": "Represents a news or scholarly article.",
+            "fields": [
+                {
+                    "name": "headline",
+                    "type": "text",
+                    "label": "Headline",
+                    "required": true,
+                    "description": "The headline of the article."
+                },
+                {
+                    "name": "datePublished",
+                    "type": "date",
+                    "label": "Date Published",
+                    "required": true,
+                    "description": "The date the article was published."
+                }
+            ]
+        }
+    ]
+}
+```
+
+### Using the SchemaFactory Directly
+
+```php
+use ArtisanPackUI\SEO\Schema\SchemaFactory;
+
+$factory = app(SchemaFactory::class);
+
+// Get all type definitions with descriptions and fields
+$definitions = $factory->getTypeDefinitions();
+
+// Each definition includes: name, label, description, fields[]
+foreach ($definitions as $definition) {
+    echo $definition['name'];        // e.g., "Article"
+    echo $definition['description'];  // e.g., "Represents a news or scholarly article."
+
+    foreach ($definition['fields'] as $field) {
+        echo $field['name'];       // e.g., "headline"
+        echo $field['type'];       // e.g., "text", "date", "url", "select", "textarea"
+        echo $field['label'];      // e.g., "Headline"
+        echo $field['required'];   // true or false
+        echo $field['description'];
+    }
+}
+```
+
+### Custom Schema Types with Field Definitions
+
+When creating custom schema types, implement `getDescription()` and `getFieldDefinitions()` to have them appear in the API:
+
+```php
+use ArtisanPackUI\SEO\Schema\Builders\AbstractSchema;
+use Illuminate\Database\Eloquent\Model;
+
+class RecipeSchema extends AbstractSchema
+{
+    public function getType(): string
+    {
+        return 'Recipe';
+    }
+
+    public function getDescription(): string
+    {
+        return 'A recipe for preparing a food dish.';
+    }
+
+    public function getFieldDefinitions(): array
+    {
+        return [
+            [
+                'name' => 'recipeName',
+                'type' => 'text',
+                'label' => 'Recipe Name',
+                'required' => true,
+                'description' => 'The name of the recipe.',
+            ],
+            [
+                'name' => 'cookTime',
+                'type' => 'text',
+                'label' => 'Cook Time',
+                'required' => false,
+                'description' => 'The time it takes to cook the dish (ISO 8601 duration).',
+            ],
+        ];
+    }
+
+    public function generate(?Model $model = null): array
+    {
+        return $this->filterEmpty(array_merge($this->getBaseSchema(), [
+            'name'     => $this->get('recipeName'),
+            'cookTime' => $this->get('cookTime'),
+        ]));
+    }
+}
+```
+
+Register your custom type:
+
+```php
+$factory = app(\ArtisanPackUI\SEO\Schema\SchemaFactory::class);
+$factory->register('Recipe', RecipeSchema::class);
+```
+
 ## Rendering Schema
 
 ### Using Blade Component

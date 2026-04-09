@@ -44,6 +44,12 @@ Command-line tools for sitemap generation, sitemap submission, and cache managem
 
 [Learn more about Artisan Commands →](Advanced-Artisan-Commands)
 
+### Frontend Scaffolding (React & Vue)
+
+Publish React or Vue SEO components and TypeScript type definitions to your application for building custom admin interfaces.
+
+[Learn more about Frontend Scaffolding →](Advanced-Frontend-Scaffolding)
+
 ## Quick Reference
 
 ### Enable/Disable Features
@@ -159,3 +165,4 @@ Schedule::command('seo:submit-sitemap')->weekly();
 - [SEO Analysis](Advanced-Analysis) - Content analysis
 - [Caching](Advanced-Caching) - Cache optimization
 - [Artisan Commands](Advanced-Artisan-Commands) - CLI tools
+- [Frontend Scaffolding](Advanced-Frontend-Scaffolding) - React & Vue components

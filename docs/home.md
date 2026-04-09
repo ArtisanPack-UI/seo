@@ -47,6 +47,10 @@ Welcome to the documentation for **ArtisanPack UI SEO**, a comprehensive Laravel
   - [SEO Analysis](Advanced-Analysis)
   - [Caching](Advanced-Caching)
   - [Artisan Commands](Advanced-Artisan-Commands)
+  - [Frontend Scaffolding (React & Vue)](Advanced-Frontend-Scaffolding)
+
+- **Upgrade Guides**
+  - [Upgrading to 1.1.0](Upgrade-1.1.0)
 
 - **[FAQ](Faq)**
 - **[Troubleshooting](Troubleshooting)**
@@ -55,7 +59,7 @@ Welcome to the documentation for **ArtisanPack UI SEO**, a comprehensive Laravel
 
 - **Meta Tag Management** - Automatically generate or manually customize meta titles and descriptions for any Eloquent model
 - **Social Media Optimization** - Full support for Open Graph (Facebook, LinkedIn), Twitter Cards, Pinterest, and Slack
-- **Schema.org / JSON-LD** - 14 built-in schema types with customizable JSON-LD output
+- **Schema.org / JSON-LD** - 14 built-in schema types with customizable JSON-LD output and a [Schema Type Definitions API](Usage-Schema#schema-type-definitions-api) for dynamic form rendering
 - **URL Redirects** - Manage 301/302/307/308 redirects with exact, regex, and wildcard matching
 - **XML Sitemaps** - Generate standard, image, video, and news sitemaps with automatic sitemap index
 - **Dynamic Robots.txt** - Configure robots.txt with bot-specific rules and automatic sitemap inclusion
@@ -63,6 +67,7 @@ Welcome to the documentation for **ArtisanPack UI SEO**, a comprehensive Laravel
 - **SEO Analysis** - Built-in content analysis with 8 analyzers for SEO scoring
 - **Livewire Components** - Pre-built admin UI components for managing all SEO features
 - **Blade Components** - Simple view components for rendering SEO tags in your templates
+- **React & Vue Components** - Publishable frontend components for React and Vue via the [`seo:install-frontend` command](Advanced-Frontend-Scaffolding)
 - **Caching** - Comprehensive caching system for optimal performance
 - **Media Library Integration** - Seamless integration with ArtisanPack UI Media Library for social images
 

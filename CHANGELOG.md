@@ -5,6 +5,33 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2026-04-08
+
+### Added
+
+- **REST API Endpoints**: Full API for SEO meta, analysis, redirects, and schema management under `/api/seo/` (#29)
+- **API Resources**: Eloquent API Resources for SEO models and DTOs (`SeoMetaResource`, `AnalysisResultResource`, `RedirectResource`, `SchemaResource`, `MetaTagsResource`, `OpenGraphResource`, `TwitterCardResource`, `HreflangResource`, `SeoPreviewResource`) (#30)
+- **TypeScript Type Definitions**: Publishable TypeScript types for all SEO API responses via `seo-types` publish tag (#31)
+- **React SEO Admin Components**: 12 React components (`SeoMetaEditor`, `BasicMetaTab`, `OpenGraphTab`, `TwitterCardTab`, `SchemaTab`, `HreflangTab`, `SitemapTab`, `MetaPreview`, `SocialPreview`, `SeoAnalysisPanel`, `RedirectManager`, `SeoDashboard`) and 4 hooks (`useApi`, `useSeoMeta`, `useSeoAnalysis`, `useRedirects`) (#32)
+- **Vue SEO Admin Components**: 12 Vue components mirroring the React set, with 4 composables (`useApi`, `useSeoMeta`, `useSeoAnalysis`, `useRedirects`) (#33)
+- **`seo:install-frontend` Artisan Command**: Publishes React or Vue SEO components and TypeScript type definitions with `--stack` and `--force` options (#34)
+- **Schema Type Field Definitions API**: `GET /api/seo/schema/types` now returns rich metadata including descriptions and field definitions for each schema type, enabling dynamic form rendering in React/Vue editors (#35)
+- **Publishable Asset Scaffolding**: Publish tags `seo-react`, `seo-vue`, and `seo-types` for frontend component distribution
+- **GitHub Actions CI/CD**: Lint job (PHP-CS-Fixer + PHPCS), test matrix (PHP 8.2, 8.3, 8.4), and separate release workflow with Packagist notification
+- **Comprehensive Documentation**: Frontend scaffolding guide, schema type definitions API docs, v1.1.0 upgrade guide, and updated existing docs
+
+### Fixed
+
+- **AnalysisService zero scores**: Built-in analyzers are now properly registered with the `AnalysisService` in the service provider (#40)
+- **SeoDashboard request guard**: Added null check for request in `fetchDashboardData` to prevent errors
+- **AnalyzerName typo**: Corrected `internal_link` to `internal_links` in TypeScript type definitions
+- **Schema numeric coercion**: Deferred numeric coercion in schema fields until input is complete to prevent premature type conversion
+
+### Changed
+
+- **Breaking: `SchemaTypeContract` interface gained two new methods** — `getDescription(): string` and `getFieldDefinitions(): array` were added in 1.1.0. External classes that directly implement `SchemaTypeContract` must add these methods. Classes that extend `AbstractSchema` (the recommended approach) are unaffected, as `AbstractSchema` provides default implementations returning an empty string and empty array respectively. To migrate, either implement both methods in your custom class, or switch to extending `AbstractSchema` instead of implementing `SchemaTypeContract` directly.
+- **CI migrated from GitLab to GitHub Actions**: Replaced GitLab CI/CD with GitHub Actions workflows
+
 ## [1.0.0] - 2026-01-23
 
 ### First Stable Release

@@ -47,6 +47,22 @@ If you need to customize the Blade components or Livewire component views:
 php artisan vendor:publish --tag=seo-views
 ```
 
+### Frontend Components (Optional)
+
+> Added in v1.1.0
+
+Publish React or Vue SEO components for building custom admin interfaces:
+
+```bash
+# React components
+php artisan seo:install-frontend --stack=react
+
+# Vue components
+php artisan seo:install-frontend --stack=vue
+```
+
+See [Frontend Scaffolding](Advanced-Frontend-Scaffolding) for details.
+
 ### Migrations (Optional)
 
 If you need to modify the database schema:

@@ -3,7 +3,7 @@
   "description": "SEO utilities and meta tag management for Laravel applications",
   "type": "library",
   "license": "MIT",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "autoload": {
     "psr-4": {
       "ArtisanPackUI\\SEO\\": "src/"
