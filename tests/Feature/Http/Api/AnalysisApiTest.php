@@ -133,6 +133,39 @@ describe( 'POST /api/seo/analysis/analyze', function (): void {
 
 		$response->assertNotFound();
 	} );
+
+	it( 'returns non-zero scores when content is present', function (): void {
+		$page = AnalysisApiTestModel::create( [
+			'title'   => 'Comprehensive Guide to API Design Best Practices',
+			'content' => '<h1>API Design Best Practices</h1>
+				<p>Building well-designed APIs is essential for modern software development. A good API should be intuitive, consistent, and well-documented. This guide covers the key principles that every developer should follow when designing RESTful APIs.</p>
+				<h2>Use Meaningful Resource Names</h2>
+				<p>Choose resource names that clearly describe the data they represent. Use plural nouns for collections and keep URLs clean and readable. Avoid using verbs in URLs since HTTP methods already convey the action.</p>
+				<h2>Implement Proper Error Handling</h2>
+				<p>Return appropriate HTTP status codes and include helpful error messages. Clients should be able to programmatically handle errors without parsing error strings. Use a consistent error response format across all endpoints.</p>
+				<p>Good error handling improves the developer experience and makes debugging much easier for consumers of your API.</p>',
+		] );
+
+		$page->seoMeta()->create( [
+			'meta_title'       => 'API Design Best Practices Guide',
+			'meta_description' => 'Learn the essential best practices for designing modern RESTful APIs including resource naming, error handling, and documentation.',
+			'focus_keyword'    => 'API design',
+		] );
+
+		$response = $this->postJson( '/api/seo/analysis/analyze', [
+			'model_type'    => 'analysis_api_test_page',
+			'model_id'      => $page->id,
+			'focus_keyword' => 'API design',
+		] );
+
+		$response->assertOk();
+
+		$data = $response->json( 'data' );
+
+		expect( $data['overall_score'] )->toBeGreaterThan( 0 )
+			->and( $data['analyzer_results'] )->not->toBeEmpty()
+			->and( $data['word_count'] )->toBeGreaterThan( 0 );
+	} );
 } );
 
 describe( 'GET /api/seo/analysis/{modelType}/{modelId}', function (): void {

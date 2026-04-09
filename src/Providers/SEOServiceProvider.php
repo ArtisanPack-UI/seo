@@ -30,6 +30,14 @@ use ArtisanPackUI\SEO\Livewire\SeoDashboard;
 use ArtisanPackUI\SEO\Livewire\SeoMetaEditor;
 use ArtisanPackUI\SEO\Schema\SchemaFactory;
 use ArtisanPackUI\SEO\SEO;
+use ArtisanPackUI\SEO\Services\Analysis\ContentLengthAnalyzer;
+use ArtisanPackUI\SEO\Services\Analysis\FocusKeywordAnalyzer;
+use ArtisanPackUI\SEO\Services\Analysis\HeadingStructureAnalyzer;
+use ArtisanPackUI\SEO\Services\Analysis\ImageAltAnalyzer;
+use ArtisanPackUI\SEO\Services\Analysis\InternalLinkAnalyzer;
+use ArtisanPackUI\SEO\Services\Analysis\KeywordDensityAnalyzer;
+use ArtisanPackUI\SEO\Services\Analysis\MetaLengthAnalyzer;
+use ArtisanPackUI\SEO\Services\Analysis\ReadabilityAnalyzer;
 use ArtisanPackUI\SEO\Services\AnalysisService;
 use ArtisanPackUI\SEO\Services\AnalyticsIntegration;
 use ArtisanPackUI\SEO\Services\CacheService;
@@ -163,6 +171,21 @@ class SEOServiceProvider extends ServiceProvider
 
 		$this->app->singleton( CmsFrameworkIntegration::class, function ( $app ) {
 			return new CmsFrameworkIntegration();
+		} );
+
+		$this->app->singleton( AnalysisService::class, function ( $app ) {
+			$service = new AnalysisService();
+
+			$service->registerAnalyzer( 'content_length', new ContentLengthAnalyzer() );
+			$service->registerAnalyzer( 'focus_keyword', new FocusKeywordAnalyzer() );
+			$service->registerAnalyzer( 'heading_structure', new HeadingStructureAnalyzer() );
+			$service->registerAnalyzer( 'image_alt', new ImageAltAnalyzer() );
+			$service->registerAnalyzer( 'internal_links', new InternalLinkAnalyzer() );
+			$service->registerAnalyzer( 'keyword_density', new KeywordDensityAnalyzer() );
+			$service->registerAnalyzer( 'meta_length', new MetaLengthAnalyzer() );
+			$service->registerAnalyzer( 'readability', new ReadabilityAnalyzer() );
+
+			return $service;
 		} );
 
 		$this->app->singleton( AnalyticsIntegration::class, function ( $app ) {
