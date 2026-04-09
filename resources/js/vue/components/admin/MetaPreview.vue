@@ -66,7 +66,7 @@ const displayUrl = computed( () => {
 			<p class="text-xs text-base-content/50 mb-2">Google Search Preview</p>
 			<div class="max-w-xl">
 				<p class="text-sm text-base-content/60 mb-0.5">{{ displayUrl }}</p>
-				<h3 class="text-lg text-primary hover:underline cursor-pointer leading-tight mb-1">
+				<h3 class="text-lg text-primary leading-tight mb-1">
 					{{ truncatedTitle }}
 				</h3>
 				<p class="text-sm text-base-content/70 leading-snug">{{ truncatedDesc }}</p>

@@ -74,7 +74,7 @@ export function MetaPreview( { data, defaultUrl = '', className }: MetaPreviewPr
 					<p className="text-sm text-base-content/60 mb-0.5">
 						{ displayUrl }
 					</p>
-					<h3 className="text-lg text-primary hover:underline cursor-pointer leading-tight mb-1">
+					<h3 className="text-lg text-primary leading-tight mb-1">
 						{ truncatedTitle }
 					</h3>
 					<p className="text-sm text-base-content/70 leading-snug">

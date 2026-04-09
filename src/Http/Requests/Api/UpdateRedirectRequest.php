@@ -74,12 +74,8 @@ class UpdateRedirectRequest extends FormRequest
 	public function messages(): array
 	{
 		return [
-			'status_code.in' => __( 'The status code must be one of: :values.', [
-				'values' => implode( ', ', Redirect::VALID_STATUS_CODES ),
-			] ),
-			'match_type.in' => __( 'The match type must be one of: :values.', [
-				'values' => implode( ', ', Redirect::VALID_MATCH_TYPES ),
-			] ),
+			'status_code.in' => __( 'The status code must be one of: :values.' ),
+			'match_type.in'  => __( 'The match type must be one of: :values.' ),
 		];
 	}
 }

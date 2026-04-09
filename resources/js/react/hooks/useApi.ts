@@ -159,7 +159,7 @@ export function useApi( options: UseApiOptions ): UseApiReturn {
 
 			try {
 				const data = await response.json();
-				message = data.message;
+				message = data.message ?? message;
 			} catch {
 				// Use the default message
 			}

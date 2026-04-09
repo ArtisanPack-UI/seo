@@ -83,6 +83,7 @@ export function HreflangTab( { data, onChange, errors = {} }: HreflangTabProps )
 				<div key={ index } className="flex gap-2 items-end">
 					<Input
 						label={ 0 === index ? 'Language Code' : undefined }
+						aria-label="Language Code"
 						value={ entry.hreflang }
 						onChange={ ( e ) => updateEntry( index, 'hreflang', e.target.value ) }
 						placeholder="e.g. en-US"
@@ -94,6 +95,7 @@ export function HreflangTab( { data, onChange, errors = {} }: HreflangTabProps )
 					<div className="flex-1">
 						<Input
 							label={ 0 === index ? 'URL' : undefined }
+							aria-label="URL"
 							value={ entry.href }
 							onChange={ ( e ) => updateEntry( index, 'href', e.target.value ) }
 							placeholder="https://example.com/page"

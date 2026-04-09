@@ -152,9 +152,9 @@ class AnalysisApiController extends Controller
 	 */
 	protected function resolveModel( string $modelType, int $modelId ): ?\Illuminate\Database\Eloquent\Model
 	{
-		$modelClass = Relation::getMorphedModel( $modelType ) ?? $modelType;
+		$modelClass = Relation::getMorphedModel( $modelType );
 
-		if ( ! class_exists( $modelClass ) || ! is_subclass_of( $modelClass, \Illuminate\Database\Eloquent\Model::class ) ) {
+		if ( null === $modelClass || ! class_exists( $modelClass ) || ! is_subclass_of( $modelClass, \Illuminate\Database\Eloquent\Model::class ) ) {
 			return null;
 		}
 

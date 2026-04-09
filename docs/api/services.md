@@ -200,6 +200,26 @@ $factory = app(\ArtisanPackUI\SEO\Schema\SchemaFactory::class);
 $types = $factory->getSupportedTypes();
 ```
 
+### Schema Type Definitions (v1.1.0)
+
+Get rich metadata for all schema types, including descriptions and field definitions for building dynamic editor forms:
+
+```php
+$factory = app(\ArtisanPackUI\SEO\Schema\SchemaFactory::class);
+
+// Get type definitions with descriptions and field metadata
+$definitions = $factory->getTypeDefinitions();
+// Returns: [['name' => 'Article', 'label' => 'Article', 'description' => '...', 'fields' => [...]]]
+```
+
+Or via the API:
+
+```
+GET /api/seo/schema/types
+```
+
+See [Schema.org / JSON-LD — Schema Type Definitions API](Usage-Schema#schema-type-definitions-api) for full documentation.
+
 ---
 
 ## SitemapService

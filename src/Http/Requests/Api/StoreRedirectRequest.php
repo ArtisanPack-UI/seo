@@ -76,12 +76,8 @@ class StoreRedirectRequest extends FormRequest
 		return [
 			'from_path.required' => __( 'The source path is required.' ),
 			'to_path.required'   => __( 'The destination path is required.' ),
-			'status_code.in'     => __( 'The status code must be one of: :values.', [
-				'values' => implode( ', ', Redirect::VALID_STATUS_CODES ),
-			] ),
-			'match_type.in' => __( 'The match type must be one of: :values.', [
-				'values' => implode( ', ', Redirect::VALID_MATCH_TYPES ),
-			] ),
+			'status_code.in'     => __( 'The status code must be one of: :values.' ),
+			'match_type.in'      => __( 'The match type must be one of: :values.' ),
 		];
 	}
 }

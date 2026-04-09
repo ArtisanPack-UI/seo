@@ -71,6 +71,7 @@ function removeEntry( index: number ): void {
 		>
 			<Input
 				:label="index === 0 ? 'Language Code' : undefined"
+				aria-label="Language Code"
 				:model-value="entry.hreflang"
 				@update:model-value="updateEntry( index, 'hreflang', String( $event ) )"
 				placeholder="e.g. en-US"
@@ -82,6 +83,7 @@ function removeEntry( index: number ): void {
 			<div class="flex-1">
 				<Input
 					:label="index === 0 ? 'URL' : undefined"
+					aria-label="URL"
 					:model-value="entry.href"
 					@update:model-value="updateEntry( index, 'href', String( $event ) )"
 					placeholder="https://example.com/page"

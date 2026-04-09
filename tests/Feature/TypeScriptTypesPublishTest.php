@@ -82,7 +82,7 @@ describe( 'TypeScript Types Publishing', function (): void {
 
 		$actualFiles = array_map(
 			'basename',
-			glob( $typesDir . '/*.d.ts' ),
+			glob( $typesDir . '/*.d.ts' ) ?: [],
 		);
 
 		sort( $actualFiles );
@@ -93,7 +93,7 @@ describe( 'TypeScript Types Publishing', function (): void {
 
 	it( 'type files contain valid TypeScript export declarations', function (): void {
 		$typesDir = __DIR__ . '/../../resources/js/types';
-		$files    = glob( $typesDir . '/*.d.ts' );
+		$files    = glob( $typesDir . '/*.d.ts' ) ?: [];
 
 		foreach ( $files as $file ) {
 			$content = file_get_contents( $file );

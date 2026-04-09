@@ -31,8 +31,8 @@ const emit = defineEmits<{
 	'change': [field: string, value: unknown];
 }>();
 
-const titleLength = computed( () => props.data.meta_title?.length ?? 0 );
-const descLength  = computed( () => props.data.meta_description?.length ?? 0 );
+const titleLength = computed( () => [...( props.data.meta_title ?? '' )].length );
+const descLength  = computed( () => [...( props.data.meta_description ?? '' )].length );
 
 const titleHint = computed( () =>
 	`${ titleLength.value }/${ MAX_TITLE_LENGTH } characters${ titleLength.value > MAX_TITLE_LENGTH ? ' (too long)' : '' }`,

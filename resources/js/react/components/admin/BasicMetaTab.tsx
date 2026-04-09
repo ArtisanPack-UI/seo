@@ -37,8 +37,8 @@ export interface BasicMetaTabProps {
  * and robots directives (noindex/nofollow).
  */
 export function BasicMetaTab( { data, onChange, errors = {} }: BasicMetaTabProps ): React.ReactElement {
-	const titleLength = data.meta_title?.length ?? 0;
-	const descLength  = data.meta_description?.length ?? 0;
+	const titleLength = [...( data.meta_title ?? '' )].length;
+	const descLength  = [...( data.meta_description ?? '' )].length;
 
 	const titleHint = `${ titleLength }/${ MAX_TITLE_LENGTH } characters${
 		titleLength > MAX_TITLE_LENGTH ? ' (too long)' : ''
