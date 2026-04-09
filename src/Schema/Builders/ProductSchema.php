@@ -74,6 +74,8 @@ class ProductSchema extends AbstractSchema
 			[ 'name' => 'mpn', 'type' => 'text', 'label' => __( 'MPN' ), 'required' => false, 'description' => __( 'Manufacturer part number' ) ],
 			[ 'name' => 'brand', 'type' => 'text', 'label' => __( 'Brand' ), 'required' => false, 'description' => __( 'The brand of the product' ) ],
 			[ 'name' => 'offers', 'type' => 'offer', 'label' => __( 'Offers' ), 'required' => false, 'description' => __( 'Pricing and availability information' ) ],
+			[ 'name' => 'aggregateRating', 'type' => 'aggregate_rating', 'label' => __( 'Aggregate Rating' ), 'required' => false, 'description' => __( 'Average rating and review count' ) ],
+			[ 'name' => 'reviews', 'type' => 'review_list', 'label' => __( 'Reviews' ), 'required' => false, 'description' => __( 'Customer reviews for the product' ) ],
 			[ 'name' => 'category', 'type' => 'text', 'label' => __( 'Category' ), 'required' => false, 'description' => __( 'The product category' ) ],
 			[ 'name' => 'color', 'type' => 'text', 'label' => __( 'Color' ), 'required' => false, 'description' => __( 'The color of the product' ) ],
 			[ 'name' => 'material', 'type' => 'text', 'label' => __( 'Material' ), 'required' => false, 'description' => __( 'The material the product is made from' ) ],

@@ -70,6 +70,7 @@ class WebsiteSchema extends AbstractSchema
 			[ 'name' => 'description', 'type' => 'textarea', 'label' => __( 'Description' ), 'required' => false, 'description' => __( 'A description of the website' ) ],
 			[ 'name' => 'publisher', 'type' => 'organization', 'label' => __( 'Publisher' ), 'required' => false, 'description' => __( 'The organization that publishes the website' ) ],
 			[ 'name' => 'searchUrl', 'type' => 'url', 'label' => __( 'Search URL' ), 'required' => false, 'description' => __( 'URL template for site search (e.g. "https://example.com/search?q={search_term_string}")' ) ],
+			[ 'name' => 'searchParamName', 'type' => 'text', 'label' => __( 'Search Parameter Name' ), 'required' => false, 'description' => __( 'The query parameter name used in the search URL template (default: "search_term_string")' ) ],
 			[ 'name' => 'alternateName', 'type' => 'text', 'label' => __( 'Alternate Name' ), 'required' => false, 'description' => __( 'An alternate name for the website' ) ],
 			[ 'name' => 'inLanguage', 'type' => 'text', 'label' => __( 'Language' ), 'required' => false, 'description' => __( 'The language of the website (e.g. "en")' ) ],
 		];

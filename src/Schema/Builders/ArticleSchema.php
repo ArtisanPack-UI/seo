@@ -66,12 +66,14 @@ class ArticleSchema extends AbstractSchema
 	{
 		return [
 			[ 'name' => 'headline', 'type' => 'text', 'label' => __( 'Headline' ), 'required' => true, 'description' => __( 'The headline of the article' ) ],
+			[ 'name' => 'url', 'type' => 'url', 'label' => __( 'URL' ), 'required' => false, 'description' => __( 'The URL of the article page' ) ],
 			[ 'name' => 'description', 'type' => 'textarea', 'label' => __( 'Description' ), 'required' => false, 'description' => __( 'A short description of the article' ) ],
 			[ 'name' => 'image', 'type' => 'image', 'label' => __( 'Image' ), 'required' => false, 'description' => __( 'URL of the article image' ) ],
 			[ 'name' => 'author', 'type' => 'person', 'label' => __( 'Author' ), 'required' => true, 'description' => __( 'The author of the article' ) ],
-			[ 'name' => 'publisher', 'type' => 'organization', 'label' => __( 'Publisher' ), 'required' => true, 'description' => __( 'The publisher of the article' ) ],
+			[ 'name' => 'publisher', 'type' => 'organization', 'label' => __( 'Publisher' ), 'required' => false, 'description' => __( 'The publisher of the article (defaults to site organization from config)' ) ],
 			[ 'name' => 'datePublished', 'type' => 'datetime', 'label' => __( 'Date Published' ), 'required' => true, 'description' => __( 'The date the article was published' ) ],
 			[ 'name' => 'dateModified', 'type' => 'datetime', 'label' => __( 'Date Modified' ), 'required' => false, 'description' => __( 'The date the article was last modified' ) ],
+			[ 'name' => 'dateCreated', 'type' => 'datetime', 'label' => __( 'Date Created' ), 'required' => false, 'description' => __( 'The date the article was created' ) ],
 			[ 'name' => 'articleBody', 'type' => 'textarea', 'label' => __( 'Article Body' ), 'required' => false, 'description' => __( 'The full text of the article' ) ],
 			[ 'name' => 'wordCount', 'type' => 'number', 'label' => __( 'Word Count' ), 'required' => false, 'description' => __( 'The number of words in the article' ) ],
 			[ 'name' => 'keywords', 'type' => 'text', 'label' => __( 'Keywords' ), 'required' => false, 'description' => __( 'Keywords or tags for the article' ) ],

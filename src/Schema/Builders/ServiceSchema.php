@@ -74,6 +74,7 @@ class ServiceSchema extends AbstractSchema
 			[ 'name' => 'serviceType', 'type' => 'text', 'label' => __( 'Service Type' ), 'required' => false, 'description' => __( 'The type of service' ) ],
 			[ 'name' => 'category', 'type' => 'text', 'label' => __( 'Category' ), 'required' => false, 'description' => __( 'The category of the service' ) ],
 			[ 'name' => 'offers', 'type' => 'offer', 'label' => __( 'Offers' ), 'required' => false, 'description' => __( 'Pricing information for the service' ) ],
+			[ 'name' => 'aggregateRating', 'type' => 'aggregate_rating', 'label' => __( 'Aggregate Rating' ), 'required' => false, 'description' => __( 'Average rating and review count' ) ],
 			[ 'name' => 'brand', 'type' => 'text', 'label' => __( 'Brand' ), 'required' => false, 'description' => __( 'The brand associated with the service' ) ],
 		];
 	}

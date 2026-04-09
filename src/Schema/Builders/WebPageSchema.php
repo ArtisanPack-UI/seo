@@ -73,6 +73,8 @@ class WebPageSchema extends AbstractSchema
 			[ 'name' => 'image', 'type' => 'image', 'label' => __( 'Image' ), 'required' => false, 'description' => __( 'Primary image of the page' ) ],
 			[ 'name' => 'author', 'type' => 'person', 'label' => __( 'Author' ), 'required' => false, 'description' => __( 'The author of the page' ) ],
 			[ 'name' => 'publisher', 'type' => 'organization', 'label' => __( 'Publisher' ), 'required' => false, 'description' => __( 'The publisher of the page' ) ],
+			[ 'name' => 'breadcrumb', 'type' => 'breadcrumb_list', 'label' => __( 'Breadcrumb' ), 'required' => false, 'description' => __( 'Breadcrumb navigation for the page' ) ],
+			[ 'name' => 'isPartOf', 'type' => 'url', 'label' => __( 'Part Of' ), 'required' => false, 'description' => __( 'The parent website URL this page belongs to' ) ],
 			[ 'name' => 'inLanguage', 'type' => 'text', 'label' => __( 'Language' ), 'required' => false, 'description' => __( 'The language of the page (e.g. "en")' ) ],
 		];
 	}
