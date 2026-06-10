@@ -303,12 +303,12 @@ class EventSchema extends AbstractSchema
 	protected function mapEventStatus( string $status ): string
 	{
 		return match ( strtolower( $status ) ) {
-			'scheduled'                         => 'https://schema.org/EventScheduled',
-			'cancelled', 'canceled'             => 'https://schema.org/EventCancelled',
-			'postponed'                         => 'https://schema.org/EventPostponed',
-			'rescheduled'                       => 'https://schema.org/EventRescheduled',
+			'scheduled'                             => 'https://schema.org/EventScheduled',
+			'cancelled', 'canceled'                 => 'https://schema.org/EventCancelled',
+			'postponed'                             => 'https://schema.org/EventPostponed',
+			'rescheduled'                           => 'https://schema.org/EventRescheduled',
 			'movedonline', 'moved_online', 'online' => 'https://schema.org/EventMovedOnline',
-			default                             => $status,
+			default                                 => $status,
 		};
 	}
 
@@ -324,7 +324,7 @@ class EventSchema extends AbstractSchema
 	protected function mapAttendanceMode( string $mode ): string
 	{
 		return match ( strtolower( $mode ) ) {
-			'offline', 'inperson', 'in_person' => 'https://schema.org/OfflineEventAttendanceMode',
+			'offline', 'inperson', 'in_person'  => 'https://schema.org/OfflineEventAttendanceMode',
 			'online', 'virtual'                 => 'https://schema.org/OnlineEventAttendanceMode',
 			'mixed', 'hybrid'                   => 'https://schema.org/MixedEventAttendanceMode',
 			default                             => $mode,
@@ -343,9 +343,9 @@ class EventSchema extends AbstractSchema
 	protected function mapAvailability( string $availability ): string
 	{
 		return match ( strtolower( $availability ) ) {
-			'instock', 'in_stock', 'available' => 'https://schema.org/InStock',
+			'instock', 'in_stock', 'available'  => 'https://schema.org/InStock',
 			'soldout', 'sold_out'               => 'https://schema.org/SoldOut',
-			'preorder', 'pre_order'            => 'https://schema.org/PreOrder',
+			'preorder', 'pre_order'             => 'https://schema.org/PreOrder',
 			'limited'                           => 'https://schema.org/LimitedAvailability',
 			default                             => $availability,
 		};
