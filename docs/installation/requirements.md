@@ -88,7 +88,7 @@ For package development and testing:
 |---------|---------|---------|
 | `pestphp/pest` | ^3.8 | Testing framework |
 | `pestphp/pest-plugin-laravel` | ^3.2 | Laravel Pest plugin |
-| `orchestra/testbench` | ^8.0\|^9.0\|^10.0 | Laravel package testing |
+| `orchestra/testbench` | ^8.0\|^9.0\|^10.0\|^11.0 | Laravel package testing |
 | `artisanpack-ui/code-style` | ^1.1 | Code style checking |
 | `artisanpack-ui/code-style-pint` | ^1.1 | Code formatting |
 
