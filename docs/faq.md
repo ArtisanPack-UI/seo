@@ -10,7 +10,7 @@ Common questions about ArtisanPack UI SEO.
 
 ### What Laravel versions are supported?
 
-ArtisanPack UI SEO supports Laravel 10, 11, and 12. See the [Requirements](Installation-Requirements) page for full details.
+ArtisanPack UI SEO supports Laravel 10, 11, 12, and 13. See the [Requirements](Installation-Requirements) page for full details.
 
 ### Do I need Livewire to use this package?
 

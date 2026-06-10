@@ -327,12 +327,12 @@ class ProductSchema extends AbstractSchema
 	protected function mapAvailability( string $availability ): string
 	{
 		return match ( strtolower( $availability ) ) {
-			'instock', 'in_stock', 'in stock'          => 'https://schema.org/InStock',
+			'instock', 'in_stock', 'in stock'            => 'https://schema.org/InStock',
 			'outofstock', 'out_of_stock', 'out of stock' => 'https://schema.org/OutOfStock',
-			'preorder', 'pre_order', 'pre order'       => 'https://schema.org/PreOrder',
-			'backorder', 'back_order', 'back order'    => 'https://schema.org/BackOrder',
-			'discontinued'                              => 'https://schema.org/Discontinued',
-			default                                     => $availability,
+			'preorder', 'pre_order', 'pre order'         => 'https://schema.org/PreOrder',
+			'backorder', 'back_order', 'back order'      => 'https://schema.org/BackOrder',
+			'discontinued'                               => 'https://schema.org/Discontinued',
+			default                                      => $availability,
 		};
 	}
 
