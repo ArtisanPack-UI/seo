@@ -12,7 +12,7 @@ This page outlines the system requirements and dependencies for ArtisanPack UI S
 
 ## Laravel Version
 
-- **Laravel 10.x**, **11.x**, or **12.x**
+- **Laravel 10.x**, **11.x**, **12.x**, or **13.x**
 
 ## Required Dependencies
 
@@ -21,7 +21,7 @@ The following packages are automatically installed as dependencies:
 | Package | Version | Purpose |
 |---------|---------|---------|
 | `artisanpack-ui/core` | ^1.0 | Core utilities and helpers |
-| `illuminate/support` | ^10.0\|^11.0\|^12.0 | Laravel support package |
+| `illuminate/support` | ^10.0\|^11.0\|^12.0\|^13.0 | Laravel support package |
 
 ## Optional Dependencies
 
@@ -88,7 +88,7 @@ For package development and testing:
 |---------|---------|---------|
 | `pestphp/pest` | ^3.8 | Testing framework |
 | `pestphp/pest-plugin-laravel` | ^3.2 | Laravel Pest plugin |
-| `orchestra/testbench` | ^8.0\|^9.0\|^10.0 | Laravel package testing |
+| `orchestra/testbench` | ^8.0\|^9.0\|^10.0\|^11.0 | Laravel package testing |
 | `artisanpack-ui/code-style` | ^1.1 | Code style checking |
 | `artisanpack-ui/code-style-pint` | ^1.1 | Code formatting |
 
