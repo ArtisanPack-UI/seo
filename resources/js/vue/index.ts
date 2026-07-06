@@ -33,6 +33,9 @@ export type {
 	PaginatedRedirects,
 } from './composables';
 
+export { useAiAgent } from './composables/useAiAgent';
+export type { SeoAiFeatureKey, UseAiAgentReturn, AgentResponse } from './composables/useAiAgent';
+
 // Admin Components
 export {
 	BasicMetaTab,
@@ -48,3 +51,12 @@ export {
 	RedirectManager,
 	SeoDashboard,
 } from './components/admin';
+
+// AI Trigger Components
+export {
+	MetaTitleSuggestor,
+	MetaDescriptionSuggestor,
+	ContentAnalyzer,
+	SchemaSuggestor,
+	HreflangSuggestor,
+} from './components/ai';
