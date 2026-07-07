@@ -21,6 +21,7 @@ The following packages are automatically installed as dependencies:
 | Package | Version | Purpose |
 |---------|---------|---------|
 | `artisanpack-ui/core` | ^1.0 | Core utilities and helpers |
+| `artisanpack-ui/ai` | ^1.0 | AI agent runtime for the SEO AI feature suite (v1.2.0+) |
 | `illuminate/support` | ^10.0\|^11.0\|^12.0\|^13.0 | Laravel support package |
 
 ## Optional Dependencies

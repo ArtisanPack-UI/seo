@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-07-06
+
 ### Added
 
 - **AI Feature Suite**: Five AI agents built on top of `artisanpack-ui/ai` for SEO workflows. Each ships with Livewire, React, and Vue trigger components plus a JSON API endpoint under `/api/seo/ai/`.

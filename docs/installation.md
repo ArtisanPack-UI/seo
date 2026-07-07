@@ -12,6 +12,8 @@ This guide covers the complete installation process for ArtisanPack UI SEO.
 composer require artisanpack-ui/seo
 ```
 
+Composer installs `artisanpack-ui/core` and (starting in v1.2.0) `artisanpack-ui/ai` as required dependencies. `artisanpack-ui/ai` powers the [AI Feature Suite](Usage-Ai-Features); you can leave it inert if you do not plan to use those features.
+
 ## Run Migrations
 
 The package includes migrations for the SEO database tables:
@@ -49,7 +51,7 @@ php artisan vendor:publish --tag=seo-views
 
 ### Frontend Components (Optional)
 
-> Added in v1.1.0
+> Added in v1.1.0, expanded in v1.2.0 with the AI trigger components
 
 Publish React or Vue SEO components for building custom admin interfaces:
 
@@ -62,6 +64,24 @@ php artisan seo:install-frontend --stack=vue
 ```
 
 See [Frontend Scaffolding](Advanced-Frontend-Scaffolding) for details.
+
+### AI Feature Suite (Optional)
+
+> Added in v1.2.0
+
+The AI agents run through `artisanpack-ui/ai`. Publish its configuration and set credentials for the provider(s) you plan to use:
+
+```bash
+php artisan vendor:publish --tag=ai-config
+```
+
+Then scope the `seo.ai.use` ability in your `AuthServiceProvider` to control who can burn AI quota:
+
+```php
+Gate::define( 'seo.ai.use', fn ( User $user ) => $user->hasRole( 'editor' ) );
+```
+
+See [AI Features](Usage-Ai-Features) for the full agent and endpoint reference.
 
 ### Migrations (Optional)
 
