@@ -59,6 +59,28 @@ Before contributing, make sure you have:
 7. Push to your fork
 8. Create a merge/pull request
 
+### Local dependency on `artisanpack-ui/ai`
+
+The AI features shipped in 1.2.0 require `artisanpack-ui/ai`. For local
+development you have two options:
+
+- **Sibling checkout (recommended for AI-package co-development)**: clone
+  `artisanpack-ui/ai` into a sibling directory (e.g.
+  `~/Code/ArtisanPack UI Packages/ai`) and temporarily add the following block
+  to your local `composer.json` (do NOT commit this change):
+
+  ```json
+  "repositories": [
+      { "type": "path", "url": "../ai", "options": { "symlink": true } }
+  ],
+  ```
+
+  Then run `composer update artisanpack-ui/ai`. Revert the composer.json edit
+  before committing anything else.
+
+- **Packagist (default)**: once `artisanpack-ui/ai` is published, `composer install`
+  resolves it automatically with no extra setup.
+
 ## Issue Templates
 
 When creating an issue, you'll be prompted to choose a template. We have several templates to help you provide the right information:

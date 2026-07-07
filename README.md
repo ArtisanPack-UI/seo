@@ -48,6 +48,7 @@ class Post extends Model
 - **SEO Analysis**: 8 built-in analyzers for content quality scoring
 - **Performance Caching**: Comprehensive caching for meta tags, sitemaps, and redirects
 - **Admin Components**: Livewire components for visual SEO management
+- **AI Features**: Five AI agents for title/description suggestions, content analysis, schema generation, and hreflang gap detection (requires `artisanpack-ui/ai`)
 
 ## Components
 
@@ -73,10 +74,58 @@ class Post extends Model
 | `<livewire:hreflang-editor>` | Multi-language URL editor |
 | `<livewire:meta-preview>` | Search result preview |
 | `<livewire:social-preview>` | Social share preview |
+| `<livewire:seo::ai-meta-title-suggestor>` | AI-generated title variants |
+| `<livewire:seo::ai-meta-description-suggestor>` | AI-generated meta description |
+| `<livewire:seo::ai-content-analyzer>` | AI content quality scoring with recommendations |
+| `<livewire:seo::ai-schema-suggestor>` | AI JSON-LD schema type suggestion + starter object |
+| `<livewire:seo::ai-hreflang-suggestor>` | AI hreflang gap detection |
 
 ### Schema Types
 
 Article, BlogPosting, Product, Organization, Person, LocalBusiness, Event, Recipe, FAQPage, HowTo, BreadcrumbList, WebSite, WebPage, VideoObject
+
+## AI Features
+
+Five agents are shipped for use with the `artisanpack-ui/ai` foundation package. When `artisanpack-ui/ai` is installed and configured with credentials, the SEO service provider auto-registers each feature via `aiFeatures()`.
+
+| Feature key | Default model | Description |
+|---|---|---|
+| `seo.suggest_meta_title` | `claude-haiku-4-5` | Generate 3-5 SEO title variants (≤60 chars). |
+| `seo.suggest_meta_description` | `claude-haiku-4-5` | Generate one 150-160 character meta description. |
+| `seo.analyze_content` | `claude-sonnet-4-6` | Score content across keyword usage, readability, structure, and semantic completeness. |
+| `seo.generate_schema` | `claude-haiku-4-5` | Pick a JSON-LD schema type from the supported list and produce a starter object. |
+| `seo.suggest_hreflang` | `claude-haiku-4-5` | Cross-reference hreflang tags and surface missing or inconsistent relationships. |
+
+### Trigger surfaces
+
+Every feature ships trigger UI on all three supported frontends:
+
+- **Livewire** — the components listed above. Drop them into your editor views.
+- **React** — `MetaTitleSuggestor`, `MetaDescriptionSuggestor`, `ContentAnalyzer`, `SchemaSuggestor`, `HreflangSuggestor` under `@artisanpack-ui/seo/react` (or the published path). Backed by the `useAiAgent` hook.
+- **Vue** — the same five components under `@artisanpack-ui/seo/vue`, backed by the `useAiAgent` composable.
+
+React and Vue triggers call the JSON API at `/api/seo/ai/{feature}` — see the routes registered under `Route::prefix('ai')` in `routes/api.php` (`suggest-meta-title`, `suggest-meta-description`, `analyze-content`, `generate-schema`, `suggest-hreflang`).
+
+### Feature toggles
+
+Each feature honors the shared registry toggle. A disabled feature returns a `FeatureDisabledException` from the agent and a `409` from the API. Toggle at runtime via the `FeatureRegistry` facade:
+
+```php
+use ArtisanPackUI\Ai\Contracts\FeatureRegistry;
+
+app( FeatureRegistry::class )->disable( 'seo.analyze_content' );
+```
+
+Or set the initial state in `config/artisanpack.php`:
+
+```php
+'ai' => [
+    'features' => [
+        'seo.suggest_meta_title' => [ 'enabled' => true, 'model' => 'claude-haiku-4-5' ],
+        // ...
+    ],
+],
+```
 
 ## Documentation
 

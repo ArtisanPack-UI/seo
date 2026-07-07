@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **AI Feature Suite**: Five AI agents built on top of `artisanpack-ui/ai` for SEO workflows. Each ships with Livewire, React, and Vue trigger components plus a JSON API endpoint under `/api/seo/ai/`.
+  - `MetaTitleSuggestionAgent` — 3-5 CTR-optimized title variants ≤60 chars (#50)
+  - `MetaDescriptionAgent` — one 150-160 char meta description with keyword coverage (#51)
+  - `ContentAnalysisAgent` — structured quality score across four dimensions with actionable recommendations (#52)
+  - `SchemaGenerationAgent` — JSON-LD schema type suggestion + starter object, backed by the existing 14 supported schema types (#53)
+  - `HreflangSuggestionAgent` — cross-references hreflang relationships and surfaces gaps/inconsistencies (#54)
+- **Feature Registry Integration**: `SEOServiceProvider::aiFeatures()` auto-registers all five features with labels, default models, and descriptions.
+- **AI Trigger Components**: `<livewire:seo::ai-*>` Livewire components + `MetaTitleSuggestor`/`ContentAnalyzer`/etc. React and Vue components with the `useAiAgent` hook/composable.
+
+### Changed
+
+- Added `artisanpack-ui/ai: ^1.0` as a required dependency.
+
 ## [1.1.1] - 2026-06-09
 
 ### Added

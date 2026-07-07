@@ -4,6 +4,7 @@ declare( strict_types=1 );
 
 namespace Tests;
 
+use ArtisanPackUI\Ai\AiServiceProvider;
 use ArtisanPackUI\SEO\Providers\SEOServiceProvider;
 use Illuminate\Support\Facades\Blade;
 use Livewire\LivewireServiceProvider;
@@ -90,6 +91,7 @@ abstract class TestCase extends BaseTestCase
     {
         return [
             LivewireServiceProvider::class,
+            AiServiceProvider::class,
             SEOServiceProvider::class,
         ];
     }

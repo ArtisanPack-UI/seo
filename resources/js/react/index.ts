@@ -22,6 +22,9 @@ export {
 	useRedirects,
 } from './hooks';
 
+export { useAiAgent } from './hooks/useAiAgent';
+export type { SeoAiFeatureKey, UseAiAgentReturn, AgentResponse } from './hooks/useAiAgent';
+
 export type {
 	UseApiOptions,
 	UseApiReturn,
@@ -63,3 +66,28 @@ export type {
 	RedirectManagerProps,
 	SeoDashboardProps,
 } from './components/admin';
+
+// AI Trigger Components
+export {
+	MetaTitleSuggestor,
+	MetaDescriptionSuggestor,
+	ContentAnalyzer,
+	SchemaSuggestor,
+	HreflangSuggestor,
+} from './components/ai';
+
+export type {
+	MetaTitleSuggestorProps,
+	TitleVariant,
+	MetaDescriptionSuggestorProps,
+	MetaDescriptionSuggestion,
+	ContentAnalyzerProps,
+	ContentAnalysisResult,
+	DimensionScore,
+	SchemaSuggestorProps,
+	SchemaSuggestion,
+	HreflangSuggestorProps,
+	HreflangIssue,
+	HreflangPage,
+	HreflangTranslation,
+} from './components/ai';
