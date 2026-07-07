@@ -17,10 +17,20 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\SEO\Providers;
 
+use ArtisanPackUI\SEO\Ai\Agents\ContentAnalysisAgent;
+use ArtisanPackUI\SEO\Ai\Agents\HreflangSuggestionAgent;
+use ArtisanPackUI\SEO\Ai\Agents\MetaDescriptionAgent;
+use ArtisanPackUI\SEO\Ai\Agents\MetaTitleSuggestionAgent;
+use ArtisanPackUI\SEO\Ai\Agents\SchemaGenerationAgent;
 use ArtisanPackUI\SEO\Console\Commands\GenerateSitemapCommand;
 use ArtisanPackUI\SEO\Console\Commands\InstallFrontend;
 use ArtisanPackUI\SEO\Console\Commands\SubmitSitemapCommand;
 use ArtisanPackUI\SEO\Http\Middleware\HandleRedirects;
+use ArtisanPackUI\SEO\Livewire\Ai\ContentAnalyzer;
+use ArtisanPackUI\SEO\Livewire\Ai\HreflangSuggestor;
+use ArtisanPackUI\SEO\Livewire\Ai\MetaDescriptionSuggestor;
+use ArtisanPackUI\SEO\Livewire\Ai\MetaTitleSuggestor;
+use ArtisanPackUI\SEO\Livewire\Ai\SchemaSuggestor;
 use ArtisanPackUI\SEO\Livewire\HreflangEditor;
 use ArtisanPackUI\SEO\Livewire\Partials\MetaPreview;
 use ArtisanPackUI\SEO\Livewire\Partials\SocialPreview;
@@ -106,6 +116,105 @@ class SEOServiceProvider extends ServiceProvider
 		$this->registerMiddleware();
 		$this->registerMediaLibraryImageSize();
 		$this->registerVisualEditorPrePublishChecks();
+		$this->registerAiGate();
+	}
+
+	/**
+	 * Declare AI features owned by this package.
+	 *
+	 * Auto-discovered by artisanpack-ui/ai when the ai package is installed.
+	 * Each entry maps a fully-qualified feature key to the agent class that
+	 * fulfills it, along with a human-readable label and description for the
+	 * admin UI.
+	 *
+	 * @since 1.2.0
+	 *
+	 * @return array<string, array<string, mixed>>
+	 */
+	public function aiFeatures(): array
+	{
+		return [
+			'seo.suggest_meta_title'       => [
+				'agent'       => MetaTitleSuggestionAgent::class,
+				'package'     => 'artisanpack-ui/seo',
+				'label'       => __( 'Suggest meta title' ),
+				'description' => __( 'Generate 3-5 SEO title variants (≤60 chars) optimized for CTR and keyword coverage.' ),
+			],
+			'seo.suggest_meta_description' => [
+				'agent'       => MetaDescriptionAgent::class,
+				'package'     => 'artisanpack-ui/seo',
+				'label'       => __( 'Suggest meta description' ),
+				'description' => __( 'Generate one 150-160 character meta description that naturally includes the primary keyword.' ),
+			],
+			'seo.analyze_content'          => [
+				'agent'       => ContentAnalysisAgent::class,
+				'package'     => 'artisanpack-ui/seo',
+				'label'       => __( 'Analyze content' ),
+				'description' => __( 'Score content quality across keyword usage, readability, structure, and semantic completeness.' ),
+			],
+			'seo.generate_schema'          => [
+				'agent'       => SchemaGenerationAgent::class,
+				'package'     => 'artisanpack-ui/seo',
+				'label'       => __( 'Suggest schema' ),
+				'description' => __( 'Pick a JSON-LD schema.org type from the supported list and produce a starter structure.' ),
+			],
+			'seo.suggest_hreflang'         => [
+				'agent'       => HreflangSuggestionAgent::class,
+				'package'     => 'artisanpack-ui/seo',
+				'label'       => __( 'Suggest hreflang fixes' ),
+				'description' => __( 'Cross-reference hreflang relationships and surface missing or inconsistent tags.' ),
+			],
+		];
+	}
+
+	/**
+	 * Whether the optional `artisanpack-ui/ai` package is installed.
+	 *
+	 * The AI Feature Suite (agents, Livewire trigger components, and
+	 * `/api/seo/ai/*` endpoints) all extend or resolve from types owned by
+	 * `artisanpack-ui/ai`. When that package is absent, this returns false
+	 * and callers skip the AI-specific registration.
+	 *
+	 * @since 1.2.0
+	 *
+	 * @return bool
+	 */
+	public static function aiPackageAvailable(): bool
+	{
+		return class_exists( \ArtisanPackUI\Ai\Agents\ArtisanPackAgent::class );
+	}
+
+	/**
+	 * Register the default `seo.ai.use` authorization gate.
+	 *
+	 * The AI API endpoints (`/api/seo/ai/*`) gate on this ability so that
+	 * paid quota isn't spent by every authenticated user. Ships with a
+	 * permissive default (any authenticated user can use AI features) so
+	 * upgrades are non-breaking; installers should override this gate in
+	 * their own `AuthServiceProvider` to enforce a stricter policy —
+	 * e.g. limit to editors/admins or apply per-tenant quotas.
+	 *
+	 * @since 1.2.0
+	 *
+	 * @return void
+	 */
+	protected function registerAiGate(): void
+	{
+		$gate = \Illuminate\Support\Facades\Gate::getFacadeRoot();
+
+		// Guard so an installer who registered their own `seo.ai.use`
+		// before our boot() (via a plugin, package-first AuthServiceProvider,
+		// etc.) is not silently overwritten by the permissive default.
+		if ( method_exists( $gate, 'has' ) && $gate->has( 'seo.ai.use' ) ) {
+			return;
+		}
+
+		\Illuminate\Support\Facades\Gate::define(
+			'seo.ai.use',
+			static function ( $user = null ): bool {
+				return null !== $user;
+			},
+		);
 	}
 
 	/**
@@ -359,6 +468,19 @@ class SEOServiceProvider extends ServiceProvider
 		Livewire::component( 'seo::hreflang-editor', HreflangEditor::class );
 		Livewire::component( 'seo::meta-preview', MetaPreview::class );
 		Livewire::component( 'seo::social-preview', SocialPreview::class );
+
+		// AI trigger components are only registered when artisanpack-ui/ai is installed,
+		// since each component's mount path constructs an agent that extends the ai
+		// package's ArtisanPackAgent base class.
+		if ( ! self::aiPackageAvailable() ) {
+			return;
+		}
+
+		Livewire::component( 'seo::ai-meta-title-suggestor', MetaTitleSuggestor::class );
+		Livewire::component( 'seo::ai-meta-description-suggestor', MetaDescriptionSuggestor::class );
+		Livewire::component( 'seo::ai-content-analyzer', ContentAnalyzer::class );
+		Livewire::component( 'seo::ai-schema-suggestor', SchemaSuggestor::class );
+		Livewire::component( 'seo::ai-hreflang-suggestor', HreflangSuggestor::class );
 	}
 
 	/**

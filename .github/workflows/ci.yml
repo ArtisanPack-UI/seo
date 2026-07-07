@@ -49,9 +49,15 @@ jobs:
     name: Test (PHP ${{ matrix.php }})
 
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
-        php: ['8.2', '8.3', '8.4']
+        include:
+          - php: '8.2'
+            with-ai: false
+          - php: '8.3'
+            with-ai: true
+          - php: '8.4'
+            with-ai: true
 
     steps:
       - uses: actions/checkout@v4
@@ -74,15 +80,29 @@ jobs:
           key: ${{ runner.os }}-php${{ matrix.php }}-composer-${{ hashFiles('**/composer.json') }}
           restore-keys: ${{ runner.os }}-php${{ matrix.php }}-composer-
 
+      # artisanpack-ui/ai requires PHP 8.3+ and Laravel 12+, so drop it from
+      # composer.json on the PHP 8.2 job before resolving deps. The SEO
+      # package's AI Feature Suite is optional at runtime; downstream users
+      # on PHP 8.2 get the rest of the package normally.
+      - name: Remove AI dev dep (PHP 8.2)
+        if: matrix.with-ai == false
+        run: composer remove artisanpack-ui/ai --dev --no-update
+
       - name: Install dependencies
         run: composer update --no-interaction --prefer-dist
 
       - name: Run Unit tests
         env:
           XDEBUG_MODE: off
-        run: vendor/bin/pest tests/Unit --no-coverage
+        run: vendor/bin/pest --testsuite=Unit --no-coverage
 
       - name: Run Feature tests
         env:
           XDEBUG_MODE: off
-        run: vendor/bin/pest tests/Feature --no-coverage
+        run: vendor/bin/pest --testsuite=Feature --no-coverage
+
+      - name: Run AI tests
+        if: matrix.with-ai
+        env:
+          XDEBUG_MODE: off
+        run: vendor/bin/pest --testsuite=Ai --no-coverage

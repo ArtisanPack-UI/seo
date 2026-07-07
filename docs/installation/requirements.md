@@ -29,6 +29,7 @@ These packages enhance functionality when installed:
 
 | Package | Purpose |
 |---------|---------|
+| `artisanpack-ui/ai` (^1.0) | Unlocks the [AI Feature Suite](Usage-Ai-Features) *(v1.2.0+)* — requires PHP 8.3+ and Laravel 12+ |
 | `artisanpack-ui/media-library` | Social image management and optimization |
 | `artisanpack-ui/cms-framework` | CMS content integration |
 | `artisanpack-ui/visual-editor` | Visual editor integration |

@@ -76,6 +76,12 @@ Deep dive into the `HasSeo` trait and all available model methods.
 
 [Learn more about Model Integration →](Usage-Model-Integration)
 
+### AI Features
+
+Five AI agents that generate meta titles, meta descriptions, JSON-LD schema, content quality scores, and hreflang gap analysis, with Livewire, React, and Vue trigger components.
+
+[Learn more about AI Features →](Usage-Ai-Features)
+
 ## Quick Examples
 
 ### Setting SEO Data Programmatically
@@ -201,3 +207,4 @@ The package includes Livewire components for managing SEO in your admin panel:
 - [Schema.org](Usage-Schema) - Structured data markup
 - [Hreflang](Usage-Hreflang) - Multi-language support
 - [Model Integration](Usage-Model-Integration) - HasSeo trait reference
+- [AI Features](Usage-Ai-Features) - AI-powered meta title, description, content analysis, schema, and hreflang agents

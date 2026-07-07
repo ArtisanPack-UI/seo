@@ -39,23 +39,32 @@ resources/js/
 │   ├── hooks/
 │   │   ├── index.ts
 │   │   ├── useApi.ts               # Base API helper
+│   │   ├── useAiAgent.ts           # AI agent dispatcher (v1.2.0)
 │   │   ├── useSeoMeta.ts           # SEO metadata CRUD
 │   │   ├── useSeoAnalysis.ts       # Content analysis
 │   │   └── useRedirects.ts         # Redirect management
-│   └── components/admin/
-│       ├── index.ts
-│       ├── SeoMetaEditor.tsx       # Full tabbed SEO editor
-│       ├── BasicMetaTab.tsx        # Title, description, robots
-│       ├── OpenGraphTab.tsx        # Open Graph fields
-│       ├── TwitterCardTab.tsx      # Twitter Card fields
-│       ├── SchemaTab.tsx           # Schema type selector + fields
-│       ├── HreflangTab.tsx         # Multi-language URLs
-│       ├── SitemapTab.tsx          # Sitemap settings
-│       ├── MetaPreview.tsx         # Google SERP preview
-│       ├── SocialPreview.tsx       # Social share preview
-│       ├── SeoAnalysisPanel.tsx    # Analysis scores + suggestions
-│       ├── RedirectManager.tsx     # Redirect CRUD table
-│       └── SeoDashboard.tsx        # Overview statistics
+│   └── components/
+│       ├── admin/
+│       │   ├── index.ts
+│       │   ├── SeoMetaEditor.tsx       # Full tabbed SEO editor
+│       │   ├── BasicMetaTab.tsx        # Title, description, robots
+│       │   ├── OpenGraphTab.tsx        # Open Graph fields
+│       │   ├── TwitterCardTab.tsx      # Twitter Card fields
+│       │   ├── SchemaTab.tsx           # Schema type selector + fields
+│       │   ├── HreflangTab.tsx         # Multi-language URLs
+│       │   ├── SitemapTab.tsx          # Sitemap settings
+│       │   ├── MetaPreview.tsx         # Google SERP preview
+│       │   ├── SocialPreview.tsx       # Social share preview
+│       │   ├── SeoAnalysisPanel.tsx    # Analysis scores + suggestions
+│       │   ├── RedirectManager.tsx     # Redirect CRUD table
+│       │   └── SeoDashboard.tsx        # Overview statistics
+│       └── ai/                          # AI trigger components (v1.2.0)
+│           ├── index.ts
+│           ├── MetaTitleSuggestor.tsx
+│           ├── MetaDescriptionSuggestor.tsx
+│           ├── ContentAnalyzer.tsx
+│           ├── SchemaSuggestor.tsx
+│           └── HreflangSuggestor.tsx
 └── types/seo/
     ├── index.d.ts                  # Main type exports
     ├── meta-tags.d.ts
@@ -78,23 +87,32 @@ resources/js/
 │   ├── composables/
 │   │   ├── index.ts
 │   │   ├── useApi.ts               # Base API helper
+│   │   ├── useAiAgent.ts           # AI agent dispatcher (v1.2.0)
 │   │   ├── useSeoMeta.ts           # SEO metadata CRUD
 │   │   ├── useSeoAnalysis.ts       # Content analysis
 │   │   └── useRedirects.ts         # Redirect management
-│   └── components/admin/
-│       ├── index.ts
-│       ├── SeoMetaEditor.vue       # Full tabbed SEO editor
-│       ├── BasicMetaTab.vue        # Title, description, robots
-│       ├── OpenGraphTab.vue        # Open Graph fields
-│       ├── TwitterCardTab.vue      # Twitter Card fields
-│       ├── SchemaTab.vue           # Schema type selector + fields
-│       ├── HreflangTab.vue         # Multi-language URLs
-│       ├── SitemapTab.vue          # Sitemap settings
-│       ├── MetaPreview.vue         # Google SERP preview
-│       ├── SocialPreview.vue       # Social share preview
-│       ├── SeoAnalysisPanel.vue    # Analysis scores + suggestions
-│       ├── RedirectManager.vue     # Redirect CRUD table
-│       └── SeoDashboard.vue        # Overview statistics
+│   └── components/
+│       ├── admin/
+│       │   ├── index.ts
+│       │   ├── SeoMetaEditor.vue       # Full tabbed SEO editor
+│       │   ├── BasicMetaTab.vue        # Title, description, robots
+│       │   ├── OpenGraphTab.vue        # Open Graph fields
+│       │   ├── TwitterCardTab.vue      # Twitter Card fields
+│       │   ├── SchemaTab.vue           # Schema type selector + fields
+│       │   ├── HreflangTab.vue         # Multi-language URLs
+│       │   ├── SitemapTab.vue          # Sitemap settings
+│       │   ├── MetaPreview.vue         # Google SERP preview
+│       │   ├── SocialPreview.vue       # Social share preview
+│       │   ├── SeoAnalysisPanel.vue    # Analysis scores + suggestions
+│       │   ├── RedirectManager.vue     # Redirect CRUD table
+│       │   └── SeoDashboard.vue        # Overview statistics
+│       └── ai/                          # AI trigger components (v1.2.0)
+│           ├── index.ts
+│           ├── MetaTitleSuggestor.vue
+│           ├── MetaDescriptionSuggestor.vue
+│           ├── ContentAnalyzer.vue
+│           ├── SchemaSuggestor.vue
+│           └── HreflangSuggestor.vue
 └── types/seo/                      # (same as React)
 ```
 
@@ -164,11 +182,24 @@ const props = defineProps<{
 | `RedirectManager` | URL redirect CRUD interface with search, filtering, and bulk operations |
 | `SeoDashboard` | SEO statistics overview with counts and health indicators |
 
+### AI Components (v1.2.0)
+
+| Component | Description |
+|-----------|-------------|
+| `MetaTitleSuggestor` | Dispatches `seo.suggest_meta_title` and renders 3-5 title variants |
+| `MetaDescriptionSuggestor` | Dispatches `seo.suggest_meta_description` and renders one 150-160 char description |
+| `ContentAnalyzer` | Dispatches `seo.analyze_content` and renders the four-dimension score + recommendations |
+| `SchemaSuggestor` | Dispatches `seo.generate_schema` and renders the suggested JSON-LD |
+| `HreflangSuggestor` | Dispatches `seo.suggest_hreflang` and renders hreflang issues + fixes |
+
+See [AI Features](Usage-Ai-Features) for the full component prop reference and endpoint details.
+
 ### Hooks (React) / Composables (Vue)
 
 | Hook / Composable | Description |
 |-------------------|-------------|
 | `useApi` | Base HTTP client for the SEO API endpoints |
+| `useAiAgent` *(v1.2.0)* | Typed dispatcher for the `/api/seo/ai/*` endpoints with loading and error state |
 | `useSeoMeta` | Fetch and update SEO metadata for a model |
 | `useSeoAnalysis` | Run and retrieve content analysis results |
 | `useRedirects` | CRUD operations for URL redirects with pagination |
@@ -219,6 +250,11 @@ The frontend components communicate with the SEO package via its REST API endpoi
 | `POST /api/seo/redirects` | `useRedirects`, `RedirectManager` |
 | `PUT /api/seo/redirects/{id}` | `useRedirects`, `RedirectManager` |
 | `DELETE /api/seo/redirects/{id}` | `useRedirects`, `RedirectManager` |
+| `POST /api/seo/ai/suggest-meta-title` | `useAiAgent`, `MetaTitleSuggestor` |
+| `POST /api/seo/ai/suggest-meta-description` | `useAiAgent`, `MetaDescriptionSuggestor` |
+| `POST /api/seo/ai/analyze-content` | `useAiAgent`, `ContentAnalyzer` |
+| `POST /api/seo/ai/generate-schema` | `useAiAgent`, `SchemaSuggestor` |
+| `POST /api/seo/ai/suggest-hreflang` | `useAiAgent`, `HreflangSuggestor` |
 
 ## Customization
 

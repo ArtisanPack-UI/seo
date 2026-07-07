@@ -3,7 +3,7 @@
   "description": "SEO utilities and meta tag management for Laravel applications",
   "type": "library",
   "license": "MIT",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "autoload": {
     "psr-4": {
       "ArtisanPackUI\\SEO\\": "src/"
@@ -31,6 +31,7 @@
   "require-dev": {
     "pestphp/pest": "^3.8",
     "pestphp/pest-plugin-laravel": "^3.2",
+    "artisanpack-ui/ai": "^1.0",
     "artisanpack-ui/code-style": "^1.1",
     "artisanpack-ui/code-style-pint": "^1.1",
     "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
@@ -42,7 +43,8 @@
   "suggest": {
     "livewire/livewire": "Required for using the SeoMetaEditor Livewire component (^3.6.4)",
     "artisanpack-ui/livewire-ui-components": "Required for UI components in the SeoMetaEditor (^1.0)",
-    "artisanpack-ui/media-library": "Optional for media library integration in the SeoMetaEditor (^1.0)"
+    "artisanpack-ui/media-library": "Optional for media library integration in the SeoMetaEditor (^1.0)",
+    "artisanpack-ui/ai": "Required for the AI Feature Suite — five agents for meta title, meta description, content analysis, schema, and hreflang (^1.0; requires PHP 8.3+, Laravel 12+)"
   },
   "scripts": {
     "lint": [
