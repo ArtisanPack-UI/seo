@@ -18,6 +18,7 @@ use ArtisanPackUI\SEO\Http\Controllers\Api\AnalysisApiController;
 use ArtisanPackUI\SEO\Http\Controllers\Api\RedirectApiController;
 use ArtisanPackUI\SEO\Http\Controllers\Api\SchemaApiController;
 use ArtisanPackUI\SEO\Http\Controllers\Api\SeoMetaApiController;
+use ArtisanPackUI\SEO\Providers\SEOServiceProvider;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -88,23 +89,25 @@ if ( true === config( 'seo.api.enabled', true ) ) {
 					->name( 'seo.api.redirects.destroy' );
 			} );
 
-			// AI agent endpoints
-			Route::prefix( 'ai' )->group( function (): void {
-				Route::post( 'suggest-meta-title', [ AiAgentApiController::class, 'suggestMetaTitle' ] )
-					->name( 'seo.api.ai.suggest-meta-title' );
+			// AI agent endpoints — only registered when artisanpack-ui/ai is installed.
+			if ( SEOServiceProvider::aiPackageAvailable() ) {
+				Route::prefix( 'ai' )->group( function (): void {
+					Route::post( 'suggest-meta-title', [ AiAgentApiController::class, 'suggestMetaTitle' ] )
+						->name( 'seo.api.ai.suggest-meta-title' );
 
-				Route::post( 'suggest-meta-description', [ AiAgentApiController::class, 'suggestMetaDescription' ] )
-					->name( 'seo.api.ai.suggest-meta-description' );
+					Route::post( 'suggest-meta-description', [ AiAgentApiController::class, 'suggestMetaDescription' ] )
+						->name( 'seo.api.ai.suggest-meta-description' );
 
-				Route::post( 'analyze-content', [ AiAgentApiController::class, 'analyzeContent' ] )
-					->name( 'seo.api.ai.analyze-content' );
+					Route::post( 'analyze-content', [ AiAgentApiController::class, 'analyzeContent' ] )
+						->name( 'seo.api.ai.analyze-content' );
 
-				Route::post( 'generate-schema', [ AiAgentApiController::class, 'generateSchema' ] )
-					->name( 'seo.api.ai.generate-schema' );
+					Route::post( 'generate-schema', [ AiAgentApiController::class, 'generateSchema' ] )
+						->name( 'seo.api.ai.generate-schema' );
 
-				Route::post( 'suggest-hreflang', [ AiAgentApiController::class, 'suggestHreflang' ] )
-					->name( 'seo.api.ai.suggest-hreflang' );
-			} );
+					Route::post( 'suggest-hreflang', [ AiAgentApiController::class, 'suggestHreflang' ] )
+						->name( 'seo.api.ai.suggest-hreflang' );
+				} );
+			}
 
 			// Schema endpoints
 			Route::prefix( 'schema' )->group( function (): void {

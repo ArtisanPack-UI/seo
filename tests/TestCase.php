@@ -89,11 +89,16 @@ abstract class TestCase extends BaseTestCase
      */
     protected function getPackageProviders( $app ): array
     {
-        return [
-            LivewireServiceProvider::class,
-            AiServiceProvider::class,
-            SEOServiceProvider::class,
-        ];
+        $providers = [ LivewireServiceProvider::class ];
+
+        // AI provider is optional — only register when artisanpack-ui/ai is installed.
+        if ( class_exists( AiServiceProvider::class ) ) {
+            $providers[] = AiServiceProvider::class;
+        }
+
+        $providers[] = SEOServiceProvider::class;
+
+        return $providers;
     }
 
     /**

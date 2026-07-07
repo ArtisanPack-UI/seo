@@ -21,7 +21,6 @@ The following packages are automatically installed as dependencies:
 | Package | Version | Purpose |
 |---------|---------|---------|
 | `artisanpack-ui/core` | ^1.0 | Core utilities and helpers |
-| `artisanpack-ui/ai` | ^1.0 | AI agent runtime for the SEO AI feature suite (v1.2.0+) |
 | `illuminate/support` | ^10.0\|^11.0\|^12.0\|^13.0 | Laravel support package |
 
 ## Optional Dependencies
@@ -30,6 +29,7 @@ These packages enhance functionality when installed:
 
 | Package | Purpose |
 |---------|---------|
+| `artisanpack-ui/ai` (^1.0) | Unlocks the [AI Feature Suite](Usage-Ai-Features) *(v1.2.0+)* — requires PHP 8.3+ and Laravel 12+ |
 | `artisanpack-ui/media-library` | Social image management and optimization |
 | `artisanpack-ui/cms-framework` | CMS content integration |
 | `artisanpack-ui/visual-editor` | Visual editor integration |

@@ -10,9 +10,11 @@ ArtisanPack UI SEO ships a suite of AI-powered agents built on top of [`artisanp
 
 ## Requirements
 
-- `artisanpack-ui/ai: ^1.0` (installed automatically as a dependency)
+- **`artisanpack-ui/ai: ^1.0`** — an **optional** dependency. Install with `composer require artisanpack-ui/ai`. Requires PHP 8.3+ and Laravel 12+.
 - Provider credentials configured through `artisanpack-ui/ai`
 - The `seo.ai.use` authorization ability granted to the calling user
+
+When `artisanpack-ui/ai` is not installed, the AI Livewire components, `/api/seo/ai/*` endpoints, and feature registry entries are not registered. The rest of the SEO package works unchanged on PHP 8.2 / Laravel 10 / Laravel 11.
 
 ## The Feature Suite
 

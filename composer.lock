@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "a46632194ef93887f958313a18075d7c",
+    "content-hash": "bf89642fd8860bff9e5d7e0df6059851",
     "packages": [
         {
             "name": "artisanpack-ui/ai",

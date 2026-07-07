@@ -12,9 +12,9 @@ This guide covers upgrading from v1.1.x to v1.2.0. This release is **additive** 
 - **New**: Livewire, React, and Vue trigger components for each agent, plus a shared `useAiAgent` hook (React) and composable (Vue).
 - **New**: `POST /api/seo/ai/*` endpoints for the five agents.
 - **New**: Default `seo.ai.use` authorization gate.
-- **Changed**: `artisanpack-ui/ai: ^1.0` is now a required dependency.
+- **Optional**: `artisanpack-ui/ai: ^1.0` is a **suggested** dependency — the AI Feature Suite auto-activates only when it is installed. The rest of the SEO package works unchanged on PHP 8.2 / Laravel 10 / Laravel 11.
 
-There are no breaking changes to models, services, contracts, or existing endpoints.
+There are no breaking changes to models, services, contracts, or existing endpoints. Nothing to do if you do not want the AI features.
 
 ## Update the Package
 
@@ -22,7 +22,15 @@ There are no breaking changes to models, services, contracts, or existing endpoi
 composer update artisanpack-ui/seo
 ```
 
-Composer will pull in the new `artisanpack-ui/ai` dependency alongside the SEO package.
+## Install `artisanpack-ui/ai` (Only If You Want the AI Features)
+
+The AI Feature Suite requires PHP 8.3+ and Laravel 12+ (constraints inherited from `artisanpack-ui/ai`). If your app is on those versions, install the package:
+
+```bash
+composer require artisanpack-ui/ai
+```
+
+If you skip this step, the SEO package continues to work — the AI Livewire components (`<livewire:seo::ai-*>`), AI API endpoints (`/api/seo/ai/*`), and AI feature registry entries simply are not registered.
 
 ## Configure AI Credentials
 
@@ -91,13 +99,13 @@ See [AI Features](Usage-Ai-Features) for the full component and endpoint referen
 
 ## Rolling Back
 
-Because 1.2.0 only adds new files and one new dependency, rolling back is safe:
+Because 1.2.0 is additive (and only adds a suggested dependency), rolling back is safe:
 
 ```bash
 composer require artisanpack-ui/seo:^1.1
 ```
 
-`artisanpack-ui/ai` will remain in `composer.lock` but is inert without the SEO agents.
+If you also installed `artisanpack-ui/ai`, you can either leave it in place (it is inert without the SEO agents) or remove it with `composer remove artisanpack-ui/ai`.
 
 ## Next Steps
 

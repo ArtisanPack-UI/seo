@@ -168,6 +168,23 @@ class SEOServiceProvider extends ServiceProvider
 	}
 
 	/**
+	 * Whether the optional `artisanpack-ui/ai` package is installed.
+	 *
+	 * The AI Feature Suite (agents, Livewire trigger components, and
+	 * `/api/seo/ai/*` endpoints) all extend or resolve from types owned by
+	 * `artisanpack-ui/ai`. When that package is absent, this returns false
+	 * and callers skip the AI-specific registration.
+	 *
+	 * @since 1.2.0
+	 *
+	 * @return bool
+	 */
+	public static function aiPackageAvailable(): bool
+	{
+		return class_exists( \ArtisanPackUI\Ai\Agents\ArtisanPackAgent::class );
+	}
+
+	/**
 	 * Register the default `seo.ai.use` authorization gate.
 	 *
 	 * The AI API endpoints (`/api/seo/ai/*`) gate on this ability so that
@@ -451,6 +468,13 @@ class SEOServiceProvider extends ServiceProvider
 		Livewire::component( 'seo::hreflang-editor', HreflangEditor::class );
 		Livewire::component( 'seo::meta-preview', MetaPreview::class );
 		Livewire::component( 'seo::social-preview', SocialPreview::class );
+
+		// AI trigger components are only registered when artisanpack-ui/ai is installed,
+		// since each component's mount path constructs an agent that extends the ai
+		// package's ArtisanPackAgent base class.
+		if ( ! self::aiPackageAvailable() ) {
+			return;
+		}
 
 		Livewire::component( 'seo::ai-meta-title-suggestor', MetaTitleSuggestor::class );
 		Livewire::component( 'seo::ai-meta-description-suggestor', MetaDescriptionSuggestor::class );

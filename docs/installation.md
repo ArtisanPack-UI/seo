@@ -12,7 +12,13 @@ This guide covers the complete installation process for ArtisanPack UI SEO.
 composer require artisanpack-ui/seo
 ```
 
-Composer installs `artisanpack-ui/core` and (starting in v1.2.0) `artisanpack-ui/ai` as required dependencies. `artisanpack-ui/ai` powers the [AI Feature Suite](Usage-Ai-Features); you can leave it inert if you do not plan to use those features.
+Composer installs `artisanpack-ui/core` as the only required dependency. To unlock the [AI Feature Suite](Usage-Ai-Features) added in v1.2.0, also install `artisanpack-ui/ai`:
+
+```bash
+composer require artisanpack-ui/ai
+```
+
+`artisanpack-ui/ai` requires PHP 8.3+ and Laravel 12+. If you're on PHP 8.2 or Laravel 10/11, the rest of the SEO package still works — the AI Livewire components, AI API endpoints (`/api/seo/ai/*`), and AI feature registry entries simply are not registered.
 
 ## Run Migrations
 
@@ -69,7 +75,13 @@ See [Frontend Scaffolding](Advanced-Frontend-Scaffolding) for details.
 
 > Added in v1.2.0
 
-The AI agents run through `artisanpack-ui/ai`. Publish its configuration and set credentials for the provider(s) you plan to use:
+The AI agents run through `artisanpack-ui/ai`, which is an optional dependency. First install it:
+
+```bash
+composer require artisanpack-ui/ai
+```
+
+Requires PHP 8.3+ and Laravel 12+. Then publish its configuration and set credentials for the provider(s) you plan to use:
 
 ```bash
 php artisan vendor:publish --tag=ai-config

@@ -67,7 +67,7 @@ Welcome to the documentation for **ArtisanPack UI SEO**, a comprehensive Laravel
 - **Dynamic Robots.txt** - Configure robots.txt with bot-specific rules and automatic sitemap inclusion
 - **Multi-language Support** - Hreflang tag management for international SEO
 - **SEO Analysis** - Built-in content analysis with 8 analyzers for SEO scoring
-- **AI Feature Suite** *(v1.2.0)* - Five AI agents for meta title/description generation, content quality scoring, JSON-LD schema suggestion, and hreflang gap analysis — all with Livewire, React, and Vue trigger components. See [AI Features](Usage-Ai-Features).
+- **AI Feature Suite** *(v1.2.0)* - Five AI agents for meta title/description generation, content quality scoring, JSON-LD schema suggestion, and hreflang gap analysis — all with Livewire, React, and Vue trigger components. Requires the optional `artisanpack-ui/ai` package (PHP 8.3+, Laravel 12+). See [AI Features](Usage-Ai-Features).
 - **Livewire Components** - Pre-built admin UI components for managing all SEO features
 - **Blade Components** - Simple view components for rendering SEO tags in your templates
 - **React & Vue Components** - Publishable frontend components for React and Vue via the [`seo:install-frontend` command](Advanced-Frontend-Scaffolding)

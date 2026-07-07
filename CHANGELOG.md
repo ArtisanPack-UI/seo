@@ -22,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Added `artisanpack-ui/ai: ^1.0` as a required dependency.
+- **`artisanpack-ui/ai: ^1.0` is now a suggested (optional) dependency**, not required. The AI Feature Suite auto-activates when `artisanpack-ui/ai` is installed and silently disables otherwise, so PHP 8.2 / Laravel 10 / Laravel 11 users keep the rest of the package. AI features themselves require PHP 8.3+ and Laravel 12+, since those are `artisanpack-ui/ai`'s own requirements. AI Livewire components, AI API endpoints (`/api/seo/ai/*`), and the AI feature registry entries are only registered when the ai package is present.
 
 ## [1.1.1] - 2026-06-09
 
