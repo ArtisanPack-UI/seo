@@ -39,6 +39,7 @@ Welcome to the documentation for **ArtisanPack UI SEO**, a comprehensive Laravel
   - [Services](Api-Services)
   - [Helper Functions](Api-Helpers)
   - [Events](Api-Events)
+  - [Filter Hooks](Api-Filter-Hooks)
 
 - **Advanced**
   - [Advanced Overview](Advanced)
@@ -51,6 +52,7 @@ Welcome to the documentation for **ArtisanPack UI SEO**, a comprehensive Laravel
   - [Frontend Scaffolding (React & Vue)](Advanced-Frontend-Scaffolding)
 
 - **Upgrade Guides**
+  - [Upgrading to 1.3.0](Upgrade-1.3.0)
   - [Upgrading to 1.2.0](Upgrade-1.2.0)
   - [Upgrading to 1.1.0](Upgrade-1.1.0)
 
@@ -73,6 +75,7 @@ Welcome to the documentation for **ArtisanPack UI SEO**, a comprehensive Laravel
 - **React & Vue Components** - Publishable frontend components for React and Vue via the [`seo:install-frontend` command](Advanced-Frontend-Scaffolding)
 - **Caching** - Comprehensive caching system for optimal performance
 - **Media Library Integration** - Seamless integration with ArtisanPack UI Media Library for social images
+- **Filter Hooks** *(v1.3.0)* - Mutate meta tags and sitemap entries before rendering via the `ap.seo.metaTags` and `ap.seo.sitemapEntries` filters. See [Filter Hooks](Api-Filter-Hooks).
 
 ## Quick Example
 

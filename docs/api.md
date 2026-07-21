@@ -60,6 +60,15 @@ seoConfig($key)          // Get config value
 
 [View Events Documentation →](Api-Events)
 
+### Filter Hooks
+
+| Filter | When Fired | Since |
+|--------|------------|-------|
+| `ap.seo.metaTags` | Before meta tags are rendered | 1.3.0 |
+| `ap.seo.sitemapEntries` | Before sitemap entries are serialized | 1.3.0 |
+
+[View Filter Hooks Documentation →](Api-Filter-Hooks)
+
 ## Facades
 
 The package provides these facades:

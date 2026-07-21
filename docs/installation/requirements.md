@@ -21,6 +21,7 @@ The following packages are automatically installed as dependencies:
 | Package | Version | Purpose |
 |---------|---------|---------|
 | `artisanpack-ui/core` | ^1.0 | Core utilities and helpers |
+| `artisanpack-ui/hooks` | ^1.3 | WordPress-style actions and filters (required since v1.3.0) |
 | `illuminate/support` | ^10.0\|^11.0\|^12.0\|^13.0 | Laravel support package |
 
 ## Optional Dependencies
