@@ -215,6 +215,7 @@ describe( 'SitemapService', function (): void {
 		] ) );
 		$provider->shouldReceive( 'getChangeFrequency' )->andReturn( 'weekly' );
 		$provider->shouldReceive( 'getPriority' )->andReturn( 0.5 );
+		$provider->shouldReceive( 'getType' )->andReturn( 'custom' );
 
 		$service = new SitemapService();
 		$service->registerProvider( 'custom', $provider );
