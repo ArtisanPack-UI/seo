@@ -21,8 +21,10 @@ use ArtisanPackUI\SEO\DTOs\MetaTagsDTO;
 use ArtisanPackUI\SEO\Models\SeoMeta;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
+use function applyFilters;
 
 /**
  * MetaTagService class.
@@ -40,26 +42,42 @@ class MetaTagService
 	/**
 	 * Generate meta tags for a model.
 	 *
+	 * Fires the `ap.seo.metaTags` filter with the assembled tag array
+	 * so integrators can add, remove, or rewrite tags before rendering.
+	 * Filter payload: `(array $tags, ?Model $subject, Request $request)`.
+	 *
 	 * @since 1.0.0
 	 *
-	 * @param  Model          $model    The model to generate tags for.
-	 * @param  SeoMeta|null   $seoMeta  Optional SeoMeta instance.
+	 * @param  Model         $model    The model to generate tags for.
+	 * @param  SeoMeta|null  $seoMeta  Optional SeoMeta instance.
+	 * @param  Request|null  $request  Optional request; resolved from the container when null.
 	 *
 	 * @return MetaTagsDTO
 	 */
-	public function generate( Model $model, ?SeoMeta $seoMeta = null ): MetaTagsDTO
+	public function generate( Model $model, ?SeoMeta $seoMeta = null, ?Request $request = null ): MetaTagsDTO
 	{
-		$title       = $this->resolveTitle( $model, $seoMeta );
-		$description = $this->resolveDescription( $model, $seoMeta );
-		$canonical   = $this->resolveCanonical( $model, $seoMeta );
-		$robots      = $this->resolveRobots( $seoMeta );
+		$tags = [
+			'title'           => $this->resolveTitle( $model, $seoMeta ),
+			'description'     => $this->resolveDescription( $model, $seoMeta ),
+			'canonical'       => $this->resolveCanonical( $model, $seoMeta ),
+			'robots'          => $this->resolveRobots( $seoMeta ),
+			'additionalMeta'  => $this->getAdditionalMeta( $model, $seoMeta ),
+		];
+
+		$request = $request ?? app( 'request' );
+
+		$filtered = applyFilters( 'ap.seo.metaTags', $tags, $model, $request );
+
+		if ( ! is_array( $filtered ) ) {
+			$filtered = $tags;
+		}
 
 		return new MetaTagsDTO(
-			title: $title,
-			description: $description,
-			canonical: $canonical,
-			robots: $robots,
-			additionalMeta: $this->getAdditionalMeta( $model, $seoMeta ),
+			title: (string) ( $filtered['title'] ?? '' ),
+			description: $filtered['description'] ?? null,
+			canonical: (string) ( $filtered['canonical'] ?? '' ),
+			robots: (string) ( $filtered['robots'] ?? 'index, follow' ),
+			additionalMeta: (array) ( $filtered['additionalMeta'] ?? [] ),
 		);
 	}
 

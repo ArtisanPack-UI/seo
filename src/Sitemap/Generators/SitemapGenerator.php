@@ -22,6 +22,7 @@ use ArtisanPackUI\SEO\Models\SitemapEntry;
 use DateTimeInterface;
 use Illuminate\Support\Collection;
 use XMLWriter;
+use function applyFilters;
 
 /**
  * SitemapGenerator class.
@@ -78,6 +79,7 @@ class SitemapGenerator
 	public function generate( ?string $type = null, int $page = 1 ): string
 	{
 		$entries = $this->getEntries( $type, $page );
+		$entries = $this->applyEntriesFilter( $entries, $type ?? '' );
 
 		return $this->buildXml( $entries );
 	}
@@ -97,7 +99,9 @@ class SitemapGenerator
 
 		$entries = $urls->map( function ( $url ) use ( $provider ) {
 			return $this->normalizeProviderUrl( $url, $provider );
-		} )->filter();
+		} )->filter()->values();
+
+		$entries = $this->applyEntriesFilter( $entries, $provider->getType() );
 
 		return $this->buildXml( $entries );
 	}
@@ -134,6 +138,29 @@ class SitemapGenerator
 	public function getMaxUrls(): int
 	{
 		return $this->maxUrls;
+	}
+
+	/**
+	 * Apply the `ap.seo.sitemapEntries` filter to a collection of entries.
+	 *
+	 * Converts the collection to an array so filter callbacks can freely
+	 * add, remove, or reorder entries, then wraps the result back into a
+	 * collection for XML rendering.
+	 *
+	 * Filter payload: `(array $entries, string $sitemapType)`.
+	 *
+	 * @since 1.3.0
+	 *
+	 * @param  Collection  $entries      The entries prior to filtering.
+	 * @param  string      $sitemapType  The sitemap type identifier.
+	 *
+	 * @return Collection
+	 */
+	protected function applyEntriesFilter( Collection $entries, string $sitemapType ): Collection
+	{
+		$filtered = applyFilters( 'ap.seo.sitemapEntries', $entries->all(), $sitemapType );
+
+		return collect( is_array( $filtered ) ? $filtered : $entries->all() );
 	}
 
 	/**

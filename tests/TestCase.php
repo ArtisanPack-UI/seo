@@ -5,6 +5,7 @@ declare( strict_types=1 );
 namespace Tests;
 
 use ArtisanPackUI\Ai\AiServiceProvider;
+use ArtisanPackUI\Hooks\Providers\HooksServiceProvider;
 use ArtisanPackUI\SEO\Providers\SEOServiceProvider;
 use Illuminate\Support\Facades\Blade;
 use Livewire\LivewireServiceProvider;
@@ -89,7 +90,7 @@ abstract class TestCase extends BaseTestCase
      */
     protected function getPackageProviders( $app ): array
     {
-        $providers = [ LivewireServiceProvider::class ];
+        $providers = [ LivewireServiceProvider::class, HooksServiceProvider::class ];
 
         // AI provider is optional — only register when artisanpack-ui/ai is installed.
         if ( class_exists( AiServiceProvider::class ) ) {

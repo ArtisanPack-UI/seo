@@ -319,20 +319,38 @@ class CustomAnalyzer implements AnalyzerInterface
 
 ### Filter Hooks
 
+The package fires the following filter hooks from the `artisanpack-ui/hooks` package:
+
+| Hook | Fired in | Payload |
+|---|---|---|
+| `ap.seo.metaTags` | `MetaTagService::generate()` | `(array $tags, ?Model $subject, Request $request)` |
+| `ap.seo.sitemapEntries` | `SitemapGenerator::generate()` and `generateFromProvider()` | `(array $entries, string $sitemapType)` |
+
+It also subscribes to `ap.visualEditor.prePublishChecks` (fired by `artisanpack-ui/visual-editor`) to append SEO checks to the pre-publish workflow.
+
 ```php
 use function addFilter;
 
-// Modify meta tags before output
-addFilter('seo.meta_tags', function (array $tags, $model) {
-    $tags['custom-meta'] = 'Custom value';
-    return $tags;
-});
+// Modify meta tags before the DTO is built
+addFilter( 'ap.seo.metaTags', function ( array $tags, ?Model $subject, Request $request ): array {
+    $tags['additionalMeta']['x-custom'] = 'Custom value';
 
-// Add custom sitemap entries
-addFilter('seo.sitemap_entries', function (Collection $entries) {
-    $entries->push(new CustomSitemapEntry());
+    return $tags;
+} );
+
+// Add or remove sitemap entries per sitemap type
+addFilter( 'ap.seo.sitemapEntries', function ( array $entries, string $sitemapType ): array {
+    if ( 'page' === $sitemapType ) {
+        $entries[] = [
+            'url'        => 'https://example.com/extra',
+            'lastmod'    => now()->toIso8601String(),
+            'changefreq' => 'weekly',
+            'priority'   => 0.6,
+        ];
+    }
+
     return $entries;
-});
+} );
 ```
 
 ## Middleware

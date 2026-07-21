@@ -42,18 +42,6 @@ class PackageDetector
 	}
 
 	/**
-	 * Check if the hooks package is installed.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @return bool True if hooks package is available.
-	 */
-	public static function hasHooks(): bool
-	{
-		return function_exists( 'addFilter' ) || function_exists( 'applyFilters' );
-	}
-
-	/**
 	 * Check if the accessibility package is installed.
 	 *
 	 * @since 1.0.0
