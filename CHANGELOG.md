@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-07-21
+
+### Added
+
+- **`ap.seo.metaTags` filter hook**: Fired in `MetaTagService::generate()` after tags are assembled and before the `MetaTagsDTO` is built. Payload: `(array $tags, ?Model $subject, Request $request)`. Callbacks can add, remove, or rewrite `title`, `description`, `canonical`, `robots`, and `additionalMeta` before rendering (#62).
+- **`ap.seo.sitemapEntries` filter hook**: Fired inside `SitemapGenerator::generate()` and `SitemapGenerator::generateFromProvider()` so integrators can append, drop, or reorder sitemap entries per type. Payload: `(array $entries, string $sitemapType)` (#62).
+
+### Changed
+
+- **`artisanpack-ui/hooks: ^1.3` is now a required dependency** (previously optional). The `PackageDetector::hasHooks()` guard has been removed and the hook helper functions are always available.
+- **Renamed VE subscriber hook**: `VisualEditorIntegration::registerPrePublishChecks()` now subscribes to `ap.visualEditor.prePublishChecks` (matching the visual-editor Wave 3 rename) instead of the old `visual_editor.pre_publish_checks` name.
+
+### Removed
+
+- `PackageDetector::hasHooks()` — no longer needed now that `artisanpack-ui/hooks` is required.
+
 ## [1.2.0] - 2026-07-06
 
 ### Added

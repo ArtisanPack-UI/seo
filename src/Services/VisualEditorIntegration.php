@@ -104,11 +104,7 @@ class VisualEditorIntegration
 			return;
 		}
 
-		if ( ! PackageDetector::hasHooks() ) {
-			return;
-		}
-
-		addFilter( 'visual_editor.pre_publish_checks', function ( Collection $checks, Model $page ) {
+		addFilter( 'ap.visualEditor.prePublishChecks', function ( Collection $checks, Model $page ) {
 			return $checks->merge( $this->getSeoChecks( $page ) );
 		} );
 	}

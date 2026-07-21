@@ -32,23 +32,6 @@ describe( 'PackageDetector hasMediaLibrary', function (): void {
 
 } );
 
-describe( 'PackageDetector hasHooks', function (): void {
-
-	it( 'returns boolean value', function (): void {
-		$result = PackageDetector::hasHooks();
-
-		expect( $result )->toBeBool();
-	} );
-
-	it( 'returns consistent results', function (): void {
-		$result1 = PackageDetector::hasHooks();
-		$result2 = PackageDetector::hasHooks();
-
-		expect( $result1 )->toBe( $result2 );
-	} );
-
-} );
-
 describe( 'PackageDetector hasAccessibility', function (): void {
 
 	it( 'returns boolean value', function (): void {

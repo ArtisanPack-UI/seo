@@ -168,6 +168,7 @@ describe( 'SitemapGenerator', function (): void {
 		] ) );
 		$provider->shouldReceive( 'getChangeFrequency' )->andReturn( 'weekly' );
 		$provider->shouldReceive( 'getPriority' )->andReturn( 0.5 );
+		$provider->shouldReceive( 'getType' )->andReturn( 'custom' );
 
 		$generator = new SitemapGenerator();
 		$xml       = $generator->generateFromProvider( $provider );
