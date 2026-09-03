@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+
+- **Laravel 10 support**: Narrowed `illuminate/support` constraint to `^11.0|^12.0|^13.0` and `orchestra/testbench` to `^9.0|^10.0|^11.0`. Models in this package declare casts with the Laravel 11+ `casts()` method, which Laravel 10's `HasAttributes` trait does not call — so `Redirect`, `SeoAnalysisCache`, `SeoMeta`, and `SitemapEntry` were silently returning raw column values (unparsed JSON, string datetimes, string enums) for anyone actually on Laravel 10. The advertised constraint was also unreachable in practice because `artisanpack-ui/core: ^1.3` already requires `illuminate/support: ^12.0|^13.0` (#65).
+
 ### Documentation
 
 - **Extensibility Hooks section in `README.md`**: Replaced the previous "Filter Hooks" section with a dedicated "Extensibility Hooks" section that documents the ecosystem hook naming convention (`ap.` prefix + camelCase segments joined by `.`, with ✅/❌ examples), every filter and action hook the SEO package fires (`ap.seo.metaTags`, `ap.seo.sitemapEntries`, `ap.seo.schemaGraph`, `ap.seo.schemaRendering`, `ap.seo.schemaRendered`) with signatures and usage examples, and the `apSeoAddSchema()` helper with an example showing how a block's `render()` method contributes schema entries (#57, #61).

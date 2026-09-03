@@ -217,7 +217,7 @@ php artisan seo:clear-cache
 ## Requirements
 
 - PHP 8.2 or higher
-- Laravel 10, 11, 12, or 13
+- Laravel 11, 12, or 13
 - Livewire 3.6+
 
 ## Dependencies
