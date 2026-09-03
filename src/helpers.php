@@ -15,8 +15,10 @@ declare( strict_types=1 );
 
 use ArtisanPackUI\SEO\Models\Redirect;
 use ArtisanPackUI\SEO\Models\SeoMeta;
+use ArtisanPackUI\SEO\Schema\Builders\AbstractSchema;
 use ArtisanPackUI\SEO\Services\RedirectService;
 use ArtisanPackUI\SEO\Services\SeoService;
+use ArtisanPackUI\SEO\Support\SchemaCollector;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
@@ -216,5 +218,29 @@ if ( ! function_exists( 'seoRedirectStatistics' ) ) {
 	function seoRedirectStatistics(): array
 	{
 		return app( RedirectService::class )->getStatistics();
+	}
+}
+
+if ( ! function_exists( 'apSeoAddSchema' ) ) {
+	/**
+	 * Push a schema.org entry into the request-scoped collector.
+	 *
+	 * Callers may pass either a raw associative array or an
+	 * {@see AbstractSchema} builder instance; builders are converted
+	 * via `toArray()`. The entry is queued on the singleton
+	 * {@see SchemaCollector}, which the layout's `<x-seo:schema />`
+	 * component drains when rendering the page graph.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @param  AbstractSchema|array<string, mixed>  $schema  The schema entry or builder.
+	 *
+	 * @return void
+	 */
+	function apSeoAddSchema( array|AbstractSchema $schema ): void
+	{
+		$entry = $schema instanceof AbstractSchema ? $schema->toArray() : $schema;
+
+		app( SchemaCollector::class )->add( $entry );
 	}
 }

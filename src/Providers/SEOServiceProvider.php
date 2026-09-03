@@ -63,6 +63,7 @@ use ArtisanPackUI\SEO\Services\SitemapService;
 use ArtisanPackUI\SEO\Services\SocialMetaService;
 use ArtisanPackUI\SEO\Services\VisualEditorIntegration;
 use ArtisanPackUI\SEO\Support\PackageDetector;
+use ArtisanPackUI\SEO\Support\SchemaCollector;
 use ArtisanPackUI\SEO\View\Components\Hreflang;
 use ArtisanPackUI\SEO\View\Components\Meta;
 use ArtisanPackUI\SEO\View\Components\MetaTags;
@@ -248,6 +249,10 @@ class SEOServiceProvider extends ServiceProvider
 
 		$this->app->singleton( SchemaFactory::class, function ( $app ) {
 			return new SchemaFactory();
+		} );
+
+		$this->app->singleton( SchemaCollector::class, function ( $app ) {
+			return new SchemaCollector();
 		} );
 
 		$this->app->singleton( SchemaService::class, function ( $app ) {
