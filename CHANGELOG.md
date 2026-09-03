@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Documentation
+
+- **Extensibility Hooks section in `README.md`**: Replaced the previous "Filter Hooks" section with a dedicated "Extensibility Hooks" section that documents the ecosystem hook naming convention (`ap.` prefix + camelCase segments joined by `.`, with ✅/❌ examples), every filter and action hook the SEO package fires (`ap.seo.metaTags`, `ap.seo.sitemapEntries`, `ap.seo.schemaGraph`, `ap.seo.schemaRendering`, `ap.seo.schemaRendered`) with signatures and usage examples, and the `apSeoAddSchema()` helper with an example showing how a block's `render()` method contributes schema entries (#57, #61).
+
 ## [1.3.0] - 2026-07-21
 
 ### Added
