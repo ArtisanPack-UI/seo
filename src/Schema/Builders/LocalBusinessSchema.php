@@ -133,6 +133,11 @@ class LocalBusinessSchema extends OrganizationSchema
 	/**
 	 * Build OpeningHoursSpecification schema array.
 	 *
+	 * Supports both recurring entries (via `dayOfWeek`) and dated entries
+	 * (via `validFrom` / `validThrough`) for special or holiday hours. A
+	 * truthy `closed` flag on an entry emits `opens` and `closes` as
+	 * `"00:00"`, per Google's guidance for all-day closures.
+	 *
 	 * @since 1.0.0
 	 *
 	 * @param  array<int, array<string, mixed>>  $hours  The opening hours data.
@@ -152,12 +157,27 @@ class LocalBusinessSchema extends OrganizationSchema
 				$specification['dayOfWeek'] = $spec['dayOfWeek'];
 			}
 
-			if ( isset( $spec['opens'] ) ) {
-				$specification['opens'] = $spec['opens'];
+			$closed = ! empty( $spec['closed'] );
+
+			if ( $closed ) {
+				$specification['opens']  = '00:00';
+				$specification['closes'] = '00:00';
+			} else {
+				if ( isset( $spec['opens'] ) ) {
+					$specification['opens'] = $spec['opens'];
+				}
+
+				if ( isset( $spec['closes'] ) ) {
+					$specification['closes'] = $spec['closes'];
+				}
 			}
 
-			if ( isset( $spec['closes'] ) ) {
-				$specification['closes'] = $spec['closes'];
+			if ( isset( $spec['validFrom'] ) ) {
+				$specification['validFrom'] = $spec['validFrom'];
+			}
+
+			if ( isset( $spec['validThrough'] ) ) {
+				$specification['validThrough'] = $spec['validThrough'];
 			}
 
 			$specs[] = $this->filterEmpty( $specification );

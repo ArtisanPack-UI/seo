@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - **`AiReadinessAnalyzer` (content category)**: New analyzer that scores content on the signals AI answer engines look for. Runs four checks: at least one question-style subheading (ends with `?` or opens with `what/why/how/…`), a definition-style intro sentence (matches "X is/are/refers to/means Y" near the start), an FAQ section (detected via a heading or a JSON-LD `FAQPage` schema block), and a summary-friendly opening paragraph within ~60 words. Registered automatically in `SEOServiceProvider` and gated by `config('seo.analysis.analyzers.ai_readiness')` (#71).
 - **First-paragraph placement check on `FocusKeywordAnalyzer`**: The keyword analyzer now also verifies that the focus phrase appears in the opening paragraph (falls back to raw text when no `<p>` tag exists), on top of the existing title/description/URL/H1/subheadings/alt-text checks. Still no-ops when no focus phrase is set (#71).
+- **`LocalBusinessSchema` dated/holiday `OpeningHoursSpecification` entries**: `buildOpeningHours()` now accepts optional `validFrom` / `validThrough` on each entry so holiday overrides and other date-scoped hours are marked up alongside recurring `dayOfWeek` entries. A truthy `closed` flag emits `opens` and `closes` as `"00:00"` (per Google's guidance for all-day closures) and takes precedence over any explicit `opens` / `closes` values on the same entry. Consumed by the Keystone `Modules/LocalSeo` schema translator (#75).
 
 ### Fixed
 
