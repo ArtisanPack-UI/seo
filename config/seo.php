@@ -295,6 +295,60 @@ return [
 		*/
 
 		'host' => null,
+
+		/*
+		|--------------------------------------------------------------------------
+		| AI Crawler Controls
+		|--------------------------------------------------------------------------
+		|
+		| Explicit controls for AI crawlers. Defaults to allow (visibility is
+		| the point). Set a group's 'blocked' flag to true to disallow every
+		| user-agent in that group. The resolved rules are exposed via
+		| AiCrawlerService so host middleware can enforce the same decisions.
+		|
+		*/
+
+		'ai_crawlers' => [
+			'default_allow' => true,
+
+			'groups' => [
+				'openai' => [
+					'label'       => 'OpenAI',
+					'user_agents' => [ 'GPTBot', 'ChatGPT-User', 'OAI-SearchBot' ],
+					'blocked'     => false,
+				],
+				'anthropic' => [
+					'label'       => 'Anthropic',
+					'user_agents' => [ 'ClaudeBot', 'Claude-Web', 'anthropic-ai' ],
+					'blocked'     => false,
+				],
+				'google-extended' => [
+					'label'       => 'Google-Extended',
+					'user_agents' => [ 'Google-Extended' ],
+					'blocked'     => false,
+				],
+				'perplexity' => [
+					'label'       => 'Perplexity',
+					'user_agents' => [ 'PerplexityBot' ],
+					'blocked'     => false,
+				],
+				'common-crawl' => [
+					'label'       => 'Common Crawl',
+					'user_agents' => [ 'CCBot' ],
+					'blocked'     => false,
+				],
+				'bytedance' => [
+					'label'       => 'ByteDance',
+					'user_agents' => [ 'Bytespider' ],
+					'blocked'     => false,
+				],
+				'meta' => [
+					'label'       => 'Meta',
+					'user_agents' => [ 'FacebookBot', 'Meta-ExternalAgent' ],
+					'blocked'     => false,
+				],
+			],
+		],
 	],
 
 	/*

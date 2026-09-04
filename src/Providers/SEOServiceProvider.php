@@ -42,6 +42,7 @@ use ArtisanPackUI\SEO\Livewire\SeoDashboard;
 use ArtisanPackUI\SEO\Livewire\SeoMetaEditor;
 use ArtisanPackUI\SEO\Schema\SchemaFactory;
 use ArtisanPackUI\SEO\SEO;
+use ArtisanPackUI\SEO\Services\AiCrawlerService;
 use ArtisanPackUI\SEO\Services\Analysis\ContentLengthAnalyzer;
 use ArtisanPackUI\SEO\Services\Analysis\FocusKeywordAnalyzer;
 use ArtisanPackUI\SEO\Services\Analysis\HeadingStructureAnalyzer;
@@ -271,6 +272,10 @@ class SEOServiceProvider extends ServiceProvider
 
 		$this->app->singleton( RobotsService::class, function ( $app ) {
 			return new RobotsService();
+		} );
+
+		$this->app->singleton( AiCrawlerService::class, function ( $app ) {
+			return new AiCrawlerService();
 		} );
 
 		$this->app->singleton( RedirectService::class, function ( $app ) {
