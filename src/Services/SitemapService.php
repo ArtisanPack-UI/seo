@@ -20,6 +20,7 @@ namespace ArtisanPackUI\SEO\Services;
 use ArtisanPackUI\SEO\Contracts\SitemapProviderContract;
 use ArtisanPackUI\SEO\Models\SitemapEntry;
 use ArtisanPackUI\SEO\Sitemap\Generators\ImageSitemapGenerator;
+use ArtisanPackUI\SEO\Sitemap\Generators\LlmsTxtGenerator;
 use ArtisanPackUI\SEO\Sitemap\Generators\NewsSitemapGenerator;
 use ArtisanPackUI\SEO\Sitemap\Generators\SitemapGenerator;
 use ArtisanPackUI\SEO\Sitemap\Generators\SitemapIndexGenerator;
@@ -222,6 +223,42 @@ class SitemapService
 		$generator = new NewsSitemapGenerator();
 
 		return $generator->generate( $page );
+	}
+
+	/**
+	 * Generate the llms.txt AI-discovery manifest.
+	 *
+	 * Cached alongside XML sitemaps so {@see clearCache()} — invoked by the
+	 * sitemap observer whenever a tracked entry changes — invalidates this
+	 * output too.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @return string The generated llms.txt content.
+	 */
+	public function generateLlmsTxt(): string
+	{
+		$cacheKey = $this->getCacheKey( 'llms_txt' );
+
+		if ( $this->cacheEnabled ) {
+			return Cache::remember( $cacheKey, $this->cacheTtl, function () {
+				return $this->generateLlmsTxtFresh();
+			} );
+		}
+
+		return $this->generateLlmsTxtFresh();
+	}
+
+	/**
+	 * Check if the llms.txt manifest is enabled.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @return bool
+	 */
+	public function isLlmsTxtEnabled(): bool
+	{
+		return (bool) config( 'seo.llms_txt.enabled', true );
 	}
 
 	/**
@@ -482,6 +519,20 @@ class SitemapService
 		$generator = new SitemapGenerator( $this->maxUrls );
 
 		return $generator->generate( $type, $page );
+	}
+
+	/**
+	 * Generate the llms.txt manifest without caching.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @return string
+	 */
+	protected function generateLlmsTxtFresh(): string
+	{
+		$generator = new LlmsTxtGenerator();
+
+		return $generator->generate();
 	}
 
 	/**
