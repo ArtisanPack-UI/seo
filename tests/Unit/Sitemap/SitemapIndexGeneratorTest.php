@@ -186,6 +186,22 @@ describe( 'SitemapIndexGenerator', function (): void {
 		expect( $generator->needsIndex() )->toBeFalse();
 	} );
 
+	it( 'needs index when a provider is registered even with a single database type', function (): void {
+		SitemapEntry::create( [
+			'sitemapable_type' => 'App\\Models\\Page',
+			'sitemapable_id'   => 1,
+			'url'              => 'https://example.com/page-1',
+			'type'             => 'page',
+		] );
+
+		$provider = Mockery::mock( SitemapProviderContract::class );
+
+		$generator = new SitemapIndexGenerator( 'https://example.com', 10000 );
+		$generator->setProviders( collect( [ 'custom' => $provider ] ) );
+
+		expect( $generator->needsIndex() )->toBeTrue();
+	} );
+
 	it( 'needs index when pagination required', function (): void {
 		// Create enough entries to require multiple pages
 		for ( $i = 1; $i <= 5; $i++ ) {

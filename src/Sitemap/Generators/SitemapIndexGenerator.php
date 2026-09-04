@@ -148,6 +148,13 @@ class SitemapIndexGenerator
 			return true;
 		}
 
+		// Need index if any custom providers are registered — otherwise the
+		// plain main sitemap only holds database-driven entries and provider
+		// URLs never surface to crawlers.
+		if ( $this->providers->isNotEmpty() ) {
+			return true;
+		}
+
 		return false;
 	}
 
