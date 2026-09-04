@@ -26,6 +26,7 @@ use ArtisanPackUI\SEO\Console\Commands\GenerateSitemapCommand;
 use ArtisanPackUI\SEO\Console\Commands\InstallFrontend;
 use ArtisanPackUI\SEO\Console\Commands\SubmitSitemapCommand;
 use ArtisanPackUI\SEO\Contracts\IndexNowKeyProviderContract;
+use ArtisanPackUI\SEO\Contracts\OgImageRendererContract;
 use ArtisanPackUI\SEO\Feed\Generators\FeedGenerator;
 use ArtisanPackUI\SEO\Http\Middleware\HandleRedirects;
 use ArtisanPackUI\SEO\IndexNow\ConfigIndexNowKeyProvider;
@@ -60,6 +61,8 @@ use ArtisanPackUI\SEO\Services\CmsFrameworkIntegration;
 use ArtisanPackUI\SEO\Services\HreflangService;
 use ArtisanPackUI\SEO\Services\MediaLibraryIntegration;
 use ArtisanPackUI\SEO\Services\MetaTagService;
+use ArtisanPackUI\SEO\Services\OgImage\GdOgImageRenderer;
+use ArtisanPackUI\SEO\Services\OgImageService;
 use ArtisanPackUI\SEO\Services\RedirectService;
 use ArtisanPackUI\SEO\Services\RobotsService;
 use ArtisanPackUI\SEO\Services\SchemaService;
@@ -325,6 +328,18 @@ class SEOServiceProvider extends ServiceProvider
 		$this->app->singleton( VisualEditorIntegration::class, function ( $app ) {
 			return new VisualEditorIntegration(
 				$app->make( AnalysisService::class ),
+			);
+		} );
+
+		$this->app->bind( OgImageRendererContract::class, function ( $app ) {
+			$configured = (string) config( 'seo.og_image.renderer', GdOgImageRenderer::class );
+
+			return $app->make( $configured );
+		} );
+
+		$this->app->singleton( OgImageService::class, function ( $app ) {
+			return new OgImageService(
+				$app->make( OgImageRendererContract::class ),
 			);
 		} );
 	}

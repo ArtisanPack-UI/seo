@@ -474,6 +474,42 @@ return [
 
 	/*
 	|--------------------------------------------------------------------------
+	| OG Image Generator
+	|--------------------------------------------------------------------------
+	|
+	| Settings for the branded OG social-share image generator. The generator
+	| renders a 1200x630 image from a title, optional subtitle, and a
+	| template describing the background, logo, and typography. Rendered
+	| images are stored on the configured disk under a deterministic path
+	| so identical inputs are only rendered once.
+	|
+	| Backend choice is discussed in docs/og-image-backend-decision.md.
+	|
+	*/
+
+	'og_image' => [
+		'enabled'  => env( 'SEO_OG_IMAGE_ENABLED', true ),
+		'renderer' => ArtisanPackUI\SEO\Services\OgImage\GdOgImageRenderer::class,
+		'disk'     => env( 'SEO_OG_IMAGE_DISK', 'public' ),
+		'path'     => env( 'SEO_OG_IMAGE_PATH', 'og-images' ),
+		'template' => [
+			'width'                 => 1200,
+			'height'                => 630,
+			'background_color'      => '#0f172a',
+			'text_color'            => '#ffffff',
+			'subtitle_color'        => '#94a3b8',
+			'background_image_path' => null,
+			'logo_path'             => null,
+			'logo_width'            => 160,
+			'font_path'             => null,
+			'title_font_size'       => 56,
+			'subtitle_font_size'    => 28,
+			'padding'               => 80,
+		],
+	],
+
+	/*
+	|--------------------------------------------------------------------------
 	| Cache Settings
 	|--------------------------------------------------------------------------
 	|
