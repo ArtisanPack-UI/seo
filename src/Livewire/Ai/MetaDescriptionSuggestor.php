@@ -15,15 +15,12 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\SEO\Livewire\Ai;
 
-use ArtisanPackUI\Ai\Contracts\FeatureRegistry;
-use ArtisanPackUI\Ai\Exceptions\FeatureDisabledException;
-use ArtisanPackUI\Ai\Exceptions\FeatureError;
-use ArtisanPackUI\Ai\Exceptions\MissingCredentialsException;
+use ArtisanPackUI\Ai\Livewire\Concerns\ChecksFeatureToggle;
+use ArtisanPackUI\Ai\Livewire\Concerns\InteractsWithAiFeature;
 use ArtisanPackUI\SEO\Ai\Agents\MetaDescriptionAgent;
 use Illuminate\View\View;
 use Livewire\Attributes\On;
 use Livewire\Component;
-use Throwable;
 
 /**
  * Trigger UI for the {@see MetaDescriptionAgent}.
@@ -38,19 +35,20 @@ use Throwable;
  */
 class MetaDescriptionSuggestor extends Component
 {
+	use ChecksFeatureToggle;
+	use InteractsWithAiFeature;
+
 	public string $content = '';
 
 	public string $primaryKeyword = '';
-
-	public bool $isLoading = false;
-
-	public ?string $error = null;
 
 	public ?string $suggestion = null;
 
 	public int $characterCount = 0;
 
 	public string $rationale = '';
+
+	protected string $featureKey = 'seo.suggest_meta_description';
 
 	/**
 	 * Mount the component with initial context from the containing editor.
@@ -96,13 +94,11 @@ class MetaDescriptionSuggestor extends Component
 	 */
 	public function suggest(): void
 	{
-		$this->error          = null;
 		$this->suggestion     = null;
 		$this->characterCount = 0;
 		$this->rationale      = '';
-		$this->isLoading      = true;
 
-		try {
+		$this->runAiFeature( function (): void {
 			$output = MetaDescriptionAgent::for( [
 				'content'         => $this->content,
 				'primary_keyword' => $this->primaryKeyword,
@@ -111,17 +107,7 @@ class MetaDescriptionSuggestor extends Component
 			$this->suggestion     = $output['meta_description'] ?? '';
 			$this->characterCount = (int) ( $output['character_count'] ?? 0 );
 			$this->rationale      = (string) ( $output['rationale'] ?? '' );
-		} catch ( FeatureDisabledException $exception ) {
-			$this->error = __( 'This AI feature is disabled.' );
-		} catch ( MissingCredentialsException $exception ) {
-			$this->error = __( 'AI credentials are not configured.' );
-		} catch ( FeatureError $exception ) {
-			$this->error = $exception->getMessage();
-		} catch ( Throwable $exception ) {
-			$this->error = __( 'The AI agent could not complete this request.' );
-		} finally {
-			$this->isLoading = false;
-		}
+		} );
 	}
 
 	/**
@@ -138,25 +124,6 @@ class MetaDescriptionSuggestor extends Component
 		}
 
 		$this->dispatch( 'seo-ai-description-selected', description: $this->suggestion );
-	}
-
-	/**
-	 * Determine whether this feature is enabled in the registry.
-	 *
-	 * @since 1.2.0
-	 *
-	 * @return bool
-	 */
-	public function getIsEnabledProperty(): bool
-	{
-		$registry = app( FeatureRegistry::class );
-		$key      = 'seo.suggest_meta_description';
-
-		if ( null === $registry->get( $key ) ) {
-			return false;
-		}
-
-		return $registry->isToggleOn( $key );
 	}
 
 	/**

@@ -15,15 +15,12 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\SEO\Livewire\Ai;
 
-use ArtisanPackUI\Ai\Contracts\FeatureRegistry;
-use ArtisanPackUI\Ai\Exceptions\FeatureDisabledException;
-use ArtisanPackUI\Ai\Exceptions\FeatureError;
-use ArtisanPackUI\Ai\Exceptions\MissingCredentialsException;
+use ArtisanPackUI\Ai\Livewire\Concerns\ChecksFeatureToggle;
+use ArtisanPackUI\Ai\Livewire\Concerns\InteractsWithAiFeature;
 use ArtisanPackUI\SEO\Ai\Agents\HreflangSuggestionAgent;
 use Illuminate\View\View;
 use Livewire\Attributes\On;
 use Livewire\Component;
-use Throwable;
 
 /**
  * Trigger UI for the {@see HreflangSuggestionAgent}.
@@ -35,19 +32,20 @@ use Throwable;
  */
 class HreflangSuggestor extends Component
 {
+	use ChecksFeatureToggle;
+	use InteractsWithAiFeature;
+
 	/**
 	 * @var array<int, array{ url: string, lang: string, translations: array<int, array{ url: string, lang: string }> }>
 	 */
 	public array $pages = [];
 
-	public bool $isLoading = false;
-
-	public ?string $error = null;
-
 	/**
 	 * @var array<int, array{ page_url: string, issue_type: string, suggested_hreflang: array<int, array{ lang: string, url: string }> }>
 	 */
 	public array $issues = [];
+
+	protected string $featureKey = 'seo.suggest_hreflang';
 
 	/**
 	 * Mount the component with initial pages payload.
@@ -87,25 +85,13 @@ class HreflangSuggestor extends Component
 	 */
 	public function suggest(): void
 	{
-		$this->error     = null;
-		$this->issues    = [];
-		$this->isLoading = true;
+		$this->issues = [];
 
-		try {
+		$this->runAiFeature( function (): void {
 			$output = HreflangSuggestionAgent::for( [ 'pages' => $this->pages ] )->run();
 
 			$this->issues = is_array( $output['issues'] ?? null ) ? $output['issues'] : [];
-		} catch ( FeatureDisabledException $exception ) {
-			$this->error = __( 'This AI feature is disabled.' );
-		} catch ( MissingCredentialsException $exception ) {
-			$this->error = __( 'AI credentials are not configured.' );
-		} catch ( FeatureError $exception ) {
-			$this->error = $exception->getMessage();
-		} catch ( Throwable $exception ) {
-			$this->error = __( 'The AI agent could not complete this request.' );
-		} finally {
-			$this->isLoading = false;
-		}
+		} );
 	}
 
 	/**
@@ -128,25 +114,6 @@ class HreflangSuggestor extends Component
 			page_url: $this->issues[ $index ]['page_url'],
 			suggested_hreflang: $this->issues[ $index ]['suggested_hreflang'],
 		);
-	}
-
-	/**
-	 * Determine whether this feature is enabled in the registry.
-	 *
-	 * @since 1.2.0
-	 *
-	 * @return bool
-	 */
-	public function getIsEnabledProperty(): bool
-	{
-		$registry = app( FeatureRegistry::class );
-		$key      = 'seo.suggest_hreflang';
-
-		if ( null === $registry->get( $key ) ) {
-			return false;
-		}
-
-		return $registry->isToggleOn( $key );
 	}
 
 	/**
