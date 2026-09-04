@@ -18,6 +18,7 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\SEO\Observers;
 
 use ArtisanPackUI\SEO\Models\SitemapEntry;
+use ArtisanPackUI\SEO\Services\SitemapService;
 use DateTimeInterface;
 use Exception;
 use Illuminate\Database\Eloquent\Model;
@@ -37,9 +38,24 @@ use Illuminate\Support\Str;
 class SitemapObserver
 {
 	/**
+	 * Create a new observer instance.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @param  SitemapService|null  $sitemapService  Used to invalidate cached
+	 *                                               sitemap XML when tracked
+	 *                                               entries change.
+	 */
+	public function __construct( protected ?SitemapService $sitemapService = null )
+	{
+	}
+
+	/**
 	 * Handle the model "saved" event.
 	 *
-	 * Creates or updates the sitemap entry when a model is saved.
+	 * Creates or updates the sitemap entry when a model is saved and
+	 * invalidates any cached sitemap XML so the next request regenerates
+	 * fresh output.
 	 *
 	 * @since 1.0.0
 	 *
@@ -52,18 +68,21 @@ class SitemapObserver
 		// If sitemap tracking is disabled for this model, remove any existing entry
 		if ( ! $this->shouldTrackInSitemap( $model ) ) {
 			$this->deleteSitemapEntry( $model );
+			$this->invalidateSitemapCache();
 
 			return;
 		}
 
 		$this->updateOrCreateSitemapEntry( $model );
+		$this->invalidateSitemapCache();
 	}
 
 	/**
 	 * Handle the model "deleted" event.
 	 *
-	 * Deletes the sitemap entry when a model is deleted.
-	 * For soft-deleted models, the entry is preserved until force delete.
+	 * Deletes the sitemap entry when a model is force deleted and invalidates
+	 * cached sitemap XML. For soft deletes the entry (and cache) is preserved
+	 * until the record is restored or force deleted.
 	 *
 	 * @since 1.0.0
 	 *
@@ -76,13 +95,15 @@ class SitemapObserver
 		// Only delete sitemap entry on force delete, not soft delete
 		if ( $this->isForceDeleting( $model ) ) {
 			$this->deleteSitemapEntry( $model );
+			$this->invalidateSitemapCache();
 		}
 	}
 
 	/**
 	 * Handle the model "restored" event (for soft-deleted models).
 	 *
-	 * Re-enables the sitemap entry when a model is restored.
+	 * Re-enables the sitemap entry when a model is restored and invalidates
+	 * cached sitemap XML so the restored URL appears on the next request.
 	 *
 	 * @since 1.0.0
 	 *
@@ -95,7 +116,26 @@ class SitemapObserver
 		// Re-create or update sitemap entry when model is restored
 		if ( $this->shouldTrackInSitemap( $model ) ) {
 			$this->updateOrCreateSitemapEntry( $model );
+			$this->invalidateSitemapCache();
 		}
+	}
+
+	/**
+	 * Invalidate cached sitemap XML.
+	 *
+	 * Cached XML is served by {@see SitemapService::generate()} and its
+	 * variants; without invalidation the pre-change snapshot keeps serving
+	 * until the TTL expires.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @return void
+	 */
+	protected function invalidateSitemapCache(): void
+	{
+		$service = $this->sitemapService ?? app( SitemapService::class );
+
+		$service->clearCache();
 	}
 
 	/**

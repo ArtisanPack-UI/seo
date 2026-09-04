@@ -381,10 +381,15 @@ Schedule::command('seo:submit-sitemap')->weekly();
 
 ## Caching
 
-Sitemaps are cached for performance:
+Sitemaps are cached for performance. Cached XML is invalidated automatically
+whenever a model tracked by `HasSeo` is saved, force deleted, or restored, so
+the next request regenerates fresh output — you do not need to run
+`clearCache()` yourself after content changes. The `seo:generate-sitemap`
+command also flushes the cache before regenerating so the cached copy is
+primed with the current content.
 
 ```php
-// Clear sitemap cache
+// Manually clear the sitemap cache (e.g. after a bulk import that bypasses model events)
 seoSitemap()->clearCache();
 
 // Regenerate with fresh cache
