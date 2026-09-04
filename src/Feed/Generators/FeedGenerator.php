@@ -97,7 +97,11 @@ class FeedGenerator
 		$writer->writeElement( 'title', $title );
 		$writer->writeElement( 'link', $link );
 		$writer->writeElement( 'description', $description );
-		$writer->writeElement( 'language', (string) ( $options['language'] ?? config( 'app.locale', 'en' ) ) );
+		// RSS 2.0 <language> follows RFC 1766 (e.g. en-us). Laravel's app.locale
+		// often uses the underscore form (en_US, pt_BR); normalize it so feed
+		// validators accept the output.
+		$language = (string) ( $options['language'] ?? config( 'app.locale', 'en' ) );
+		$writer->writeElement( 'language', strtolower( str_replace( '_', '-', $language ) ) );
 
 		$lastBuild = $this->resolveFeedTimestamp( $options['updated_at'] ?? null, $normalized );
 		$writer->writeElement( 'lastBuildDate', $lastBuild->format( DateTimeInterface::RSS ) );

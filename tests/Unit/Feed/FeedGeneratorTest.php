@@ -18,7 +18,7 @@ use ArtisanPackUI\SEO\DTOs\FeedEntryDTO;
 use ArtisanPackUI\SEO\Feed\Generators\FeedGenerator;
 use Illuminate\Support\Collection;
 
-function makeEntry( array $overrides = [] ): FeedEntryDTO
+function makeFeedEntry( array $overrides = [] ): FeedEntryDTO
 {
 	return new FeedEntryDTO(
 		title: $overrides['title'] ?? 'Hello & Welcome',
@@ -64,7 +64,7 @@ describe( 'FeedGenerator RSS 2.0', function (): void {
 			'My Blog',
 			'https://example.com',
 			'Latest posts',
-			[ makeEntry() ],
+			[ makeFeedEntry() ],
 			[ 'feed_url' => 'https://example.com/feed.xml' ],
 		);
 
@@ -145,7 +145,7 @@ describe( 'FeedGenerator RSS 2.0', function (): void {
 
 	it( 'marks non-permalink guids correctly', function (): void {
 		$generator = new FeedGenerator();
-		$entry     = makeEntry( [ 'guid' => 'urn:uuid:1234' ] );
+		$entry     = makeFeedEntry( [ 'guid' => 'urn:uuid:1234' ] );
 
 		$xml = $generator->generateRss( 'Blog', 'https://example.com', 'Desc', [ $entry ] );
 
@@ -181,8 +181,8 @@ describe( 'FeedGenerator RSS 2.0', function (): void {
 			'https://example.com',
 			'Desc',
 			[
-				makeEntry( [ 'publishedAt' => new DateTimeImmutable( '2026-01-01T00:00:00+00:00' ) ] ),
-				makeEntry( [ 'publishedAt' => new DateTimeImmutable( '2026-06-15T12:00:00+00:00' ) ] ),
+				makeFeedEntry( [ 'publishedAt' => new DateTimeImmutable( '2026-01-01T00:00:00+00:00' ) ] ),
+				makeFeedEntry( [ 'publishedAt' => new DateTimeImmutable( '2026-06-15T12:00:00+00:00' ) ] ),
 			],
 		);
 
@@ -190,8 +190,11 @@ describe( 'FeedGenerator RSS 2.0', function (): void {
 		$doc->loadXML( $xml );
 		$channel = $doc->getElementsByTagName( 'channel' )->item( 0 );
 
-		expect( $channel->getElementsByTagName( 'lastBuildDate' )->item( 0 )->nodeValue )
-			->toBe( 'Mon, 15 Jun 2026 12:00:00 +0000' );
+		// Compare the parsed instant rather than the formatted string so the
+		// test is independent of the harness's configured app.timezone.
+		$lastBuild = new DateTimeImmutable( $channel->getElementsByTagName( 'lastBuildDate' )->item( 0 )->nodeValue );
+		expect( $lastBuild->getTimestamp() )
+			->toBe( ( new DateTimeImmutable( '2026-06-15T12:00:00+00:00' ) )->getTimestamp() );
 	} );
 
 	it( 'accepts array entries and normalizes flexible keys', function (): void {
@@ -229,7 +232,7 @@ describe( 'FeedGenerator Atom 1.0', function (): void {
 			'My Blog',
 			'https://example.com',
 			'Latest posts',
-			[ makeEntry() ],
+			[ makeFeedEntry() ],
 			[ 'feed_url' => 'https://example.com/atom.xml', 'feed_id' => 'urn:example:blog' ],
 		);
 
@@ -259,7 +262,7 @@ describe( 'FeedGenerator Atom 1.0', function (): void {
 
 	it( 'renders entries with all core Atom elements and RFC 3339 dates', function (): void {
 		$generator = new FeedGenerator();
-		$entry     = makeEntry( [
+		$entry     = makeFeedEntry( [
 			'updatedAt' => new DateTimeImmutable( '2026-01-03T11:30:00+00:00' ),
 		] );
 
@@ -293,7 +296,7 @@ describe( 'FeedGenerator Atom 1.0', function (): void {
 
 	it( 'falls back to publishedAt when updatedAt is missing on an entry', function (): void {
 		$generator = new FeedGenerator();
-		$entry     = makeEntry( [ 'updatedAt' => null ] );
+		$entry     = makeFeedEntry( [ 'updatedAt' => null ] );
 
 		$xml = $generator->generateAtom( 'Blog', 'https://example.com', 'Desc', [ $entry ] );
 
@@ -395,7 +398,7 @@ describe( 'FeedGenerator security & spec compliance', function (): void {
 			'Blog',
 			'https://example.com',
 			'Desc',
-			[ makeEntry() ],
+			[ makeFeedEntry() ],
 			[ 'author' => 'Editorial Team', 'author_email' => 'editors@example.com' ],
 		);
 
@@ -432,8 +435,8 @@ describe( 'FeedGenerator filter hook', function (): void {
 				'https://example.com',
 				'Desc',
 				[
-					makeEntry( [ 'link' => 'https://example.com/keep' ] ),
-					makeEntry( [ 'link' => 'https://example.com/drop' ] ),
+					makeFeedEntry( [ 'link' => 'https://example.com/keep' ] ),
+					makeFeedEntry( [ 'link' => 'https://example.com/drop' ] ),
 				],
 			);
 
@@ -455,7 +458,7 @@ describe( 'FeedGenerator providers', function (): void {
 		$provider = new class implements FeedProviderContract {
 			public function getEntries(): Collection
 			{
-				return collect( [ makeEntry() ] );
+				return collect( [ makeFeedEntry() ] );
 			}
 
 			public function getTitle(): string
