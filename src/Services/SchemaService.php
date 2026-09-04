@@ -418,12 +418,15 @@ class SchemaService
 		// Use the facade statically since class_exists was already verified
 		$settingsClass = 'ArtisanPackUI\CmsFramework\Facades\Settings';
 
+		$sameAs = $settingsClass::get( 'site.social_profiles', config( 'seo.schema.organization.sameAs', [] ) );
+
 		return [
-			'name'  => $settingsClass::get( 'site.name', config( 'app.name', '' ) ),
-			'logo'  => $settingsClass::get( 'site.logo', null ),
-			'url'   => $settingsClass::get( 'site.url', config( 'app.url', '' ) ),
-			'email' => $settingsClass::get( 'site.email', null ),
-			'phone' => $settingsClass::get( 'site.phone', null ),
+			'name'   => $settingsClass::get( 'site.name', config( 'app.name', '' ) ),
+			'logo'   => $settingsClass::get( 'site.logo', config( 'seo.schema.organization.logo' ) ),
+			'url'    => $settingsClass::get( 'site.url', config( 'app.url', '' ) ),
+			'email'  => $settingsClass::get( 'site.email', config( 'seo.schema.organization.email' ) ),
+			'phone'  => $settingsClass::get( 'site.phone', config( 'seo.schema.organization.phone' ) ),
+			'sameAs' => is_array( $sameAs ) ? $sameAs : [],
 		];
 	}
 
