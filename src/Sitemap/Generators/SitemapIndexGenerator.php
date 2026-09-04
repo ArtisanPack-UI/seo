@@ -164,24 +164,23 @@ class SitemapIndexGenerator
 		$types     = SitemapEntry::getAvailableTypes();
 		$generator = new SitemapGenerator( $this->maxUrls );
 
-		// Add main sitemap if there are entries without specific type filtering
+		// Add main sitemap pages for all entries. The page number is always
+		// included so each child URL matches the `seo.sitemap.page` route and
+		// the index never points back at itself.
 		$totalPages = $generator->getTotalPages();
-		if ( $totalPages > 1 ) {
-			// Multiple pages for all entries
-			for ( $page = 1; $page <= $totalPages; $page++ ) {
-				$sitemaps->push( $this->buildSitemapEntry( null, $page ) );
-			}
-		} elseif ( $totalPages > 0 ) {
-			// Single sitemap for all entries
-			$sitemaps->push( $this->buildSitemapEntry() );
+		for ( $page = 1; $page <= $totalPages; $page++ ) {
+			$sitemaps->push( $this->buildSitemapEntry( null, $page ) );
 		}
 
-		// Add type-specific sitemaps
+		// Add type-specific sitemaps. The page number is always included
+		// (including page 1) because database-driven types are served by
+		// the `sitemap-{type}-{page}.xml` route only — the un-paginated
+		// `sitemap-{type}.xml` form exists only for image, video, and news.
 		foreach ( $types as $type ) {
 			$typePages = $generator->getTotalPages( $type );
 
 			for ( $page = 1; $page <= $typePages; $page++ ) {
-				$sitemaps->push( $this->buildSitemapEntry( $type, $page > 1 ? $page : null ) );
+				$sitemaps->push( $this->buildSitemapEntry( $type, $page ) );
 			}
 		}
 
@@ -193,7 +192,7 @@ class SitemapIndexGenerator
 			}
 
 			$sitemaps->push( [
-				'loc'     => $this->getSitemapUrl( $providerType ),
+				'loc'     => $this->getSitemapUrl( $providerType, 1 ),
 				'lastmod' => now()->format( 'c' ),
 			] );
 		}
@@ -266,7 +265,13 @@ class SitemapIndexGenerator
 	/**
 	 * Get the URL for a sitemap file.
 	 *
+	 * When a page number is given it is always appended, even for page 1,
+	 * so the URL matches the registered `sitemap-{page}.xml` and
+	 * `sitemap-{type}-{page}.xml` routes. Passing `null` for the page yields
+	 * the un-paginated form used by the image, video, and news sitemaps.
+	 *
 	 * @since 1.0.0
+	 * @since 1.4.0 Page 1 is no longer omitted from the URL.
 	 *
 	 * @param  string|null  $type  The sitemap type.
 	 * @param  int|null     $page  The page number.
@@ -282,7 +287,7 @@ class SitemapIndexGenerator
 			$url = str_replace( '.xml', "-{$type}.xml", $url );
 		}
 
-		if ( null !== $page && $page > 1 ) {
+		if ( null !== $page ) {
 			$url = str_replace( '.xml', "-{$page}.xml", $url );
 		}
 
