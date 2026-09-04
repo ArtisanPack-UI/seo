@@ -201,6 +201,44 @@ describe( 'FocusKeywordAnalyzer Subheadings', function (): void {
 
 } );
 
+describe( 'FocusKeywordAnalyzer First Paragraph', function (): void {
+
+	it( 'passes when keyword is in first paragraph', function (): void {
+		$model   = createFocusKeywordTestModel();
+		$content = '<h1>Guide</h1><p>Learning SEO is the fastest way to grow traffic.</p>';
+		$result  = $this->analyzer->analyze( $model, $content, 'seo', null );
+
+		expect( $result['passed'] )->toContain( 'Focus keyword appears in the first paragraph.' )
+			->and( $result['details']['placements']['first_paragraph'] )->toBeTrue();
+	} );
+
+	it( 'suggests introducing keyword in first paragraph when missing', function (): void {
+		$model   = createFocusKeywordTestModel();
+		$content = '<h1>Guide</h1><p>An introduction with no target term.</p><p>Later on we mention seo.</p>';
+		$result  = $this->analyzer->analyze( $model, $content, 'seo', null );
+
+		$hasSuggestion = false;
+		foreach ( $result['suggestions'] as $suggestion ) {
+			if ( str_contains( $suggestion['message'], 'first paragraph' ) ) {
+				$hasSuggestion = true;
+				break;
+			}
+		}
+
+		expect( $hasSuggestion )->toBeTrue()
+			->and( $result['details']['placements']['first_paragraph'] )->toBeFalse();
+	} );
+
+	it( 'falls back to raw content when no paragraph tags exist', function (): void {
+		$model   = createFocusKeywordTestModel();
+		$content = 'A short lead about seo without any paragraph tags.';
+		$result  = $this->analyzer->analyze( $model, $content, 'seo', null );
+
+		expect( $result['details']['placements']['first_paragraph'] )->toBeTrue();
+	} );
+
+} );
+
 describe( 'FocusKeywordAnalyzer Image Alt Text', function (): void {
 
 	it( 'passes when keyword is in image alt text', function (): void {

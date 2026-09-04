@@ -152,6 +152,22 @@ class FocusKeywordAnalyzer implements AnalyzerContract
 			];
 		}
 
+		// Check in first paragraph
+		$checksTotal++;
+		$firstParagraph                    = $this->extractFirstParagraph( $content );
+		$placements['first_paragraph']     = '' !== $firstParagraph
+			&& str_contains( strtolower( $firstParagraph ), $keyword );
+
+		if ( $placements['first_paragraph'] ) {
+			$passed[] = __( 'Focus keyword appears in the first paragraph.' );
+			$checksPassed++;
+		} else {
+			$suggestions[] = [
+				'type'    => 'suggestion',
+				'message' => __( 'Introduce your focus keyword in the first paragraph.' ),
+			];
+		}
+
 		// Check in image alt text
 		$checksTotal++;
 		preg_match_all( '/alt=["\']([^"\']*)["\']/', $content, $altTexts );
@@ -228,5 +244,34 @@ class FocusKeywordAnalyzer implements AnalyzerContract
 	public function getWeight(): int
 	{
 		return 50;
+	}
+
+	/**
+	 * Extract plain text from the first paragraph of the content.
+	 *
+	 * Falls back to the first block of text before any heading when
+	 * no <p> tag is present.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @param  string  $content  The HTML content.
+	 *
+	 * @return string
+	 */
+	protected function extractFirstParagraph( string $content ): string
+	{
+		if ( preg_match( '/<p[^>]*>(.*?)<\/p>/si', $content, $paragraphMatch ) ) {
+			return trim( strip_tags( $paragraphMatch[1] ) );
+		}
+
+		$stripped = trim( strip_tags( $content ) );
+
+		if ( '' === $stripped ) {
+			return '';
+		}
+
+		$firstBlock = preg_split( '/\R{2,}/', $stripped, 2 )[0] ?? '';
+
+		return trim( $firstBlock );
 	}
 }

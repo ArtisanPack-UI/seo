@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`AiReadinessAnalyzer` (content category)**: New analyzer that scores content on the signals AI answer engines look for. Runs four checks: at least one question-style subheading (ends with `?` or opens with `what/why/how/…`), a definition-style intro sentence (matches "X is/are/refers to/means Y" near the start), an FAQ section (detected via a heading or a JSON-LD `FAQPage` schema block), and a summary-friendly opening paragraph within ~60 words. Registered automatically in `SEOServiceProvider` and gated by `config('seo.analysis.analyzers.ai_readiness')` (#71).
+- **First-paragraph placement check on `FocusKeywordAnalyzer`**: The keyword analyzer now also verifies that the focus phrase appears in the opening paragraph (falls back to raw text when no `<p>` tag exists), on top of the existing title/description/URL/H1/subheadings/alt-text checks. Still no-ops when no focus phrase is set (#71).
+
 ### Fixed
 
 - **Sitemap XML cache is now invalidated on content changes**: `SitemapService::generate()`/`generateIndex()` cached the rendered XML with a TTL (`seo.sitemap.cache_ttl`, default 3600s) but nothing ever forgot the cached entries when the underlying content changed — `SitemapObserver` kept the `sitemap_entries` table current on every Page/Post save, yet `GET /sitemap.xml` (and the `sitemap-*-N.xml` children) kept serving the pre-change snapshot until the TTL expired. `SitemapObserver` now calls `SitemapService::clearCache()` after a tracked model is saved, force deleted, or restored. `SitemapService::clearCache()` was also rewritten to bump a single generation counter that is baked into every cache key, so trailing pages for now-deleted content are invalidated as well (the previous per-page enumeration used the reduced page total and would leave a stale `sitemap-{type}-N.xml` for any page that no longer existed after a deletion). `seo:generate-sitemap` clears the cache before regenerating when writing to `--output` so cached generation primes fresh entries; the statistics-only invocation (no `--output`) no longer touches the cache, since it would wipe a warm cache with no priming to follow (#67).

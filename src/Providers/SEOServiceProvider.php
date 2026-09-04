@@ -43,6 +43,7 @@ use ArtisanPackUI\SEO\Livewire\SeoMetaEditor;
 use ArtisanPackUI\SEO\Schema\SchemaFactory;
 use ArtisanPackUI\SEO\SEO;
 use ArtisanPackUI\SEO\Services\AiCrawlerService;
+use ArtisanPackUI\SEO\Services\Analysis\AiReadinessAnalyzer;
 use ArtisanPackUI\SEO\Services\Analysis\ContentLengthAnalyzer;
 use ArtisanPackUI\SEO\Services\Analysis\FocusKeywordAnalyzer;
 use ArtisanPackUI\SEO\Services\Analysis\HeadingStructureAnalyzer;
@@ -299,6 +300,7 @@ class SEOServiceProvider extends ServiceProvider
 		$this->app->singleton( AnalysisService::class, function ( $app ) {
 			$service = new AnalysisService();
 
+			$service->registerAnalyzer( 'ai_readiness', new AiReadinessAnalyzer() );
 			$service->registerAnalyzer( 'content_length', new ContentLengthAnalyzer() );
 			$service->registerAnalyzer( 'focus_keyword', new FocusKeywordAnalyzer() );
 			$service->registerAnalyzer( 'heading_structure', new HeadingStructureAnalyzer() );
