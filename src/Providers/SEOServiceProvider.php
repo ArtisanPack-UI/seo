@@ -26,6 +26,7 @@ use ArtisanPackUI\SEO\Console\Commands\GenerateSitemapCommand;
 use ArtisanPackUI\SEO\Console\Commands\InstallFrontend;
 use ArtisanPackUI\SEO\Console\Commands\SubmitSitemapCommand;
 use ArtisanPackUI\SEO\Contracts\IndexNowKeyProviderContract;
+use ArtisanPackUI\SEO\Feed\Generators\FeedGenerator;
 use ArtisanPackUI\SEO\Http\Middleware\HandleRedirects;
 use ArtisanPackUI\SEO\IndexNow\ConfigIndexNowKeyProvider;
 use ArtisanPackUI\SEO\Livewire\Ai\ContentAnalyzer;
@@ -267,6 +268,10 @@ class SEOServiceProvider extends ServiceProvider
 
 		$this->app->singleton( SitemapService::class, function ( $app ) {
 			return new SitemapService();
+		} );
+
+		$this->app->singleton( FeedGenerator::class, function ( $app ) {
+			return new FeedGenerator();
 		} );
 
 		$this->app->bind( IndexNowKeyProviderContract::class, ConfigIndexNowKeyProvider::class );
