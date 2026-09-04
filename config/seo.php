@@ -120,6 +120,7 @@ return [
 		'default_priority'  => 0.5,
 		'cache_enabled'     => true,
 		'cache_ttl'         => 3600, // 1 hour in seconds
+		'submit_enabled'    => env( 'SEO_SITEMAP_SUBMIT_ENABLED', false ),
 		'submit_timeout'    => 10, // HTTP timeout for search engine pings
 		'providers'         => [
 			// Register sitemap content providers here
@@ -136,10 +137,42 @@ return [
 			'max_age_days' => 2, // Google News only indexes last 2 days
 		],
 		'search_engines' => [
-			// Custom search engine ping URLs (default: Google and Bing)
-			// 'google' => 'https://www.google.com/ping?sitemap=%s',
-			// 'bing'   => 'https://www.bing.com/ping?sitemap=%s',
+			// The active default ping engine. Google's ping endpoint was
+			// deprecated in 2023 — for Google, submit via Search Console or
+			// list your sitemap in robots.txt. Override this array to add,
+			// remove, or replace engines.
+			'bing' => 'https://www.bing.com/ping?sitemap=%s',
 		],
+	],
+
+	/*
+	|--------------------------------------------------------------------------
+	| IndexNow Settings
+	|--------------------------------------------------------------------------
+	|
+	| Configuration for IndexNow (https://www.indexnow.org/) — a protocol
+	| for notifying participating search engines (Bing, Yandex, Seznam,
+	| Naver, and others via the aggregator) when URLs are added, updated,
+	| or deleted. The engine lives upstream; consumers wire a queued
+	| dispatch from their publish observers.
+	|
+	| The `key` MUST be a hex string 8–128 characters long. Host it at
+	| `https://{your-host}/{key}.txt` OR set `key_location` to a custom
+	| URL that serves the same key.
+	|
+	| Bind a custom `IndexNowKeyProviderContract` implementation in the
+	| container to manage the key dynamically (per-tenant, rotating, etc.).
+	|
+	*/
+
+	'indexnow' => [
+		'enabled'      => env( 'SEO_INDEXNOW_ENABLED', false ),
+		'key'          => env( 'SEO_INDEXNOW_KEY' ),
+		'key_location' => env( 'SEO_INDEXNOW_KEY_LOCATION' ),
+		'endpoint'     => env( 'SEO_INDEXNOW_ENDPOINT', 'https://api.indexnow.org/IndexNow' ),
+		'batch_size'   => 10000,
+		'timeout'      => 10,
+		'user_agent'   => 'ArtisanPackUI SEO IndexNow Submitter',
 	],
 
 	/*

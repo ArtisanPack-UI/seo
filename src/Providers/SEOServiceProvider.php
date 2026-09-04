@@ -25,7 +25,9 @@ use ArtisanPackUI\SEO\Ai\Agents\SchemaGenerationAgent;
 use ArtisanPackUI\SEO\Console\Commands\GenerateSitemapCommand;
 use ArtisanPackUI\SEO\Console\Commands\InstallFrontend;
 use ArtisanPackUI\SEO\Console\Commands\SubmitSitemapCommand;
+use ArtisanPackUI\SEO\Contracts\IndexNowKeyProviderContract;
 use ArtisanPackUI\SEO\Http\Middleware\HandleRedirects;
+use ArtisanPackUI\SEO\IndexNow\ConfigIndexNowKeyProvider;
 use ArtisanPackUI\SEO\Livewire\Ai\ContentAnalyzer;
 use ArtisanPackUI\SEO\Livewire\Ai\HreflangSuggestor;
 use ArtisanPackUI\SEO\Livewire\Ai\MetaDescriptionSuggestor;
@@ -264,6 +266,8 @@ class SEOServiceProvider extends ServiceProvider
 		$this->app->singleton( SitemapService::class, function ( $app ) {
 			return new SitemapService();
 		} );
+
+		$this->app->bind( IndexNowKeyProviderContract::class, ConfigIndexNowKeyProvider::class );
 
 		$this->app->singleton( RobotsService::class, function ( $app ) {
 			return new RobotsService();
