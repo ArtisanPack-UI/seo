@@ -17,7 +17,9 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\SEO\Services;
 
+use ArtisanPackUI\SEO\Contracts\IndexNowKeyProviderContract;
 use ArtisanPackUI\SEO\Contracts\SitemapProviderContract;
+use ArtisanPackUI\SEO\IndexNow\IndexNowSubmitter;
 use ArtisanPackUI\SEO\Models\SitemapEntry;
 use ArtisanPackUI\SEO\Sitemap\Generators\ImageSitemapGenerator;
 use ArtisanPackUI\SEO\Sitemap\Generators\LlmsTxtGenerator;
@@ -28,6 +30,7 @@ use ArtisanPackUI\SEO\Sitemap\Generators\VideoSitemapGenerator;
 use ArtisanPackUI\SEO\Sitemap\SitemapSubmitter;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
+use InvalidArgumentException;
 
 /**
  * SitemapService class.
@@ -296,6 +299,69 @@ class SitemapService
 		$submitter = new SitemapSubmitter( $sitemapUrl );
 
 		return $submitter->submit();
+	}
+
+	/**
+	 * Submit URLs to IndexNow.
+	 *
+	 * Resolves the key provider from the container so consumers can bind
+	 * a custom {@see IndexNowKeyProviderContract} implementation.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @param  array<int, string>|string  $urls  URL or list of URLs.
+	 *
+	 * @return Collection<int, array<string, mixed>> Per-batch results.
+	 */
+	public function submitIndexNow( array|string $urls ): Collection
+	{
+		$keyProvider = app( IndexNowKeyProviderContract::class );
+
+		return ( new IndexNowSubmitter( $keyProvider ) )->submit( $urls );
+	}
+
+	/**
+	 * Notify search engines that content was published or updated.
+	 *
+	 * Composes the two mechanisms consumers typically want to fire from
+	 * a "publish" observer:
+	 *
+	 * - IndexNow submission for the affected URLs (gated by
+	 *   `seo.indexnow.enabled`).
+	 * - A sitemap ping to configured search engines (gated by
+	 *   `seo.sitemap.submit_enabled`).
+	 *
+	 * Both mechanisms are best invoked from a queued job on the
+	 * consumer's side; this method returns aggregate results so the
+	 * caller can decide whether to requeue.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @param  array<int, string>|string  $urls  URL or list of URLs that changed.
+	 *
+	 * @return array<string, Collection<int|string, array<string, mixed>>>
+	 */
+	public function notifyOnPublish( array|string $urls ): array
+	{
+		$results = [
+			'indexnow' => collect(),
+			'sitemap'  => collect(),
+		];
+
+		if ( (bool) config( 'seo.indexnow.enabled', false ) ) {
+			try {
+				$results['indexnow'] = $this->submitIndexNow( $urls );
+			} catch ( InvalidArgumentException $e ) {
+				// No valid URLs to submit; leave the results collection empty so
+				// a publish observer isn't crashed by a bad input list.
+			}
+		}
+
+		if ( (bool) config( 'seo.sitemap.submit_enabled', false ) ) {
+			$results['sitemap'] = $this->submit();
+		}
+
+		return $results;
 	}
 
 	/**
