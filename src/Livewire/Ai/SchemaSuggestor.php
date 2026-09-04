@@ -15,15 +15,12 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\SEO\Livewire\Ai;
 
-use ArtisanPackUI\Ai\Contracts\FeatureRegistry;
-use ArtisanPackUI\Ai\Exceptions\FeatureDisabledException;
-use ArtisanPackUI\Ai\Exceptions\FeatureError;
-use ArtisanPackUI\Ai\Exceptions\MissingCredentialsException;
+use ArtisanPackUI\Ai\Livewire\Concerns\ChecksFeatureToggle;
+use ArtisanPackUI\Ai\Livewire\Concerns\InteractsWithAiFeature;
 use ArtisanPackUI\SEO\Ai\Agents\SchemaGenerationAgent;
 use Illuminate\View\View;
 use Livewire\Attributes\On;
 use Livewire\Component;
-use Throwable;
 
 /**
  * Trigger UI for the {@see SchemaGenerationAgent}.
@@ -38,15 +35,14 @@ use Throwable;
  */
 class SchemaSuggestor extends Component
 {
+	use ChecksFeatureToggle;
+	use InteractsWithAiFeature;
+
 	public string $content = '';
 
 	public string $title = '';
 
 	public string $url = '';
-
-	public bool $isLoading = false;
-
-	public ?string $error = null;
 
 	public ?string $suggestedType = null;
 
@@ -61,6 +57,8 @@ class SchemaSuggestor extends Component
 	 * @var array<int, string>
 	 */
 	public array $missingRequiredFields = [];
+
+	protected string $featureKey = 'seo.generate_schema';
 
 	/**
 	 * Mount the component with initial context from the containing editor.
@@ -112,14 +110,12 @@ class SchemaSuggestor extends Component
 	 */
 	public function suggest(): void
 	{
-		$this->error                 = null;
 		$this->suggestedType         = null;
 		$this->confidence            = 0.0;
 		$this->jsonld                = [];
 		$this->missingRequiredFields = [];
-		$this->isLoading             = true;
 
-		try {
+		$this->runAiFeature( function (): void {
 			$output = SchemaGenerationAgent::for( [
 				'content' => $this->content,
 				'title'   => $this->title,
@@ -135,17 +131,7 @@ class SchemaSuggestor extends Component
 					static fn ( $value ): bool => is_string( $value ) && '' !== trim( $value ),
 				) )
 				: [];
-		} catch ( FeatureDisabledException $exception ) {
-			$this->error = __( 'This AI feature is disabled.' );
-		} catch ( MissingCredentialsException $exception ) {
-			$this->error = __( 'AI credentials are not configured.' );
-		} catch ( FeatureError $exception ) {
-			$this->error = $exception->getMessage();
-		} catch ( Throwable $exception ) {
-			$this->error = __( 'The AI agent could not complete this request.' );
-		} finally {
-			$this->isLoading = false;
-		}
+		} );
 	}
 
 	/**
@@ -162,25 +148,6 @@ class SchemaSuggestor extends Component
 		}
 
 		$this->dispatch( 'seo-ai-schema-selected', type: $this->suggestedType, jsonld: $this->jsonld );
-	}
-
-	/**
-	 * Determine whether this feature is enabled in the registry.
-	 *
-	 * @since 1.2.0
-	 *
-	 * @return bool
-	 */
-	public function getIsEnabledProperty(): bool
-	{
-		$registry = app( FeatureRegistry::class );
-		$key      = 'seo.generate_schema';
-
-		if ( null === $registry->get( $key ) ) {
-			return false;
-		}
-
-		return $registry->isToggleOn( $key );
 	}
 
 	/**
