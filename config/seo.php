@@ -144,6 +144,41 @@ return [
 
 	/*
 	|--------------------------------------------------------------------------
+	| llms.txt Settings
+	|--------------------------------------------------------------------------
+	|
+	| Configuration for the llms.txt AI-discovery manifest (see
+	| https://llmstxt.org/). The manifest is generated from the same
+	| indexable SitemapEntry source as the XML sitemap, so any regeneration
+	| triggered by the sitemap observer refreshes this output too. Route
+	| wiring is left to consumers (e.g. Keystone).
+	|
+	*/
+
+	'llms_txt' => [
+		'enabled'       => env( 'SEO_LLMS_TXT_ENABLED', true ),
+
+		// Header rendered as the top-level `# {title}` line. Falls back to seo.site.name.
+		'title'         => null,
+
+		// Blockquote summary rendered under the title. Falls back to seo.site.description.
+		'summary'       => null,
+
+		// Optional intro paragraph rendered above the entry sections.
+		'intro'         => null,
+
+		// Restrict which sitemap entry types are included (empty = all).
+		'include_types' => [],
+
+		// Exclude specific sitemap entry types.
+		'exclude_types' => [],
+
+		// Soft cap on total entries emitted; null = unlimited.
+		'max_entries'   => null,
+	],
+
+	/*
+	|--------------------------------------------------------------------------
 	| Robots.txt Settings
 	|--------------------------------------------------------------------------
 	|
