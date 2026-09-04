@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Sitemap index child URLs now include the page number**: `SitemapIndexGenerator` omitted the page segment for page 1, so the index pointed at `sitemap-{type}.xml`, which no route serves (only `sitemap-{type}-{page}.xml` is registered) — every typed child sitemap returned a 404. The index now emits `sitemap-{type}-1.xml`, provider sitemaps as `sitemap-{provider}-1.xml`, and the paginated main sitemap as `sitemap-1.xml` (instead of a self-referential `sitemap.xml`). Image, video, and news sitemap URLs are unchanged (#66).
+
 ### Removed
 
 - **Laravel 10 support**: Narrowed `illuminate/support` constraint to `^11.0|^12.0|^13.0` and `orchestra/testbench` to `^9.0|^10.0|^11.0`. Models in this package declare casts with the Laravel 11+ `casts()` method, which Laravel 10's `HasAttributes` trait does not call — so `Redirect`, `SeoAnalysisCache`, `SeoMeta`, and `SitemapEntry` were silently returning raw column values (unparsed JSON, string datetimes, string enums) for anyone actually on Laravel 10. The advertised constraint was also unreachable in practice because `artisanpack-ui/core: ^1.3` already requires `illuminate/support: ^12.0|^13.0` (#65).

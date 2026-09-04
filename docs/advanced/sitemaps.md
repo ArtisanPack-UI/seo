@@ -259,7 +259,11 @@ For large sites with multiple sitemaps:
 <?xml version="1.0" encoding="UTF-8"?>
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <sitemap>
-        <loc>https://example.com/sitemap-standard.xml</loc>
+        <loc>https://example.com/sitemap-1.xml</loc>
+        <lastmod>2024-01-15T10:30:00+00:00</lastmod>
+    </sitemap>
+    <sitemap>
+        <loc>https://example.com/sitemap-post-1.xml</loc>
         <lastmod>2024-01-15T10:30:00+00:00</lastmod>
     </sitemap>
     <sitemap>
@@ -283,7 +287,8 @@ The package can register sitemap routes:
 
 // Registers:
 // GET /sitemap.xml
-// GET /sitemap-{type}.xml
+// GET /sitemap-{page}.xml
+// GET /sitemap-{type}-{page}.xml
 ```
 
 ### Via Controller
