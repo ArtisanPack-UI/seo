@@ -74,8 +74,31 @@ class LlmsTxtGenerator
 	{
 		$entries = $this->getEntries();
 		$entries = $this->applyEntriesFilter( $entries );
+		$entries = $this->applyMaxEntries( $entries );
 
 		return $this->buildMarkdown( $entries );
+	}
+
+	/**
+	 * Enforce the configured entry cap on a filtered collection.
+	 *
+	 * Applied after the `ap.seo.llmsTxtEntries` filter so callbacks that
+	 * add entries cannot exceed the cap. `null` means unlimited; any other
+	 * value (including `0`) is honoured literally.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @param  Collection  $entries  The filtered entries.
+	 *
+	 * @return Collection
+	 */
+	protected function applyMaxEntries( Collection $entries ): Collection
+	{
+		if ( null === $this->maxEntries ) {
+			return $entries;
+		}
+
+		return $entries->take( max( 0, $this->maxEntries ) )->values();
 	}
 
 	/**
@@ -125,11 +148,17 @@ class LlmsTxtGenerator
 			$query->whereNotIn( 'type', $exclude );
 		}
 
-		if ( null !== $this->maxEntries && $this->maxEntries > 0 ) {
-			$query->limit( $this->maxEntries );
+		$entries = $query->get();
+
+		try {
+			$entries->loadMissing( 'sitemapable' );
+		} catch ( Throwable $e ) {
+			// A tracked morph type may no longer resolve to a real class
+			// (e.g. after a model rename). Fall back to lazy loading, which
+			// is guarded per-entry in {@see resolveSitemapableModel()}.
 		}
 
-		return $query->get();
+		return $entries;
 	}
 
 	/**

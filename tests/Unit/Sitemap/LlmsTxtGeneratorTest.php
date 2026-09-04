@@ -173,6 +173,57 @@ describe( 'LlmsTxtGenerator', function (): void {
 		expect( $output )->toContain( '- [Extra Page](https://example.com/extra): Added via filter.' );
 	} );
 
+	it( 'caps entries after filter callbacks have run', function (): void {
+		SitemapEntry::create( [
+			'sitemapable_type' => 'App\\Models\\Page',
+			'sitemapable_id'   => 1,
+			'url'              => 'https://example.com/one',
+			'type'             => 'page',
+			'priority'         => 0.9,
+		] );
+
+		SitemapEntry::create( [
+			'sitemapable_type' => 'App\\Models\\Page',
+			'sitemapable_id'   => 2,
+			'url'              => 'https://example.com/two',
+			'type'             => 'page',
+			'priority'         => 0.8,
+		] );
+
+		Filter::add( 'ap.seo.llmsTxtEntries', function ( array $entries ): array {
+			$entries[] = [
+				'url'   => 'https://example.com/filter-added',
+				'type'  => 'page',
+				'title' => 'Filter Added',
+			];
+
+			return $entries;
+		} );
+
+		config( [ 'seo.llms_txt.max_entries' => 2 ] );
+
+		$output = ( new LlmsTxtGenerator() )->generate();
+
+		// Cap is applied after the filter, so the total across DB + filter entries is 2.
+		expect( substr_count( $output, "\n- [" ) )->toBe( 2 );
+	} );
+
+	it( 'treats max_entries=0 as literal zero, not unlimited', function (): void {
+		SitemapEntry::create( [
+			'sitemapable_type' => 'App\\Models\\Page',
+			'sitemapable_id'   => 1,
+			'url'              => 'https://example.com/anything',
+			'type'             => 'page',
+		] );
+
+		config( [ 'seo.llms_txt.max_entries' => 0 ] );
+
+		$output = ( new LlmsTxtGenerator() )->generate();
+
+		expect( $output )->not->toContain( 'https://example.com/anything' )
+			->and( $output )->not->toContain( '## Pages' );
+	} );
+
 	it( 'is cached and invalidated by SitemapService::clearCache()', function (): void {
 		Cache::flush();
 
