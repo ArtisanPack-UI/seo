@@ -25,11 +25,12 @@ describe( 'AnalysisService container registration', function (): void {
 		expect( $service1 )->toBe( $service2 );
 	} );
 
-	it( 'has all eight built-in analyzers registered', function (): void {
+	it( 'has all built-in analyzers registered', function (): void {
 		$service   = app( AnalysisService::class );
 		$analyzers = $service->getAnalyzers();
 
-		expect( $analyzers )->toHaveCount( 8 )
+		expect( $analyzers )->toHaveCount( 9 )
+			->and( $service->hasAnalyzer( 'ai_readiness' ) )->toBeTrue()
 			->and( $service->hasAnalyzer( 'content_length' ) )->toBeTrue()
 			->and( $service->hasAnalyzer( 'focus_keyword' ) )->toBeTrue()
 			->and( $service->hasAnalyzer( 'heading_structure' ) )->toBeTrue()

@@ -410,6 +410,7 @@ return [
 			'image_alt'         => true,
 			'internal_links'    => true,
 			'content_length'    => true,
+			'ai_readiness'      => true,
 		],
 		'thresholds' => [
 			'min_word_count'      => 300,
