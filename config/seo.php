@@ -89,11 +89,12 @@ return [
 	'schema' => [
 		'enabled'      => true,
 		'organization' => [
-			'name'  => env( 'APP_NAME', 'Laravel' ),
-			'logo'  => null,
-			'url'   => env( 'APP_URL', '' ),
-			'email' => null,
-			'phone' => null,
+			'name'   => env( 'APP_NAME', 'Laravel' ),
+			'logo'   => null,
+			'url'    => env( 'APP_URL', '' ),
+			'email'  => null,
+			'phone'  => null,
+			'sameAs' => [],
 		],
 		'default_types' => [
 			'page'    => 'WebPage',

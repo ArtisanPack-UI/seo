@@ -125,8 +125,14 @@ class OrganizationSchema extends AbstractSchema
 		}
 
 		$sameAs = $this->get( 'sameAs', $cmsData['sameAs'] ?? null );
-		if ( null !== $sameAs && is_array( $sameAs ) && ! empty( $sameAs ) ) {
-			$schema['sameAs'] = $sameAs;
+		if ( is_array( $sameAs ) ) {
+			$sameAs = array_values( array_unique( array_filter(
+				$sameAs,
+				fn ( $url ): bool => is_string( $url ) && '' !== trim( $url ),
+			) ) );
+			if ( ! empty( $sameAs ) ) {
+				$schema['sameAs'] = $sameAs;
+			}
 		}
 
 		// Add opening hours if available from CMS

@@ -100,6 +100,61 @@ describe( 'OrganizationSchema', function (): void {
 			->and( $schema['sameAs'][0] )->toBe( 'https://facebook.com/testorg' );
 	} );
 
+	it( 'deduplicates and filters empty sameAs entries', function (): void {
+		$builder = new OrganizationSchema( [
+			'name'   => 'Test Organization',
+			'sameAs' => [
+				'https://facebook.com/testorg',
+				'https://twitter.com/testorg',
+				'https://facebook.com/testorg',
+				'',
+				'   ',
+				null,
+				'https://linkedin.com/company/testorg',
+			],
+		] );
+
+		$schema = $builder->generate();
+
+		expect( $schema['sameAs'] )->toBe( [
+			'https://facebook.com/testorg',
+			'https://twitter.com/testorg',
+			'https://linkedin.com/company/testorg',
+		] );
+	} );
+
+	it( 'omits sameAs when input is empty', function (): void {
+		$builder = new OrganizationSchema( [
+			'name'   => 'Test Organization',
+			'sameAs' => [],
+		] );
+
+		$schema = $builder->generate();
+
+		expect( $schema )->not->toHaveKey( 'sameAs' );
+	} );
+
+	it( 'omits sameAs when only empty strings are provided', function (): void {
+		$builder = new OrganizationSchema( [
+			'name'   => 'Test Organization',
+			'sameAs' => [ '', '   ', null ],
+		] );
+
+		$schema = $builder->generate();
+
+		expect( $schema )->not->toHaveKey( 'sameAs' );
+	} );
+
+	it( 'omits logo when not provided', function (): void {
+		$builder = new OrganizationSchema( [
+			'name' => 'Test Organization',
+		] );
+
+		$schema = $builder->generate();
+
+		expect( $schema )->not->toHaveKey( 'logo' );
+	} );
+
 	it( 'filters out empty values', function (): void {
 		$builder = new OrganizationSchema( [
 			'name'        => 'Test Organization',

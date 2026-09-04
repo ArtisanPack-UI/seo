@@ -93,6 +93,34 @@ describe( 'SchemaService', function (): void {
 			->and( $schema['url'] )->toBe( 'https://example.com' );
 	} );
 
+	it( 'emits sameAs and logo on organization schema from config', function (): void {
+		config()->set( 'seo.schema.organization.sameAs', [
+			'https://facebook.com/testorg',
+			'https://twitter.com/testorg',
+		] );
+
+		$service = app( SchemaService::class );
+
+		$schema = $service->generateOrganizationSchema();
+
+		expect( $schema['sameAs'] )->toBe( [
+			'https://facebook.com/testorg',
+			'https://twitter.com/testorg',
+		] )
+			->and( $schema['logo']['@type'] )->toBe( 'ImageObject' )
+			->and( $schema['logo']['url'] )->toBe( 'https://example.com/logo.png' );
+	} );
+
+	it( 'omits sameAs on organization schema when config is empty', function (): void {
+		config()->set( 'seo.schema.organization.sameAs', [] );
+
+		$service = app( SchemaService::class );
+
+		$schema = $service->generateOrganizationSchema();
+
+		expect( $schema )->not->toHaveKey( 'sameAs' );
+	} );
+
 	it( 'generates website schema', function (): void {
 		$service = app( SchemaService::class );
 
