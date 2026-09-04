@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - **Sitemap index child URLs now include the page number**: `SitemapIndexGenerator` omitted the page segment for page 1, so the index pointed at `sitemap-{type}.xml`, which no route serves (only `sitemap-{type}-{page}.xml` is registered) — every typed child sitemap returned a 404. The index now emits `sitemap-{type}-1.xml`, provider sitemaps as `sitemap-{provider}-1.xml`, and the paginated main sitemap as `sitemap-1.xml` (instead of a self-referential `sitemap.xml`). Image, video, and news sitemap URLs are unchanged (#66).
+- **Sitemap index now surfaces registered providers**: `SitemapService::needsIndex()` did not consult `$this->providers`, so a site with a single database type plus one or more registered `SitemapProviderContract` providers served the plain `<urlset>` main sitemap at `/sitemap.xml` and never exposed provider URLs to crawlers. The service now passes providers to the generator, and `SitemapIndexGenerator::needsIndex()` returns `true` whenever any provider is registered (#66).
 
 ### Removed
 

@@ -199,13 +199,6 @@ describe( 'Sitemap Routes', function (): void {
 			'type'             => 'page',
 		] );
 
-		SitemapEntry::create( [
-			'sitemapable_type' => 'App\\Models\\Post',
-			'sitemapable_id'   => 1,
-			'url'              => 'https://example.com/post-1',
-			'type'             => 'post',
-		] );
-
 		$locs = getSitemapIndexLocs( $this->get( '/sitemap.xml' )->assertStatus( 200 )->getContent() );
 
 		expect( $locs )->toContain( 'https://example.com/sitemap-custom-1.xml' )
