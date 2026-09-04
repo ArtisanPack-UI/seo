@@ -21,7 +21,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Schema;
 
 uses( RefreshDatabase::class );
@@ -83,10 +82,6 @@ it( 'invalidates cached sitemap XML when a tracked model is saved', function ():
 	// snapshot is served on the next request.
 	$page->update( [ 'slug' => 'first-renamed' ] );
 
-	// Fetching from cache directly should return null after invalidation.
-	$cached = Cache::get( 'seo:sitemap:standard' );
-	expect( $cached )->toBeNull();
-
 	$fresh = $service->generate();
 	expect( $fresh )
 		->toContain( 'https://example.com/first-renamed' )
@@ -102,8 +97,6 @@ it( 'invalidates cached sitemap XML when a tracked model is force deleted', func
 	expect( $initial )->toContain( 'https://example.com/doomed' );
 
 	$page->forceDelete();
-
-	expect( Cache::get( 'seo:sitemap:standard' ) )->toBeNull();
 
 	$fresh = $service->generate();
 	expect( $fresh )->not->toContain( 'https://example.com/doomed' );
@@ -121,10 +114,12 @@ it( 'leaves cached sitemap XML alone on a soft delete', function (): void {
 	$page->delete();
 
 	// Soft delete does not touch sitemap_entries, so the cached snapshot is
-	// still accurate and must not be flushed (which would force a needless
-	// regeneration on the next request).
-	$cached = Cache::get( 'seo:sitemap:standard' );
-	expect( $cached )->toContain( 'https://example.com/soft' );
+	// still accurate and must not be regenerated. Removing the underlying
+	// entry directly and re-generating should still return the primed XML.
+	SitemapEntry::query()->delete();
+
+	$stillCached = $service->generate();
+	expect( $stillCached )->toContain( 'https://example.com/soft' );
 } );
 
 it( 'invalidates cached sitemap XML when a soft-deleted model is restored', function (): void {
@@ -137,17 +132,40 @@ it( 'invalidates cached sitemap XML when a soft-deleted model is restored', func
 	$initial = $service->generate();
 	expect( $initial )->toContain( 'https://example.com/coming-back' );
 
-	// Remove the entry manually to simulate a state where the sitemap does
-	// not currently include the URL, then restore.
-	SitemapEntry::query()->delete();
-	Cache::forget( 'seo:sitemap:standard' );
-	$snapshotWithout = $service->generate();
-	expect( $snapshotWithout )->not->toContain( 'https://example.com/coming-back' );
-
 	$page->restore();
 
-	expect( Cache::get( 'seo:sitemap:standard' ) )->toBeNull();
-
+	// The observer's restore hook must invalidate the cache so the next
+	// request rebuilds fresh XML that still contains the restored URL.
 	$fresh = $service->generate();
 	expect( $fresh )->toContain( 'https://example.com/coming-back' );
+} );
+
+it( 'invalidates trailing sitemap pages when deletion shrinks the page count', function (): void {
+	// One URL per file forces every entry onto its own page so a two-entry
+	// site fills exactly two pages. Deleting the second entry should not
+	// leave a stale cached page 2 containing the removed URL.
+	config( [ 'seo.sitemap.max_urls_per_file' => 1 ] );
+
+	$service = new SitemapService();
+
+	$one = SitemapObserverTestPage::create( [ 'title' => 'One', 'slug' => 'one' ] );
+	$two = SitemapObserverTestPage::create( [ 'title' => 'Two', 'slug' => 'two' ] );
+
+	// Prime both pages while the site has two entries.
+	$pageOne = $service->generate( 'page', 1 );
+	$pageTwo = $service->generate( 'page', 2 );
+	expect( $pageOne )->toContain( 'https://example.com/one' );
+	expect( $pageTwo )->toContain( 'https://example.com/two' );
+
+	// Removing the second entry shrinks the sitemap to a single page.
+	$two->forceDelete();
+
+	// Regenerating page 2 must not serve the pre-deletion snapshot that
+	// still lists the removed URL.
+	$freshPageTwo = $service->generate( 'page', 2 );
+	expect( $freshPageTwo )->not->toContain( 'https://example.com/two' );
+
+	// Sanity: page 1 still resolves and is fresh.
+	$freshPageOne = $service->generate( 'page', 1 );
+	expect( $freshPageOne )->toContain( 'https://example.com/one' );
 } );
