@@ -106,7 +106,8 @@ The package provides middleware for redirect handling:
 The package can register routes for:
 
 - `/sitemap.xml` - Main sitemap or sitemap index
-- `/sitemap-{type}.xml` - Type-specific sitemaps
+- `/sitemap-{page}.xml` - Paginated main sitemap (e.g. `/sitemap-1.xml`)
+- `/sitemap-{type}-{page}.xml` - Type-specific sitemaps (e.g. `/sitemap-post-1.xml`)
 - `/robots.txt` - Dynamic robots.txt
 
 ```php
