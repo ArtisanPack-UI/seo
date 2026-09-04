@@ -324,50 +324,18 @@ class SitemapService
 	/**
 	 * Clear all sitemap caches.
 	 *
+	 * Bumps a generation counter that is baked into every sitemap cache key,
+	 * so a single write orphans every cached variant/type/page — including
+	 * trailing pages that no longer exist because content was deleted.
+	 * Orphaned entries expire naturally via their TTL.
+	 *
 	 * @since 1.0.0
 	 *
 	 * @return void
 	 */
 	public function clearCache(): void
 	{
-		// Clear standard sitemap caches for all types
-		$types = $this->getTypes();
-		foreach ( $types as $type ) {
-			$generator  = new SitemapGenerator( $this->maxUrls );
-			$totalPages = $generator->getTotalPages( $type );
-
-			for ( $page = 1; $page <= max( 1, $totalPages ); $page++ ) {
-				Cache::forget( $this->getCacheKey( 'standard', $type, $page ) );
-			}
-		}
-
-		// Clear standard sitemap cache without type filter (null type)
-		$generator  = new SitemapGenerator( $this->maxUrls );
-		$totalPages = $generator->getTotalPages( null );
-		for ( $page = 1; $page <= max( 1, $totalPages ); $page++ ) {
-			Cache::forget( $this->getCacheKey( 'standard', null, $page ) );
-		}
-
-		// Clear index cache
-		Cache::forget( $this->getCacheKey( 'index' ) );
-
-		// Clear image sitemap cache
-		$imageGenerator = new ImageSitemapGenerator( $this->maxUrls );
-		for ( $page = 1; $page <= max( 1, $imageGenerator->getTotalPages() ); $page++ ) {
-			Cache::forget( $this->getCacheKey( 'images', null, $page ) );
-		}
-
-		// Clear video sitemap cache
-		$videoGenerator = new VideoSitemapGenerator( $this->maxUrls );
-		for ( $page = 1; $page <= max( 1, $videoGenerator->getTotalPages() ); $page++ ) {
-			Cache::forget( $this->getCacheKey( 'videos', null, $page ) );
-		}
-
-		// Clear news sitemap cache
-		$newsGenerator = new NewsSitemapGenerator();
-		for ( $page = 1; $page <= max( 1, $newsGenerator->getTotalPages() ); $page++ ) {
-			Cache::forget( $this->getCacheKey( 'news', null, $page ) );
-		}
+		Cache::forever( $this->getGenerationKey(), $this->getCacheGeneration() + 1 );
 	}
 
 	/**
@@ -552,6 +520,11 @@ class SitemapService
 	/**
 	 * Get a cache key for a sitemap.
 	 *
+	 * Keys include the current cache generation so {@see clearCache()} can
+	 * invalidate everything (including trailing pages for deleted content)
+	 * with a single write instead of enumerating page ranges the store may
+	 * no longer list.
+	 *
 	 * @since 1.0.0
 	 *
 	 * @param  string       $variant  The sitemap variant (standard, index, images, etc.).
@@ -562,7 +535,7 @@ class SitemapService
 	 */
 	protected function getCacheKey( string $variant, ?string $type = null, ?int $page = null ): string
 	{
-		$key = $this->cachePrefix . $variant;
+		$key = $this->cachePrefix . 'g' . $this->getCacheGeneration() . ':' . $variant;
 
 		if ( null !== $type ) {
 			$key .= ':' . $type;
@@ -573,5 +546,33 @@ class SitemapService
 		}
 
 		return $key;
+	}
+
+	/**
+	 * Get the cache key that holds the current generation counter.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @return string
+	 */
+	protected function getGenerationKey(): string
+	{
+		return $this->cachePrefix . 'generation';
+	}
+
+	/**
+	 * Get the current cache generation counter.
+	 *
+	 * Defaults to `1` if the counter has never been written; each call to
+	 * {@see clearCache()} bumps it so all previously cached keys become
+	 * orphans that expire naturally via their TTL.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @return int
+	 */
+	protected function getCacheGeneration(): int
+	{
+		return (int) Cache::get( $this->getGenerationKey(), 1 );
 	}
 }
