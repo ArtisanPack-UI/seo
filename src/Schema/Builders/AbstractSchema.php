@@ -79,22 +79,6 @@ abstract class AbstractSchema implements SchemaTypeContract
 	}
 
 	/**
-	 * Get the schema as an array.
-	 *
-	 * Alias for `generate()` with no model context — useful for callers
-	 * (like `apSeoAddSchema()`) that treat a builder as a serializable
-	 * value object.
-	 *
-	 * @since 1.4.0
-	 *
-	 * @return array<string, mixed>
-	 */
-	public function toArray(): array
-	{
-		return $this->generate();
-	}
-
-	/**
 	 * Get the base schema structure.
 	 *
 	 * @since 1.0.0

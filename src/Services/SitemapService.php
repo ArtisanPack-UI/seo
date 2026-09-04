@@ -300,7 +300,6 @@ class SitemapService
 	public function needsIndex(): bool
 	{
 		$generator = new SitemapIndexGenerator( config( 'app.url' ), $this->maxUrls );
-		$generator->setProviders( $this->providers );
 
 		return $generator->needsIndex();
 	}

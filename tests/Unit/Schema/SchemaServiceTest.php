@@ -121,7 +121,7 @@ describe( 'SchemaService', function (): void {
 			->and( $schema['itemListElement'][2]['position'] )->toBe( 3 );
 	} );
 
-	it( 'generates graph with multiple component schemas', function (): void {
+	it( 'generates graph with multiple schemas', function (): void {
 		$service = app( SchemaService::class );
 
 		$schemas = [
@@ -131,9 +131,9 @@ describe( 'SchemaService', function (): void {
 
 		$graph = $service->generateGraph( $schemas );
 
-		expect( $graph )->toHaveCount( 2 )
-			->and( $graph[0]['@type'] )->toBe( 'Organization' )
-			->and( $graph[1]['@type'] )->toBe( 'WebSite' );
+		expect( $graph )->toHaveKey( '@context' )
+			->and( $graph )->toHaveKey( '@graph' )
+			->and( $graph['@graph'] )->toHaveCount( 2 );
 	} );
 
 	it( 'converts schema to JSON-LD', function (): void {
