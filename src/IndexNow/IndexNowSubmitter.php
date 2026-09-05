@@ -22,6 +22,7 @@ use Illuminate\Http\Client\Response;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use InvalidArgumentException;
 use Throwable;
 
@@ -315,24 +316,45 @@ class IndexNowSubmitter
 				->asJson()
 				->post( $this->endpoint, $payload );
 
+			// IndexNow endpoints return 200 for the batch as a whole, but embed
+			// per-URL rejections (unverified key, wrong host) in the response
+			// body as {code, message, warnings}. Read those so a caller can
+			// distinguish "accepted" from "quietly rejected".
+			$body    = $this->parseResponseBody( $response );
+			$warning = $this->extractResponseWarning( $body );
+			$success = $response->successful() && null === $warning;
+
 			$result = [
-				'success'       => $response->successful(),
+				'success'       => $success,
 				'status_code'   => $response->status(),
 				'response_time' => round( ( microtime( true ) - $startTime ) * 1000, 2 ),
 				'endpoint'      => $this->endpoint,
 				'host'          => $host,
 				'url_count'     => count( $batchUrls ),
 				'urls'          => $batchUrls,
-				'message'       => $response->successful()
-					? __( 'IndexNow submission accepted for :host (:count URLs).', [
-						'host'  => $host,
-						'count' => count( $batchUrls ),
-					] )
-					: __( 'IndexNow submission rejected for :host with status :status.', [
-						'host'   => $host,
-						'status' => $response->status(),
-					] ),
+				'response_body' => $body,
 			];
+
+			if ( null !== $warning ) {
+				$result['warning'] = $warning;
+			}
+
+			$result['message'] = $success
+				? __( 'IndexNow submission accepted for :host (:count URLs).', [
+					'host'  => $host,
+					'count' => count( $batchUrls ),
+				] )
+				: (
+					$response->successful()
+						? __( 'IndexNow submission for :host returned HTTP 200 with warning: :warning', [
+							'host'    => $host,
+							'warning' => (string) $warning,
+						] )
+						: __( 'IndexNow submission rejected for :host with status :status.', [
+							'host'   => $host,
+							'status' => $response->status(),
+						] )
+				);
 
 			$this->logResult( $host, $result, $response );
 
@@ -402,12 +424,77 @@ class IndexNowSubmitter
 		];
 
 		if ( true === $result['success'] ) {
+			if ( null !== $response ) {
+				$context['body'] = Str::limit( (string) $response->body(), 512 );
+			}
 			Log::info( "IndexNow submission accepted for {$host}", $context );
 
 			return;
 		}
 
-		$context['error'] = $result['exception'] ?? ( $response?->body() ?? 'Unknown error' );
+		$context['error'] = $result['exception']
+			?? $result['warning']
+			?? ( null !== $response ? Str::limit( (string) $response->body(), 512 ) : 'Unknown error' );
 		Log::warning( "IndexNow submission failed for {$host}", $context );
+	}
+
+	/**
+	 * Attempt to decode the response body as JSON.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @param  Response  $response  The HTTP response.
+	 *
+	 * @return array<string, mixed>|null
+	 */
+	protected function parseResponseBody( Response $response ): ?array
+	{
+		$body = trim( (string) $response->body() );
+
+		if ( '' === $body ) {
+			return null;
+		}
+
+		try {
+			$decoded = $response->json();
+		} catch ( Throwable $e ) {
+			return null;
+		}
+
+		return is_array( $decoded ) ? $decoded : null;
+	}
+
+	/**
+	 * Extract a per-URL warning code/message from a parsed response body.
+	 *
+	 * IndexNow endpoints signal partial failures with a JSON body that
+	 * carries a `code` (e.g. `UnverifiedHost`) or a `warnings` array on
+	 * an otherwise 200 response.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @param  array<string, mixed>|null  $body  Parsed JSON body.
+	 *
+	 * @return string|null
+	 */
+	protected function extractResponseWarning( ?array $body ): ?string
+	{
+		if ( null === $body ) {
+			return null;
+		}
+
+		if ( isset( $body['code'] ) && '' !== (string) $body['code'] ) {
+			$message = isset( $body['message'] ) ? (string) $body['message'] : '';
+
+			return '' !== $message
+				? sprintf( '%s: %s', (string) $body['code'], $message )
+				: (string) $body['code'];
+		}
+
+		if ( isset( $body['warnings'] ) && is_array( $body['warnings'] ) && [] !== $body['warnings'] ) {
+			return Str::limit( json_encode( $body['warnings'] ) ?: '', 256 );
+		}
+
+		return null;
 	}
 }

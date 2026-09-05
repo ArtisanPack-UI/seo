@@ -198,4 +198,45 @@ describe( 'IndexNowSubmitter', function (): void {
 
 		( new ConfigIndexNowKeyProvider() )->getKey();
 	} )->throws( RuntimeException::class );
+
+	it( 'flags a 200 response carrying an UnverifiedHost code as a failure', function (): void {
+		Http::fake( [
+			'api.indexnow.org/*' => Http::response(
+				[ 'code' => 'UnverifiedHost', 'message' => 'Host ownership could not be verified.' ],
+				200,
+			),
+		] );
+
+		$submitter = new IndexNowSubmitter( makeKeyProvider() );
+		$results   = $submitter->submit( 'https://example.com/x' );
+		$first     = $results->first();
+
+		expect( $first['success'] )->toBeFalse()
+			->and( $first['status_code'] )->toBe( 200 )
+			->and( $first['warning'] ?? null )->toContain( 'UnverifiedHost' );
+	} );
+
+	it( 'treats a 200 response with warnings[] as a partial failure', function (): void {
+		Http::fake( [
+			'api.indexnow.org/*' => Http::response(
+				[ 'warnings' => [ [ 'code' => 'InvalidUrl', 'url' => 'https://example.com/x' ] ] ],
+				200,
+			),
+		] );
+
+		$submitter = new IndexNowSubmitter( makeKeyProvider() );
+		$first     = $submitter->submit( 'https://example.com/x' )->first();
+
+		expect( $first['success'] )->toBeFalse()
+			->and( $first['warning'] ?? null )->not->toBeNull();
+	} );
+
+	it( 'passes clean 200 responses through as successful', function (): void {
+		Http::fake( [ 'api.indexnow.org/*' => Http::response( '', 200 ) ] );
+
+		$submitter = new IndexNowSubmitter( makeKeyProvider() );
+		$first     = $submitter->submit( 'https://example.com/x' )->first();
+
+		expect( $first['success'] )->toBeTrue();
+	} );
 } );
