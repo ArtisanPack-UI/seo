@@ -47,30 +47,33 @@ jobs:
     timeout-minutes: 15
     name: Test (PHP ${{ matrix.php }})
 
+    # Laravel 13 is deliberately absent from the matrix for 1.4.0: the current
+    # pest-plugin-laravel ^3.2 constraint caps at Laravel 12. L13 support is
+    # aspirational in composer.json and will be exercised once pest-plugin-laravel
+    # is bumped in a later release.
     strategy:
       fail-fast: false
       matrix:
         include:
           - php: '8.2'
             laravel: '11.*'
+            testbench: '9.*'
             with-ai: false
           - php: '8.2'
             laravel: '12.*'
+            testbench: '10.*'
             with-ai: false
           - php: '8.3'
             laravel: '11.*'
+            testbench: '9.*'
             with-ai: false
           - php: '8.3'
             laravel: '12.*'
-            with-ai: true
-          - php: '8.3'
-            laravel: '13.*'
+            testbench: '10.*'
             with-ai: true
           - php: '8.4'
             laravel: '12.*'
-            with-ai: true
-          - php: '8.4'
-            laravel: '13.*'
+            testbench: '10.*'
             with-ai: true
 
     steps:
@@ -104,6 +107,9 @@ jobs:
 
       - name: Pin Laravel version for matrix
         run: composer require "illuminate/support:${{ matrix.laravel }}" --no-update --no-interaction
+
+      - name: Pin Testbench version for matrix
+        run: composer require --dev "orchestra/testbench:${{ matrix.testbench }}" --no-update --no-interaction
 
       - name: Install dependencies
         run: composer update --no-interaction --prefer-dist
