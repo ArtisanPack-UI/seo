@@ -174,6 +174,11 @@ return [
 		'batch_size'   => 10000,
 		'timeout'      => 10,
 		'user_agent'   => 'ArtisanPackUI SEO IndexNow Submitter',
+
+		// When true, register a GET route serving the IndexNow key file at
+		// `/{key}.txt`. Opt-in to keep the key surface explicit; consumers
+		// can also serve the file themselves and leave this false.
+		'route_enabled' => env( 'SEO_INDEXNOW_ROUTE_ENABLED', false ),
 	],
 
 	/*
@@ -192,6 +197,15 @@ return [
 	'llms_txt' => [
 		'enabled'       => env( 'SEO_LLMS_TXT_ENABLED', true ),
 
+		// When true, register a GET route serving llms.txt at `route_path`.
+		// Kept opt-in (default false) so consumers with a custom controller
+		// can wire their own.
+		'route_enabled' => env( 'SEO_LLMS_TXT_ROUTE_ENABLED', false ),
+
+		// Path (relative to the app root) at which llms.txt is served when
+		// `route_enabled` is true.
+		'route_path'    => env( 'SEO_LLMS_TXT_ROUTE_PATH', 'llms.txt' ),
+
 		// Header rendered as the top-level `# {title}` line. Falls back to seo.site.name.
 		'title'         => null,
 
@@ -209,6 +223,34 @@ return [
 
 		// Soft cap on total entries emitted; null = unlimited.
 		'max_entries'   => null,
+	],
+
+	/*
+	|--------------------------------------------------------------------------
+	| Feeds (RSS / Atom) Settings
+	|--------------------------------------------------------------------------
+	|
+	| Configuration for the RSS 2.0 and Atom 1.0 feed generator. Consumers
+	| that only want to generate a feed programmatically can leave
+	| `route_enabled` off; enabling it wires GET routes for `/feed.xml`
+	| and `/feed.atom` at the paths configured below.
+	|
+	| `feed_id` is the stable IRI used as Atom's <id> element. If left
+	| null the generator falls back to the feed URL AND emits a
+	| `Log::notice` so consumers see the expected upgrade path.
+	|
+	*/
+
+	'feeds' => [
+		'enabled'       => env( 'SEO_FEEDS_ENABLED', true ),
+		'route_enabled' => env( 'SEO_FEEDS_ROUTE_ENABLED', false ),
+		'rss_path'      => env( 'SEO_FEEDS_RSS_PATH', 'feed.xml' ),
+		'atom_path'     => env( 'SEO_FEEDS_ATOM_PATH', 'feed.atom' ),
+		'title'         => env( 'SEO_FEEDS_TITLE', env( 'APP_NAME', 'Site' ) ),
+		'description'   => env( 'SEO_FEEDS_DESCRIPTION', '' ),
+		'per_page'      => 50,
+		'cache_ttl'     => 300,
+		'feed_id'       => env( 'SEO_FEEDS_FEED_ID' ),
 	],
 
 	/*
