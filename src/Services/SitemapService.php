@@ -17,9 +17,12 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\SEO\Services;
 
+use ArtisanPackUI\SEO\Contracts\IndexNowKeyProviderContract;
 use ArtisanPackUI\SEO\Contracts\SitemapProviderContract;
+use ArtisanPackUI\SEO\IndexNow\IndexNowSubmitter;
 use ArtisanPackUI\SEO\Models\SitemapEntry;
 use ArtisanPackUI\SEO\Sitemap\Generators\ImageSitemapGenerator;
+use ArtisanPackUI\SEO\Sitemap\Generators\LlmsTxtGenerator;
 use ArtisanPackUI\SEO\Sitemap\Generators\NewsSitemapGenerator;
 use ArtisanPackUI\SEO\Sitemap\Generators\SitemapGenerator;
 use ArtisanPackUI\SEO\Sitemap\Generators\SitemapIndexGenerator;
@@ -27,6 +30,7 @@ use ArtisanPackUI\SEO\Sitemap\Generators\VideoSitemapGenerator;
 use ArtisanPackUI\SEO\Sitemap\SitemapSubmitter;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
+use InvalidArgumentException;
 
 /**
  * SitemapService class.
@@ -225,6 +229,42 @@ class SitemapService
 	}
 
 	/**
+	 * Generate the llms.txt AI-discovery manifest.
+	 *
+	 * Cached alongside XML sitemaps so {@see clearCache()} — invoked by the
+	 * sitemap observer whenever a tracked entry changes — invalidates this
+	 * output too.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @return string The generated llms.txt content.
+	 */
+	public function generateLlmsTxt(): string
+	{
+		$cacheKey = $this->getCacheKey( 'llms_txt' );
+
+		if ( $this->cacheEnabled ) {
+			return Cache::remember( $cacheKey, $this->cacheTtl, function () {
+				return $this->generateLlmsTxtFresh();
+			} );
+		}
+
+		return $this->generateLlmsTxtFresh();
+	}
+
+	/**
+	 * Check if the llms.txt manifest is enabled.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @return bool
+	 */
+	public function isLlmsTxtEnabled(): bool
+	{
+		return (bool) config( 'seo.llms_txt.enabled', true );
+	}
+
+	/**
 	 * Get all available sitemap types.
 	 *
 	 * @since 1.0.0
@@ -259,6 +299,69 @@ class SitemapService
 		$submitter = new SitemapSubmitter( $sitemapUrl );
 
 		return $submitter->submit();
+	}
+
+	/**
+	 * Submit URLs to IndexNow.
+	 *
+	 * Resolves the key provider from the container so consumers can bind
+	 * a custom {@see IndexNowKeyProviderContract} implementation.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @param  array<int, string>|string  $urls  URL or list of URLs.
+	 *
+	 * @return Collection<int, array<string, mixed>> Per-batch results.
+	 */
+	public function submitIndexNow( array|string $urls ): Collection
+	{
+		$keyProvider = app( IndexNowKeyProviderContract::class );
+
+		return ( new IndexNowSubmitter( $keyProvider ) )->submit( $urls );
+	}
+
+	/**
+	 * Notify search engines that content was published or updated.
+	 *
+	 * Composes the two mechanisms consumers typically want to fire from
+	 * a "publish" observer:
+	 *
+	 * - IndexNow submission for the affected URLs (gated by
+	 *   `seo.indexnow.enabled`).
+	 * - A sitemap ping to configured search engines (gated by
+	 *   `seo.sitemap.submit_enabled`).
+	 *
+	 * Both mechanisms are best invoked from a queued job on the
+	 * consumer's side; this method returns aggregate results so the
+	 * caller can decide whether to requeue.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @param  array<int, string>|string  $urls  URL or list of URLs that changed.
+	 *
+	 * @return array<string, Collection<int|string, array<string, mixed>>>
+	 */
+	public function notifyOnPublish( array|string $urls ): array
+	{
+		$results = [
+			'indexnow' => collect(),
+			'sitemap'  => collect(),
+		];
+
+		if ( (bool) config( 'seo.indexnow.enabled', false ) ) {
+			try {
+				$results['indexnow'] = $this->submitIndexNow( $urls );
+			} catch ( InvalidArgumentException $e ) {
+				// No valid URLs to submit; leave the results collection empty so
+				// a publish observer isn't crashed by a bad input list.
+			}
+		}
+
+		if ( (bool) config( 'seo.sitemap.submit_enabled', false ) ) {
+			$results['sitemap'] = $this->submit();
+		}
+
+		return $results;
 	}
 
 	/**
@@ -300,6 +403,7 @@ class SitemapService
 	public function needsIndex(): bool
 	{
 		$generator = new SitemapIndexGenerator( config( 'app.url' ), $this->maxUrls );
+		$generator->setProviders( $this->providers );
 
 		return $generator->needsIndex();
 	}
@@ -323,50 +427,18 @@ class SitemapService
 	/**
 	 * Clear all sitemap caches.
 	 *
+	 * Bumps a generation counter that is baked into every sitemap cache key,
+	 * so a single write orphans every cached variant/type/page — including
+	 * trailing pages that no longer exist because content was deleted.
+	 * Orphaned entries expire naturally via their TTL.
+	 *
 	 * @since 1.0.0
 	 *
 	 * @return void
 	 */
 	public function clearCache(): void
 	{
-		// Clear standard sitemap caches for all types
-		$types = $this->getTypes();
-		foreach ( $types as $type ) {
-			$generator  = new SitemapGenerator( $this->maxUrls );
-			$totalPages = $generator->getTotalPages( $type );
-
-			for ( $page = 1; $page <= max( 1, $totalPages ); $page++ ) {
-				Cache::forget( $this->getCacheKey( 'standard', $type, $page ) );
-			}
-		}
-
-		// Clear standard sitemap cache without type filter (null type)
-		$generator  = new SitemapGenerator( $this->maxUrls );
-		$totalPages = $generator->getTotalPages( null );
-		for ( $page = 1; $page <= max( 1, $totalPages ); $page++ ) {
-			Cache::forget( $this->getCacheKey( 'standard', null, $page ) );
-		}
-
-		// Clear index cache
-		Cache::forget( $this->getCacheKey( 'index' ) );
-
-		// Clear image sitemap cache
-		$imageGenerator = new ImageSitemapGenerator( $this->maxUrls );
-		for ( $page = 1; $page <= max( 1, $imageGenerator->getTotalPages() ); $page++ ) {
-			Cache::forget( $this->getCacheKey( 'images', null, $page ) );
-		}
-
-		// Clear video sitemap cache
-		$videoGenerator = new VideoSitemapGenerator( $this->maxUrls );
-		for ( $page = 1; $page <= max( 1, $videoGenerator->getTotalPages() ); $page++ ) {
-			Cache::forget( $this->getCacheKey( 'videos', null, $page ) );
-		}
-
-		// Clear news sitemap cache
-		$newsGenerator = new NewsSitemapGenerator();
-		for ( $page = 1; $page <= max( 1, $newsGenerator->getTotalPages() ); $page++ ) {
-			Cache::forget( $this->getCacheKey( 'news', null, $page ) );
-		}
+		Cache::forever( $this->getGenerationKey(), $this->getCacheGeneration() + 1 );
 	}
 
 	/**
@@ -516,6 +588,20 @@ class SitemapService
 	}
 
 	/**
+	 * Generate the llms.txt manifest without caching.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @return string
+	 */
+	protected function generateLlmsTxtFresh(): string
+	{
+		$generator = new LlmsTxtGenerator();
+
+		return $generator->generate();
+	}
+
+	/**
 	 * Generate a fresh sitemap index without caching.
 	 *
 	 * @since 1.0.0
@@ -551,6 +637,11 @@ class SitemapService
 	/**
 	 * Get a cache key for a sitemap.
 	 *
+	 * Keys include the current cache generation so {@see clearCache()} can
+	 * invalidate everything (including trailing pages for deleted content)
+	 * with a single write instead of enumerating page ranges the store may
+	 * no longer list.
+	 *
 	 * @since 1.0.0
 	 *
 	 * @param  string       $variant  The sitemap variant (standard, index, images, etc.).
@@ -561,7 +652,7 @@ class SitemapService
 	 */
 	protected function getCacheKey( string $variant, ?string $type = null, ?int $page = null ): string
 	{
-		$key = $this->cachePrefix . $variant;
+		$key = $this->cachePrefix . 'g' . $this->getCacheGeneration() . ':' . $variant;
 
 		if ( null !== $type ) {
 			$key .= ':' . $type;
@@ -572,5 +663,33 @@ class SitemapService
 		}
 
 		return $key;
+	}
+
+	/**
+	 * Get the cache key that holds the current generation counter.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @return string
+	 */
+	protected function getGenerationKey(): string
+	{
+		return $this->cachePrefix . 'generation';
+	}
+
+	/**
+	 * Get the current cache generation counter.
+	 *
+	 * Defaults to `1` if the counter has never been written; each call to
+	 * {@see clearCache()} bumps it so all previously cached keys become
+	 * orphans that expire naturally via their TTL.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @return int
+	 */
+	protected function getCacheGeneration(): int
+	{
+		return (int) Cache::get( $this->getGenerationKey(), 1 );
 	}
 }

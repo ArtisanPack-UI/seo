@@ -25,7 +25,11 @@ use ArtisanPackUI\SEO\Ai\Agents\SchemaGenerationAgent;
 use ArtisanPackUI\SEO\Console\Commands\GenerateSitemapCommand;
 use ArtisanPackUI\SEO\Console\Commands\InstallFrontend;
 use ArtisanPackUI\SEO\Console\Commands\SubmitSitemapCommand;
+use ArtisanPackUI\SEO\Contracts\IndexNowKeyProviderContract;
+use ArtisanPackUI\SEO\Contracts\OgImageRendererContract;
+use ArtisanPackUI\SEO\Feed\Generators\FeedGenerator;
 use ArtisanPackUI\SEO\Http\Middleware\HandleRedirects;
+use ArtisanPackUI\SEO\IndexNow\ConfigIndexNowKeyProvider;
 use ArtisanPackUI\SEO\Livewire\Ai\ContentAnalyzer;
 use ArtisanPackUI\SEO\Livewire\Ai\HreflangSuggestor;
 use ArtisanPackUI\SEO\Livewire\Ai\MetaDescriptionSuggestor;
@@ -40,6 +44,8 @@ use ArtisanPackUI\SEO\Livewire\SeoDashboard;
 use ArtisanPackUI\SEO\Livewire\SeoMetaEditor;
 use ArtisanPackUI\SEO\Schema\SchemaFactory;
 use ArtisanPackUI\SEO\SEO;
+use ArtisanPackUI\SEO\Services\AiCrawlerService;
+use ArtisanPackUI\SEO\Services\Analysis\AiReadinessAnalyzer;
 use ArtisanPackUI\SEO\Services\Analysis\ContentLengthAnalyzer;
 use ArtisanPackUI\SEO\Services\Analysis\FocusKeywordAnalyzer;
 use ArtisanPackUI\SEO\Services\Analysis\HeadingStructureAnalyzer;
@@ -55,6 +61,8 @@ use ArtisanPackUI\SEO\Services\CmsFrameworkIntegration;
 use ArtisanPackUI\SEO\Services\HreflangService;
 use ArtisanPackUI\SEO\Services\MediaLibraryIntegration;
 use ArtisanPackUI\SEO\Services\MetaTagService;
+use ArtisanPackUI\SEO\Services\OgImage\GdOgImageRenderer;
+use ArtisanPackUI\SEO\Services\OgImageService;
 use ArtisanPackUI\SEO\Services\RedirectService;
 use ArtisanPackUI\SEO\Services\RobotsService;
 use ArtisanPackUI\SEO\Services\SchemaService;
@@ -63,6 +71,7 @@ use ArtisanPackUI\SEO\Services\SitemapService;
 use ArtisanPackUI\SEO\Services\SocialMetaService;
 use ArtisanPackUI\SEO\Services\VisualEditorIntegration;
 use ArtisanPackUI\SEO\Support\PackageDetector;
+use ArtisanPackUI\SEO\Support\SchemaCollector;
 use ArtisanPackUI\SEO\View\Components\Hreflang;
 use ArtisanPackUI\SEO\View\Components\Meta;
 use ArtisanPackUI\SEO\View\Components\MetaTags;
@@ -250,6 +259,10 @@ class SEOServiceProvider extends ServiceProvider
 			return new SchemaFactory();
 		} );
 
+		$this->app->singleton( SchemaCollector::class, function ( $app ) {
+			return new SchemaCollector();
+		} );
+
 		$this->app->singleton( SchemaService::class, function ( $app ) {
 			return new SchemaService(
 				$app->make( SchemaFactory::class ),
@@ -260,8 +273,18 @@ class SEOServiceProvider extends ServiceProvider
 			return new SitemapService();
 		} );
 
+		$this->app->singleton( FeedGenerator::class, function ( $app ) {
+			return new FeedGenerator();
+		} );
+
+		$this->app->bind( IndexNowKeyProviderContract::class, ConfigIndexNowKeyProvider::class );
+
 		$this->app->singleton( RobotsService::class, function ( $app ) {
 			return new RobotsService();
+		} );
+
+		$this->app->singleton( AiCrawlerService::class, function ( $app ) {
+			return new AiCrawlerService();
 		} );
 
 		$this->app->singleton( RedirectService::class, function ( $app ) {
@@ -285,6 +308,7 @@ class SEOServiceProvider extends ServiceProvider
 		$this->app->singleton( AnalysisService::class, function ( $app ) {
 			$service = new AnalysisService();
 
+			$service->registerAnalyzer( 'ai_readiness', new AiReadinessAnalyzer() );
 			$service->registerAnalyzer( 'content_length', new ContentLengthAnalyzer() );
 			$service->registerAnalyzer( 'focus_keyword', new FocusKeywordAnalyzer() );
 			$service->registerAnalyzer( 'heading_structure', new HeadingStructureAnalyzer() );
@@ -304,6 +328,18 @@ class SEOServiceProvider extends ServiceProvider
 		$this->app->singleton( VisualEditorIntegration::class, function ( $app ) {
 			return new VisualEditorIntegration(
 				$app->make( AnalysisService::class ),
+			);
+		} );
+
+		$this->app->bind( OgImageRendererContract::class, function ( $app ) {
+			$configured = (string) config( 'seo.og_image.renderer', GdOgImageRenderer::class );
+
+			return $app->make( $configured );
+		} );
+
+		$this->app->singleton( OgImageService::class, function ( $app ) {
+			return new OgImageService(
+				$app->make( OgImageRendererContract::class ),
 			);
 		} );
 	}

@@ -89,11 +89,12 @@ return [
 	'schema' => [
 		'enabled'      => true,
 		'organization' => [
-			'name'  => env( 'APP_NAME', 'Laravel' ),
-			'logo'  => null,
-			'url'   => env( 'APP_URL', '' ),
-			'email' => null,
-			'phone' => null,
+			'name'   => env( 'APP_NAME', 'Laravel' ),
+			'logo'   => null,
+			'url'    => env( 'APP_URL', '' ),
+			'email'  => null,
+			'phone'  => null,
+			'sameAs' => [],
 		],
 		'default_types' => [
 			'page'    => 'WebPage',
@@ -120,6 +121,7 @@ return [
 		'default_priority'  => 0.5,
 		'cache_enabled'     => true,
 		'cache_ttl'         => 3600, // 1 hour in seconds
+		'submit_enabled'    => env( 'SEO_SITEMAP_SUBMIT_ENABLED', false ),
 		'submit_timeout'    => 10, // HTTP timeout for search engine pings
 		'providers'         => [
 			// Register sitemap content providers here
@@ -136,10 +138,119 @@ return [
 			'max_age_days' => 2, // Google News only indexes last 2 days
 		],
 		'search_engines' => [
-			// Custom search engine ping URLs (default: Google and Bing)
-			// 'google' => 'https://www.google.com/ping?sitemap=%s',
-			// 'bing'   => 'https://www.bing.com/ping?sitemap=%s',
+			// The active default ping engine. Google's ping endpoint was
+			// deprecated in 2023 — for Google, submit via Search Console or
+			// list your sitemap in robots.txt. Override this array to add,
+			// remove, or replace engines.
+			'bing' => 'https://www.bing.com/ping?sitemap=%s',
 		],
+	],
+
+	/*
+	|--------------------------------------------------------------------------
+	| IndexNow Settings
+	|--------------------------------------------------------------------------
+	|
+	| Configuration for IndexNow (https://www.indexnow.org/) — a protocol
+	| for notifying participating search engines (Bing, Yandex, Seznam,
+	| Naver, and others via the aggregator) when URLs are added, updated,
+	| or deleted. The engine lives upstream; consumers wire a queued
+	| dispatch from their publish observers.
+	|
+	| The `key` MUST be a hex string 8–128 characters long. Host it at
+	| `https://{your-host}/{key}.txt` OR set `key_location` to a custom
+	| URL that serves the same key.
+	|
+	| Bind a custom `IndexNowKeyProviderContract` implementation in the
+	| container to manage the key dynamically (per-tenant, rotating, etc.).
+	|
+	*/
+
+	'indexnow' => [
+		'enabled'      => env( 'SEO_INDEXNOW_ENABLED', false ),
+		'key'          => env( 'SEO_INDEXNOW_KEY' ),
+		'key_location' => env( 'SEO_INDEXNOW_KEY_LOCATION' ),
+		'endpoint'     => env( 'SEO_INDEXNOW_ENDPOINT', 'https://api.indexnow.org/IndexNow' ),
+		'batch_size'   => 10000,
+		'timeout'      => 10,
+		'user_agent'   => 'ArtisanPackUI SEO IndexNow Submitter',
+
+		// When true, register a GET route serving the IndexNow key file at
+		// `/{key}.txt`. Opt-in to keep the key surface explicit; consumers
+		// can also serve the file themselves and leave this false.
+		'route_enabled' => env( 'SEO_INDEXNOW_ROUTE_ENABLED', false ),
+	],
+
+	/*
+	|--------------------------------------------------------------------------
+	| llms.txt Settings
+	|--------------------------------------------------------------------------
+	|
+	| Configuration for the llms.txt AI-discovery manifest (see
+	| https://llmstxt.org/). The manifest is generated from the same
+	| indexable SitemapEntry source as the XML sitemap, so any regeneration
+	| triggered by the sitemap observer refreshes this output too. Route
+	| wiring is left to consumers (e.g. Keystone).
+	|
+	*/
+
+	'llms_txt' => [
+		'enabled'       => env( 'SEO_LLMS_TXT_ENABLED', true ),
+
+		// When true, register a GET route serving llms.txt at `route_path`.
+		// Kept opt-in (default false) so consumers with a custom controller
+		// can wire their own.
+		'route_enabled' => env( 'SEO_LLMS_TXT_ROUTE_ENABLED', false ),
+
+		// Path (relative to the app root) at which llms.txt is served when
+		// `route_enabled` is true.
+		'route_path'    => env( 'SEO_LLMS_TXT_ROUTE_PATH', 'llms.txt' ),
+
+		// Header rendered as the top-level `# {title}` line. Falls back to seo.site.name.
+		'title'         => null,
+
+		// Blockquote summary rendered under the title. Falls back to seo.site.description.
+		'summary'       => null,
+
+		// Optional intro paragraph rendered above the entry sections.
+		'intro'         => null,
+
+		// Restrict which sitemap entry types are included (empty = all).
+		'include_types' => [],
+
+		// Exclude specific sitemap entry types.
+		'exclude_types' => [],
+
+		// Soft cap on total entries emitted; null = unlimited.
+		'max_entries'   => null,
+	],
+
+	/*
+	|--------------------------------------------------------------------------
+	| Feeds (RSS / Atom) Settings
+	|--------------------------------------------------------------------------
+	|
+	| Configuration for the RSS 2.0 and Atom 1.0 feed generator. Consumers
+	| that only want to generate a feed programmatically can leave
+	| `route_enabled` off; enabling it wires GET routes for `/feed.xml`
+	| and `/feed.atom` at the paths configured below.
+	|
+	| `feed_id` is the stable IRI used as Atom's <id> element. If left
+	| null the generator falls back to the feed URL AND emits a
+	| `Log::notice` so consumers see the expected upgrade path.
+	|
+	*/
+
+	'feeds' => [
+		'enabled'       => env( 'SEO_FEEDS_ENABLED', true ),
+		'route_enabled' => env( 'SEO_FEEDS_ROUTE_ENABLED', false ),
+		'rss_path'      => env( 'SEO_FEEDS_RSS_PATH', 'feed.xml' ),
+		'atom_path'     => env( 'SEO_FEEDS_ATOM_PATH', 'feed.atom' ),
+		'title'         => env( 'SEO_FEEDS_TITLE', env( 'APP_NAME', 'Site' ) ),
+		'description'   => env( 'SEO_FEEDS_DESCRIPTION', '' ),
+		'per_page'      => 50,
+		'cache_ttl'     => 300,
+		'feed_id'       => env( 'SEO_FEEDS_FEED_ID' ),
 	],
 
 	/*
@@ -227,6 +338,60 @@ return [
 		*/
 
 		'host' => null,
+
+		/*
+		|--------------------------------------------------------------------------
+		| AI Crawler Controls
+		|--------------------------------------------------------------------------
+		|
+		| Explicit controls for AI crawlers. Defaults to allow (visibility is
+		| the point). Set a group's 'blocked' flag to true to disallow every
+		| user-agent in that group. The resolved rules are exposed via
+		| AiCrawlerService so host middleware can enforce the same decisions.
+		|
+		*/
+
+		'ai_crawlers' => [
+			'default_allow' => true,
+
+			'groups' => [
+				'openai' => [
+					'label'       => 'OpenAI',
+					'user_agents' => [ 'GPTBot', 'ChatGPT-User', 'OAI-SearchBot' ],
+					'blocked'     => false,
+				],
+				'anthropic' => [
+					'label'       => 'Anthropic',
+					'user_agents' => [ 'ClaudeBot', 'Claude-Web', 'anthropic-ai' ],
+					'blocked'     => false,
+				],
+				'google-extended' => [
+					'label'       => 'Google-Extended',
+					'user_agents' => [ 'Google-Extended' ],
+					'blocked'     => false,
+				],
+				'perplexity' => [
+					'label'       => 'Perplexity',
+					'user_agents' => [ 'PerplexityBot' ],
+					'blocked'     => false,
+				],
+				'common-crawl' => [
+					'label'       => 'Common Crawl',
+					'user_agents' => [ 'CCBot' ],
+					'blocked'     => false,
+				],
+				'bytedance' => [
+					'label'       => 'ByteDance',
+					'user_agents' => [ 'Bytespider' ],
+					'blocked'     => false,
+				],
+				'meta' => [
+					'label'       => 'Meta',
+					'user_agents' => [ 'FacebookBot', 'Meta-ExternalAgent' ],
+					'blocked'     => false,
+				],
+			],
+		],
 	],
 
 	/*
@@ -288,6 +453,7 @@ return [
 			'image_alt'         => true,
 			'internal_links'    => true,
 			'content_length'    => true,
+			'ai_readiness'      => true,
 		],
 		'thresholds' => [
 			'min_word_count'      => 300,
@@ -345,6 +511,42 @@ return [
 			// 'ko',
 			// 'ar',
 			// 'ru',
+		],
+	],
+
+	/*
+	|--------------------------------------------------------------------------
+	| OG Image Generator
+	|--------------------------------------------------------------------------
+	|
+	| Settings for the branded OG social-share image generator. The generator
+	| renders a 1200x630 image from a title, optional subtitle, and a
+	| template describing the background, logo, and typography. Rendered
+	| images are stored on the configured disk under a deterministic path
+	| so identical inputs are only rendered once.
+	|
+	| Backend choice is discussed in docs/og-image-backend-decision.md.
+	|
+	*/
+
+	'og_image' => [
+		'enabled'  => env( 'SEO_OG_IMAGE_ENABLED', true ),
+		'renderer' => ArtisanPackUI\SEO\Services\OgImage\GdOgImageRenderer::class,
+		'disk'     => env( 'SEO_OG_IMAGE_DISK', 'public' ),
+		'path'     => env( 'SEO_OG_IMAGE_PATH', 'og-images' ),
+		'template' => [
+			'width'                 => 1200,
+			'height'                => 630,
+			'background_color'      => '#0f172a',
+			'text_color'            => '#ffffff',
+			'subtitle_color'        => '#94a3b8',
+			'background_image_path' => null,
+			'logo_path'             => null,
+			'logo_width'            => 160,
+			'font_path'             => null,
+			'title_font_size'       => 56,
+			'subtitle_font_size'    => 28,
+			'padding'               => 80,
 		],
 	],
 

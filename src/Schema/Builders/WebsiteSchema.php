@@ -125,6 +125,18 @@ class WebsiteSchema extends AbstractSchema
 	}
 
 	/**
+	 * Emit a stable @id for cross-referencing (WebPage.isPartOf).
+	 *
+	 * @since 1.4.0
+	 *
+	 * @return string|null
+	 */
+	protected function getSchemaId(): ?string
+	{
+		return $this->buildIdFor( '/#website' );
+	}
+
+	/**
 	 * Build a SearchAction schema for sitelinks search box.
 	 *
 	 * Uses PropertyValueSpecification for query-input per schema.org spec.

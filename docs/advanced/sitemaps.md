@@ -259,7 +259,11 @@ For large sites with multiple sitemaps:
 <?xml version="1.0" encoding="UTF-8"?>
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <sitemap>
-        <loc>https://example.com/sitemap-standard.xml</loc>
+        <loc>https://example.com/sitemap-1.xml</loc>
+        <lastmod>2024-01-15T10:30:00+00:00</lastmod>
+    </sitemap>
+    <sitemap>
+        <loc>https://example.com/sitemap-post-1.xml</loc>
         <lastmod>2024-01-15T10:30:00+00:00</lastmod>
     </sitemap>
     <sitemap>
@@ -283,7 +287,8 @@ The package can register sitemap routes:
 
 // Registers:
 // GET /sitemap.xml
-// GET /sitemap-{type}.xml
+// GET /sitemap-{page}.xml
+// GET /sitemap-{type}-{page}.xml
 ```
 
 ### Via Controller
@@ -376,10 +381,15 @@ Schedule::command('seo:submit-sitemap')->weekly();
 
 ## Caching
 
-Sitemaps are cached for performance:
+Sitemaps are cached for performance. Cached XML is invalidated automatically
+whenever a model tracked by `HasSeo` is saved, force deleted, or restored, so
+the next request regenerates fresh output — you do not need to run
+`clearCache()` yourself after content changes. The `seo:generate-sitemap`
+command also flushes the cache before regenerating so the cached copy is
+primed with the current content.
 
 ```php
-// Clear sitemap cache
+// Manually clear the sitemap cache (e.g. after a bulk import that bypasses model events)
 seoSitemap()->clearCache();
 
 // Regenerate with fresh cache

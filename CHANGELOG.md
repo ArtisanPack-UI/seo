@@ -5,7 +5,124 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.4.0] - 2026-09-05
+
+### Added
+
+- **`llms.txt` AI-discovery manifest generator** driven by the same
+  indexable `SitemapEntry` source as the XML sitemap, with a new
+  `ap.seo.llmsTxtEntries` filter hook and an opt-in
+  `GET /llms.txt` route toggle (#68).
+- **IndexNow submitter + sitemap-ping path** for Bing/Yandex/Seznam/
+  Naver with a configurable key provider contract and an opt-in
+  `GET /{key}.txt` key-verification route (#69).
+- **Config-driven AI-crawler robots controls** grouping related bots
+  (OpenAI, Anthropic, Google-Extended, Perplexity, Common Crawl,
+  ByteDance, Meta) with a working `default_allow` kill switch (#70).
+- **RSS 2.0 and Atom 1.0 feed generator** with sanitized XML output,
+  an opt-in `/feed.xml` + `/feed.atom` route toggle backed by a
+  `FeedProviderContract` binding, a `seo.feeds` config block, and the
+  `ap.seo.feedEntries` filter hook (#72, #88).
+- **Organization `sameAs` + `logo`** on the schema graph, with
+  `sameAs` URL validation and a width/height-carrying `ImageObject`
+  for the publisher logo (#73).
+- **OG image generator service** (MightyShare-style social cards)
+  rendered via GD, deterministically cached, alpha-preserving, and
+  under a cache lock to coalesce concurrent misses (#74).
+- **`apSeoAddSchema()` helper + `SchemaCollector` service** (#77) and
+  **`SchemaService` render-pipeline centralization** (#78).
+- **Stable `@id` on every schema graph node** (Organization,
+  LocalBusiness, WebSite, WebPage, Article); `Article.publisher`
+  cross-references the Organization by `@id`.
+
+### Changed
+
+- **`artisanpack-ui/ai` constraint bumped to `^1.2`**. The SEO AI
+  Livewire components now compose the `ChecksFeatureToggle` and
+  `InteractsWithAiFeature` traits (#76 / #92). See
+  `docs/upgrade-1.4.0.md` for the downstream extension BC note.
+- **`livewire/livewire` require-dev + suggest constraint bumped to
+  `^3.8.3`** to pick up the CVE-2026-81887 patch.
+
+### Fixed
+
+- **`seo.robots.ai_crawlers.default_allow=false` is now a real kill
+  switch** — previously a silent no-op that emitted the same
+  `robots.txt` as `default_allow=true`.
+- **RSS/Atom feeds strip XML 1.0 forbidden control characters** and
+  drop entries whose `link` uses a non-http(s) scheme (log-and-drop
+  so a single bad row can't kill the feed).
+- **Atom `<id>` reads `seo.feeds.feed_id`** when set; when unset,
+  falls back to the feed URL AND logs a `Log::notice` pointing at
+  the config key.
+- **`LlmsTxtGenerator` collapses newlines in titles** and escapes
+  `[` / `]` in descriptions so a Markdown list item can no longer
+  shatter mid-line.
+- **IndexNow surfaces per-URL rejections carried in an otherwise-200
+  body** (`code=UnverifiedHost`, `warnings[]`) as `success=false` with
+  a `warning` field populated; logged response bodies capped via
+  `Str::limit(..., 512)`.
+- **`FocusKeywordAnalyzer` uses `mb_strtolower('UTF-8')`** across all
+  seven placement checks so multibyte keywords no longer under-match.
+- **`AiReadinessAnalyzer::countWords()` uses `preg_split('/\\s+/u')`**
+  so Japanese and Cyrillic first paragraphs stop reporting zero words.
+- **GD OG image renderer releases GD resources** via `try`/`finally`
+  around `imagedestroy` on the canvas + loaded PNG handles, preserves
+  PNG alpha (no more black halos on transparent logos), and switches
+  width measurement to `mb_strlen`; the bitmap fallback now logs a
+  warning when asked to render non-ASCII text.
+- **`GdOgImageRenderer::hexToRgb()` falls back to white and logs a
+  warning** on malformed color input rather than silently producing
+  black-on-black cards.
+- **`LocalBusinessSchema` drops the flat `openingHours`** when a
+  structured `openingHoursSpecification` is emitted, and normalizes
+  `validFrom`/`validThrough` through a strict `Y-m-d` or
+  `DateTimeInterface` normalizer.
+- **`OrganizationSchema.sameAs` filters entries through
+  `FILTER_VALIDATE_URL`**.
+
+### Security
+
+- **`squizlabs/php_codesniffer` updated to `3.13.6`** (CVE-2026-67434,
+  OS command injection).
+- **`livewire/livewire` updated to `3.8.7`** (CVE-2026-81887,
+  DOM-based XSS).
+
+### Removed
+
+- **Inline `version` field from `composer.json`** — git tags drive
+  versioning; the field had drifted from tags in past releases.
+
+### CI
+
+- PHPCS excludes Blade stubs; CI no longer swallows PHPCS errors
+  (`continue-on-error: true` removed).
+- Test matrix varies Laravel version (11.x, 12.x, 13.x) alongside PHP.
+
+## [Unreleased-Beta History]
+
+Entries below were accumulated pre-1.4.0 and are rolled into the
+1.4.0 release above.
+
+### Added
+
+- **`AiReadinessAnalyzer` (content category)**: New analyzer that scores content on the signals AI answer engines look for. Runs four checks: at least one question-style subheading (ends with `?` or opens with `what/why/how/…`), a definition-style intro sentence (matches "X is/are/refers to/means Y" near the start), an FAQ section (detected via a heading or a JSON-LD `FAQPage` schema block), and a summary-friendly opening paragraph within ~60 words. Registered automatically in `SEOServiceProvider` and gated by `config('seo.analysis.analyzers.ai_readiness')` (#71).
+- **First-paragraph placement check on `FocusKeywordAnalyzer`**: The keyword analyzer now also verifies that the focus phrase appears in the opening paragraph (falls back to raw text when no `<p>` tag exists), on top of the existing title/description/URL/H1/subheadings/alt-text checks. Still no-ops when no focus phrase is set (#71).
+- **`LocalBusinessSchema` dated/holiday `OpeningHoursSpecification` entries**: `buildOpeningHours()` now accepts optional `validFrom` / `validThrough` on each entry so holiday overrides and other date-scoped hours are marked up alongside recurring `dayOfWeek` entries. A truthy `closed` flag emits `opens` and `closes` as `"00:00"` (per Google's guidance for all-day closures) and takes precedence over any explicit `opens` / `closes` values on the same entry. Consumed by the Keystone `Modules/LocalSeo` schema translator (#75).
+
+### Fixed
+
+- **Sitemap XML cache is now invalidated on content changes**: `SitemapService::generate()`/`generateIndex()` cached the rendered XML with a TTL (`seo.sitemap.cache_ttl`, default 3600s) but nothing ever forgot the cached entries when the underlying content changed — `SitemapObserver` kept the `sitemap_entries` table current on every Page/Post save, yet `GET /sitemap.xml` (and the `sitemap-*-N.xml` children) kept serving the pre-change snapshot until the TTL expired. `SitemapObserver` now calls `SitemapService::clearCache()` after a tracked model is saved, force deleted, or restored. `SitemapService::clearCache()` was also rewritten to bump a single generation counter that is baked into every cache key, so trailing pages for now-deleted content are invalidated as well (the previous per-page enumeration used the reduced page total and would leave a stale `sitemap-{type}-N.xml` for any page that no longer existed after a deletion). `seo:generate-sitemap` clears the cache before regenerating when writing to `--output` so cached generation primes fresh entries; the statistics-only invocation (no `--output`) no longer touches the cache, since it would wipe a warm cache with no priming to follow (#67).
+- **Sitemap index child URLs now include the page number**: `SitemapIndexGenerator` omitted the page segment for page 1, so the index pointed at `sitemap-{type}.xml`, which no route serves (only `sitemap-{type}-{page}.xml` is registered) — every typed child sitemap returned a 404. The index now emits `sitemap-{type}-1.xml`, provider sitemaps as `sitemap-{provider}-1.xml`, and the paginated main sitemap as `sitemap-1.xml` (instead of a self-referential `sitemap.xml`). Image, video, and news sitemap URLs are unchanged (#66).
+- **Sitemap index now surfaces registered providers**: `SitemapService::needsIndex()` did not consult `$this->providers`, so a site with a single database type plus one or more registered `SitemapProviderContract` providers served the plain `<urlset>` main sitemap at `/sitemap.xml` and never exposed provider URLs to crawlers. The service now passes providers to the generator, and `SitemapIndexGenerator::needsIndex()` returns `true` whenever any provider is registered (#66).
+
+### Removed
+
+- **Laravel 10 support**: Narrowed `illuminate/support` constraint to `^11.0|^12.0|^13.0` and `orchestra/testbench` to `^9.0|^10.0|^11.0`. Models in this package declare casts with the Laravel 11+ `casts()` method, which Laravel 10's `HasAttributes` trait does not call — so `Redirect`, `SeoAnalysisCache`, `SeoMeta`, and `SitemapEntry` were silently returning raw column values (unparsed JSON, string datetimes, string enums) for anyone actually on Laravel 10. The advertised constraint was also unreachable in practice because `artisanpack-ui/core: ^1.3` already requires `illuminate/support: ^12.0|^13.0` (#65).
+
+### Documentation
+
+- **Extensibility Hooks section in `README.md`**: Replaced the previous "Filter Hooks" section with a dedicated "Extensibility Hooks" section that documents the ecosystem hook naming convention (`ap.` prefix + camelCase segments joined by `.`, with ✅/❌ examples), every filter and action hook the SEO package fires (`ap.seo.metaTags`, `ap.seo.sitemapEntries`, `ap.seo.schemaGraph`, `ap.seo.schemaRendering`, `ap.seo.schemaRendered`) with signatures and usage examples, and the `apSeoAddSchema()` helper with an example showing how a block's `render()` method contributes schema entries (#57, #61).
 
 ## [1.3.0] - 2026-07-21
 

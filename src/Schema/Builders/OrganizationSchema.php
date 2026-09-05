@@ -125,8 +125,16 @@ class OrganizationSchema extends AbstractSchema
 		}
 
 		$sameAs = $this->get( 'sameAs', $cmsData['sameAs'] ?? null );
-		if ( null !== $sameAs && is_array( $sameAs ) && ! empty( $sameAs ) ) {
-			$schema['sameAs'] = $sameAs;
+		if ( is_array( $sameAs ) ) {
+			$sameAs = array_values( array_unique( array_filter(
+				$sameAs,
+				fn ( $url ): bool => is_string( $url )
+					&& '' !== trim( $url )
+					&& false !== filter_var( trim( $url ), FILTER_VALIDATE_URL ),
+			) ) );
+			if ( ! empty( $sameAs ) ) {
+				$schema['sameAs'] = $sameAs;
+			}
 		}
 
 		// Add opening hours if available from CMS
@@ -142,6 +150,20 @@ class OrganizationSchema extends AbstractSchema
 		}
 
 		return $this->filterEmpty( $schema );
+	}
+
+	/**
+	 * Emit a stable @id so downstream nodes (Article.publisher,
+	 * WebPage.isPartOf, ...) can cross-reference the same Organization
+	 * entity in a shared @graph.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @return string|null
+	 */
+	protected function getSchemaId(): ?string
+	{
+		return $this->buildIdFor( '/#organization' );
 	}
 
 	/**

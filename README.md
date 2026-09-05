@@ -49,6 +49,12 @@ class Post extends Model
 - **Performance Caching**: Comprehensive caching for meta tags, sitemaps, and redirects
 - **Admin Components**: Livewire components for visual SEO management
 - **AI Features**: Five AI agents for title/description suggestions, content analysis, schema generation, and hreflang gap detection (requires `artisanpack-ui/ai`)
+- **AI Discovery**: `llms.txt` manifest generation ([docs](docs/advanced/llms-txt.md)) and per-group AI-crawler robots controls with a working `default_allow` kill-switch ([docs](docs/advanced/robots.md))
+- **IndexNow**: Batching submitter for Bing/Yandex/Seznam/Naver with per-URL rejection surfacing ([docs](docs/advanced/indexnow.md))
+- **RSS / Atom Feeds**: RSS 2.0 and Atom 1.0 generator with XML control-char sanitization and http-scheme link enforcement ([docs](docs/advanced/feeds.md))
+- **OG Image Generator**: MightyShare-style social cards rendered via GD, deterministically cached, alpha-preserving ([docs](docs/advanced/og-image.md))
+- **AI-Readiness Analyzer**: First-paragraph summary window + focus-keyword placement checks with multibyte support
+- **Extensible Schema Graph**: `apSeoAddSchema()` helper + `SchemaCollector` service, every graph node emits a stable `@id` and cross-references publisher
 
 ## Components
 
@@ -83,6 +89,11 @@ class Post extends Model
 ### Schema Types
 
 Article, BlogPosting, Product, Organization, Person, LocalBusiness, Event, Recipe, FAQPage, HowTo, BreadcrumbList, WebSite, WebPage, VideoObject
+
+Organization now emits validated `sameAs` URLs and supports a
+width/height-carrying `ImageObject` for the publisher logo.
+LocalBusiness accepts dated / holiday `OpeningHoursSpecification`
+entries with strict ISO-8601 `validFrom` / `validThrough`.
 
 ## AI Features
 
@@ -217,7 +228,7 @@ php artisan seo:clear-cache
 ## Requirements
 
 - PHP 8.2 or higher
-- Laravel 10, 11, 12, or 13
+- Laravel 11, 12, or 13
 - Livewire 3.6+
 
 ## Dependencies
@@ -317,28 +328,64 @@ class CustomAnalyzer implements AnalyzerInterface
 }
 ```
 
-### Filter Hooks
+### Extensibility Hooks
 
-The package fires the following filter hooks from the `artisanpack-ui/hooks` package:
+The package integrates with [`artisanpack-ui/hooks`](https://github.com/ArtisanPack-UI/hooks) to expose filter and action hooks for extending SEO behavior at key points in the request lifecycle.
 
-| Hook | Fired in | Payload |
-|---|---|---|
-| `ap.seo.metaTags` | `MetaTagService::generate()` | `(array $tags, ?Model $subject, Request $request)` |
-| `ap.seo.sitemapEntries` | `SitemapGenerator::generate()` and `generateFromProvider()` | `(array $entries, string $sitemapType)` |
+#### Naming Convention
 
-It also subscribes to `ap.visualEditor.prePublishChecks` (fired by `artisanpack-ui/visual-editor`) to append SEO checks to the pre-publish workflow.
+All ArtisanPack UI hooks follow the same naming convention. Use it when adding your own hooks in downstream packages so listeners stay predictable.
+
+- **Prefix**: every hook name starts with `ap.` (ArtisanPack).
+- **Segments**: package name and event name are joined with `.` as segment separators.
+- **Casing**: each segment is `camelCase`. Never `snake_case`, never `kebab-case`.
+
+✅ Correct:
+
+```
+ap.seo.metaTags
+ap.seo.schemaGraph
+ap.seo.schemaRendering
+ap.visualEditor.prePublishChecks
+```
+
+❌ Incorrect:
+
+```
+ap.seo.meta_tags          // snake_case in segment
+ap.seo.schema-graph       // kebab-case in segment
+seo.metaTags              // missing ap. prefix
+ap.seo.MetaTags           // segment is not camelCase
+```
+
+Hooks are called with helper functions from `artisanpack-ui/hooks`: `applyFilters()` for filters (return-value transforms) and `doAction()` for actions (side-effect notifications). Listeners register with `addFilter()` and `addAction()` respectively — see the [hooks package README](https://github.com/ArtisanPack-UI/hooks) for the full API.
+
+#### Hooks Fired by This Package
+
+| Hook | Kind | Fired in | Arguments | Returns |
+|---|---|---|---|---|
+| `ap.seo.metaTags` | filter | `MetaTagService::generate()` | `(array $tags, ?Model $subject, Request $request)` | `array $tags` |
+| `ap.seo.sitemapEntries` | filter | `SitemapGenerator::generate()` and `generateFromProvider()` | `(array $entries, string $sitemapType)` | `array $entries` |
+| `ap.seo.schemaGraph` | filter | `SchemaService::generateGraph()` | `(array $graph, ?Model $model)` | `array $graph` |
+| `ap.seo.schemaRendering` | action | `SchemaService::renderGraph()` (before encode) | `(array $graph, ?Model $model)` | — |
+| `ap.seo.schemaRendered` | action | `SchemaService::renderGraph()` (after encode) | `(array $graph, ?Model $model)` | — |
+
+The package also **subscribes** to `ap.visualEditor.prePublishChecks` (fired by [`artisanpack-ui/visual-editor`](https://github.com/ArtisanPack-UI/visual-editor)) to append SEO checks to the pre-publish workflow.
+
+#### Examples
 
 ```php
+use function addAction;
 use function addFilter;
 
-// Modify meta tags before the DTO is built
+// Filter: add a meta tag before the DTO is built.
 addFilter( 'ap.seo.metaTags', function ( array $tags, ?Model $subject, Request $request ): array {
     $tags['additionalMeta']['x-custom'] = 'Custom value';
 
     return $tags;
 } );
 
-// Add or remove sitemap entries per sitemap type
+// Filter: append a sitemap entry.
 addFilter( 'ap.seo.sitemapEntries', function ( array $entries, string $sitemapType ): array {
     if ( 'page' === $sitemapType ) {
         $entries[] = [
@@ -351,7 +398,78 @@ addFilter( 'ap.seo.sitemapEntries', function ( array $entries, string $sitemapTy
 
     return $entries;
 } );
+
+// Filter: add an entry to the schema graph.
+addFilter( 'ap.seo.schemaGraph', function ( array $graph, ?Model $model ): array {
+    $graph[] = [
+        '@context' => 'https://schema.org',
+        '@type'    => 'SiteNavigationElement',
+        'name'     => 'Home',
+        'url'      => url( '/' ),
+    ];
+
+    return $graph;
+} );
+
+// Filter: remove any Organization entries from the schema graph on a specific route.
+addFilter( 'ap.seo.schemaGraph', function ( array $graph, ?Model $model ): array {
+    if ( ! request()->routeIs( 'landing.*' ) ) {
+        return $graph;
+    }
+
+    return array_values( array_filter(
+        $graph,
+        fn ( array $entry ): bool => 'Organization' !== ( $entry['@type'] ?? null ),
+    ) );
+} );
+
+// Action: log the final schema payload after it has been encoded.
+addAction( 'ap.seo.schemaRendered', function ( array $graph, ?Model $model ): void {
+    logger()->debug( 'SEO schema rendered', [
+        'model' => $model?->getMorphClass(),
+        'types' => array_map( fn ( array $entry ): ?string => $entry['@type'] ?? null, $graph ),
+    ] );
+} );
 ```
+
+#### `apSeoAddSchema()` Helper
+
+Mid-render code — most commonly a block's `render()` method or a Livewire component — can push additional schema.org entries into the page graph without touching a filter. The helper enqueues entries on a request-scoped `SchemaCollector`; they are drained and merged into the graph the next time `SchemaService::generateGraph()` runs (typically when `<x-seo:schema />` renders in the layout).
+
+Accepts either a raw associative array or an `AbstractSchema` builder instance:
+
+```php
+use ArtisanPackUI\SEO\Schema\Builders\FAQPage;
+
+class FaqBlock
+{
+    public function render( array $attributes ): string
+    {
+        // Push a schema entry from inside the block; the layout picks it up later.
+        apSeoAddSchema( [
+            '@context'   => 'https://schema.org',
+            '@type'      => 'FAQPage',
+            'mainEntity' => collect( $attributes['questions'] )
+                ->map( fn ( array $q ): array => [
+                    '@type'          => 'Question',
+                    'name'           => $q['question'],
+                    'acceptedAnswer' => [
+                        '@type' => 'Answer',
+                        'text'  => $q['answer'],
+                    ],
+                ] )
+                ->all(),
+        ] );
+
+        // Or, using a builder:
+        apSeoAddSchema( new FAQPage( $attributes ) );
+
+        return view( 'blocks.faq', $attributes )->render();
+    }
+}
+```
+
+Entries pushed via `apSeoAddSchema()` pass through the `ap.seo.schemaGraph` filter alongside every other source, so downstream listeners can still add, remove, or rewrite them before rendering.
 
 ## Middleware
 

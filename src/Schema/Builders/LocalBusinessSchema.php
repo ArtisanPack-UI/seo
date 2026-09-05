@@ -17,7 +17,9 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\SEO\Schema\Builders;
 
+use DateTimeInterface;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Log;
 
 /**
  * LocalBusinessSchema class.
@@ -100,7 +102,14 @@ class LocalBusinessSchema extends OrganizationSchema
 		// Opening hours
 		$openingHours = $this->get( 'openingHours' );
 		if ( null !== $openingHours && is_array( $openingHours ) ) {
-			$schema['openingHoursSpecification'] = $this->buildOpeningHours( $openingHours );
+			$built = $this->buildOpeningHours( $openingHours );
+			if ( [] !== $built ) {
+				// Structured OpeningHoursSpecification shipped: unset the flat
+				// `openingHours` inherited from Organization so Google's Rich
+				// Results Test does not flag redundancy (P1-10).
+				unset( $schema['openingHours'] );
+				$schema['openingHoursSpecification'] = $built;
+			}
 		}
 
 		// Geo coordinates
@@ -131,7 +140,25 @@ class LocalBusinessSchema extends OrganizationSchema
 	}
 
 	/**
+	 * Override the Organization @id so a LocalBusiness node in the same
+	 * graph does not collide with a plain Organization node.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @return string|null
+	 */
+	protected function getSchemaId(): ?string
+	{
+		return $this->buildIdFor( '/#localbusiness' );
+	}
+
+	/**
 	 * Build OpeningHoursSpecification schema array.
+	 *
+	 * Supports both recurring entries (via `dayOfWeek`) and dated entries
+	 * (via `validFrom` / `validThrough`) for special or holiday hours. A
+	 * truthy `closed` flag on an entry emits `opens` and `closes` as
+	 * `"00:00"`, per Google's guidance for all-day closures.
 	 *
 	 * @since 1.0.0
 	 *
@@ -152,18 +179,69 @@ class LocalBusinessSchema extends OrganizationSchema
 				$specification['dayOfWeek'] = $spec['dayOfWeek'];
 			}
 
-			if ( isset( $spec['opens'] ) ) {
-				$specification['opens'] = $spec['opens'];
+			$closed = ! empty( $spec['closed'] );
+
+			if ( $closed ) {
+				$specification['opens']  = '00:00';
+				$specification['closes'] = '00:00';
+			} else {
+				if ( isset( $spec['opens'] ) ) {
+					$specification['opens'] = $spec['opens'];
+				}
+
+				if ( isset( $spec['closes'] ) ) {
+					$specification['closes'] = $spec['closes'];
+				}
 			}
 
-			if ( isset( $spec['closes'] ) ) {
-				$specification['closes'] = $spec['closes'];
+			if ( isset( $spec['validFrom'] ) ) {
+				$validFrom = $this->normalizeDateOnly( $spec['validFrom'], 'validFrom' );
+				if ( null !== $validFrom ) {
+					$specification['validFrom'] = $validFrom;
+				}
+			}
+
+			if ( isset( $spec['validThrough'] ) ) {
+				$validThrough = $this->normalizeDateOnly( $spec['validThrough'], 'validThrough' );
+				if ( null !== $validThrough ) {
+					$specification['validThrough'] = $validThrough;
+				}
 			}
 
 			$specs[] = $this->filterEmpty( $specification );
 		}
 
 		return $specs;
+	}
+
+	/**
+	 * Normalize a validFrom/validThrough value to an ISO-8601 YYYY-MM-DD
+	 * string. Accepts DateTimeInterface (including Carbon), a
+	 * `YYYY-MM-DD` string, or drops the value with a warning.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @param  mixed   $value  The raw value.
+	 * @param  string  $field  The field name (for log context).
+	 *
+	 * @return string|null
+	 */
+	protected function normalizeDateOnly( mixed $value, string $field ): ?string
+	{
+		if ( $value instanceof DateTimeInterface ) {
+			return $value->format( 'Y-m-d' );
+		}
+
+		if ( is_string( $value ) && 1 === preg_match( '/^\d{4}-\d{2}-\d{2}$/', $value ) ) {
+			return $value;
+		}
+
+		Log::warning( 'Dropped invalid LocalBusiness date-only value.', [
+			'field' => $field,
+			'value' => is_scalar( $value ) ? (string) $value : gettype( $value ),
+		] );
+
+		return null;
 	}
 
 	/**

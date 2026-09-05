@@ -79,6 +79,15 @@ class GenerateSitemapCommand extends Command
 			$sitemapService->setCacheEnabled( false );
 		}
 
+		// Clear any stale cached XML before regenerating so cached generation
+		// primes fresh entries instead of returning the pre-change snapshot.
+		// Only runs when this invocation will actually write XML — without
+		// --output the command only prints statistics and would wipe a warm
+		// cache with no priming to follow.
+		if ( $output && ! $noCache && $sitemapService->isCacheEnabled() ) {
+			$sitemapService->clearCache();
+		}
+
 		$this->info( __( 'Generating sitemaps...' ) );
 
 		try {

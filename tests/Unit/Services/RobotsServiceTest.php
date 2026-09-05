@@ -318,4 +318,59 @@ describe( 'RobotsService Config Loading', function (): void {
 			->and( $content )->toContain( 'sitemap.xml' );
 	} );
 
+	it( 'purges conflicting allow rules before blocking an AI crawler group (explicit blocked=true)', function (): void {
+		config( [ 'seo.robots.ai_crawlers.default_allow' => true ] );
+		config( [ 'seo.robots.ai_crawlers.groups' => [
+			'openai' => [
+				'label'       => 'OpenAI',
+				'user_agents' => [ 'GPTBot' ],
+				'blocked'     => true,
+			],
+		] ] );
+		config( [ 'seo.robots.rules' => [
+			'GPTBot' => [
+				'allow' => [ '/' ],
+			],
+		] ] );
+
+		$service = new RobotsService();
+		$content = $service->generate();
+
+		$rules = $service->getRulesForUserAgent( 'GPTBot' );
+		expect( $rules['allow'] ?? [] )->toBe( [] )
+			->and( $rules['disallow'] ?? [] )->toContain( '/' );
+
+		// The generated block must contain the Disallow: / and must NOT
+		// carry an Allow: / that would neutralize it per RFC 9309.
+		$block = collect( explode( "\n\n", $content ) )
+			->first( static fn ( string $section ): bool => str_contains( $section, 'User-agent: GPTBot' ) );
+		expect( $block )->not->toBeNull()
+			->and( $block )->toContain( 'Disallow: /' )
+			->and( $block )->not->toContain( 'Allow: /' );
+	} );
+
+	it( 'purges conflicting allow rules under the default_allow=false kill-switch', function (): void {
+		config( [ 'seo.robots.ai_crawlers.default_allow' => false ] );
+		config( [ 'seo.robots.ai_crawlers.groups' => [
+			'openai' => [
+				'label'       => 'OpenAI',
+				'user_agents' => [ 'GPTBot' ],
+			],
+		] ] );
+		config( [ 'seo.robots.rules' => [
+			'GPTBot' => [
+				'allow' => [ '/' ],
+			],
+		] ] );
+
+		$service = new RobotsService();
+		$content = $service->generate();
+
+		$block = collect( explode( "\n\n", $content ) )
+			->first( static fn ( string $section ): bool => str_contains( $section, 'User-agent: GPTBot' ) );
+		expect( $block )->not->toBeNull()
+			->and( $block )->toContain( 'Disallow: /' )
+			->and( $block )->not->toContain( 'Allow: /' );
+	} );
+
 } );

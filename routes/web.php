@@ -13,6 +13,9 @@
 
 declare( strict_types=1 );
 
+use ArtisanPackUI\SEO\Http\Controllers\FeedController;
+use ArtisanPackUI\SEO\Http\Controllers\IndexNowKeyController;
+use ArtisanPackUI\SEO\Http\Controllers\LlmsTxtController;
 use ArtisanPackUI\SEO\Http\Controllers\RobotsController;
 use ArtisanPackUI\SEO\Http\Controllers\SitemapController;
 use Illuminate\Support\Facades\Route;
@@ -89,4 +92,43 @@ if ( true === config( 'seo.robots.route_enabled', true ) ) {
 
 	Route::get( $robotsPath, [ RobotsController::class, 'index' ] )
 		->name( 'seo.robots' );
+}
+
+/*
+|--------------------------------------------------------------------------
+| llms.txt Route (opt-in)
+|--------------------------------------------------------------------------
+*/
+
+if ( true === config( 'seo.llms_txt.route_enabled', false ) ) {
+	$llmsPath = trim( (string) config( 'seo.llms_txt.route_path', 'llms.txt' ), '/' );
+
+	Route::get( $llmsPath, [ LlmsTxtController::class, 'index' ] )
+		->name( 'seo.llms-txt' );
+}
+
+/*
+|--------------------------------------------------------------------------
+| Feed Routes (opt-in)
+|--------------------------------------------------------------------------
+*/
+
+if ( true === config( 'seo.feeds.route_enabled', false ) ) {
+	$rssPath  = trim( (string) config( 'seo.feeds.rss_path', 'feed.xml' ), '/' );
+	$atomPath = trim( (string) config( 'seo.feeds.atom_path', 'feed.atom' ), '/' );
+
+	Route::get( $rssPath, [ FeedController::class, 'rss' ] )->name( 'seo.feeds.rss' );
+	Route::get( $atomPath, [ FeedController::class, 'atom' ] )->name( 'seo.feeds.atom' );
+}
+
+/*
+|--------------------------------------------------------------------------
+| IndexNow Key-Verification Route (opt-in)
+|--------------------------------------------------------------------------
+*/
+
+if ( true === config( 'seo.indexnow.route_enabled', false ) ) {
+	Route::get( '{key}.txt', [ IndexNowKeyController::class, 'show' ] )
+		->where( 'key', '[A-Za-z0-9]{8,128}' )
+		->name( 'seo.indexnow.key' );
 }

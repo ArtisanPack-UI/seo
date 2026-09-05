@@ -165,7 +165,59 @@ $content = seoRobotsTxt();
 | `anthropic-ai` | Anthropic's crawler |
 | `Claude-Web` | Claude browsing |
 
-### Blocking AI Crawlers
+### Blocking AI Crawlers (config-driven)
+
+Since 1.4.0 the package ships a dedicated AI-crawler surface at
+`seo.robots.ai_crawlers`. It groups related bots (OpenAI, Anthropic,
+Google-Extended, Perplexity, Common Crawl, ByteDance, Meta) so a
+single toggle blocks every user-agent in the group, and the same
+resolution logic powers host UA middleware — the robots.txt output
+and the middleware can never disagree about whether a bot is
+allowed.
+
+```php
+'robots' => [
+    'ai_crawlers' => [
+        // Default policy for groups that haven't set a `blocked` flag.
+        // true  = allow unless a group is explicitly blocked.
+        // false = block every group unless it explicitly opts back in
+        //         with `blocked => false`.
+        'default_allow' => true,
+
+        'groups' => [
+            'openai' => [
+                'label'       => 'OpenAI',
+                'user_agents' => ['GPTBot', 'ChatGPT-User', 'OAI-SearchBot'],
+                'blocked'     => true, // Disallow: / for every user-agent in the group
+            ],
+            'anthropic' => [
+                'label'       => 'Anthropic',
+                'user_agents' => ['ClaudeBot', 'Claude-Web', 'anthropic-ai'],
+                'blocked'     => false, // Explicit opt-in (still allowed even if default_allow=false)
+            ],
+            // ...google-extended, perplexity, common-crawl, bytedance, meta
+        ],
+    ],
+],
+```
+
+**`default_allow` semantics (fixed in 1.4.0)**
+
+- `default_allow=true` + `blocked=true` on a group → that group is
+  disallowed; other groups are allowed.
+- `default_allow=true` + `blocked=false` on a group → allowed.
+- `default_allow=false` + `blocked=false` on a group → still allowed
+  (explicit opt-in survives the kill switch).
+- `default_allow=false` + no `blocked` key on a group → **blocked**
+  (the kill switch is what makes this useful).
+
+If you flip `default_allow` to `false` on a fresh install with the
+shipped defaults, every group has `blocked => false` explicitly, so
+you'll see no directives change — remove the `blocked => false` from
+a group's config to opt it back into the kill switch.
+
+If you prefer to keep managing individual user-agents directly, the
+older `bots` surface still works:
 
 ```php
 'bots' => [

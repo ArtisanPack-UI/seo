@@ -100,6 +100,61 @@ describe( 'OrganizationSchema', function (): void {
 			->and( $schema['sameAs'][0] )->toBe( 'https://facebook.com/testorg' );
 	} );
 
+	it( 'deduplicates and filters empty sameAs entries', function (): void {
+		$builder = new OrganizationSchema( [
+			'name'   => 'Test Organization',
+			'sameAs' => [
+				'https://facebook.com/testorg',
+				'https://twitter.com/testorg',
+				'https://facebook.com/testorg',
+				'',
+				'   ',
+				null,
+				'https://linkedin.com/company/testorg',
+			],
+		] );
+
+		$schema = $builder->generate();
+
+		expect( $schema['sameAs'] )->toBe( [
+			'https://facebook.com/testorg',
+			'https://twitter.com/testorg',
+			'https://linkedin.com/company/testorg',
+		] );
+	} );
+
+	it( 'omits sameAs when input is empty', function (): void {
+		$builder = new OrganizationSchema( [
+			'name'   => 'Test Organization',
+			'sameAs' => [],
+		] );
+
+		$schema = $builder->generate();
+
+		expect( $schema )->not->toHaveKey( 'sameAs' );
+	} );
+
+	it( 'omits sameAs when only empty strings are provided', function (): void {
+		$builder = new OrganizationSchema( [
+			'name'   => 'Test Organization',
+			'sameAs' => [ '', '   ', null ],
+		] );
+
+		$schema = $builder->generate();
+
+		expect( $schema )->not->toHaveKey( 'sameAs' );
+	} );
+
+	it( 'omits logo when not provided', function (): void {
+		$builder = new OrganizationSchema( [
+			'name' => 'Test Organization',
+		] );
+
+		$schema = $builder->generate();
+
+		expect( $schema )->not->toHaveKey( 'logo' );
+	} );
+
 	it( 'filters out empty values', function (): void {
 		$builder = new OrganizationSchema( [
 			'name'        => 'Test Organization',
@@ -154,6 +209,74 @@ describe( 'LocalBusinessSchema', function (): void {
 		expect( $schema['openingHoursSpecification'] )->toHaveCount( 1 )
 			->and( $schema['openingHoursSpecification'][0]['@type'] )->toBe( 'OpeningHoursSpecification' )
 			->and( $schema['openingHoursSpecification'][0]['opens'] )->toBe( '09:00' );
+	} );
+
+	it( 'includes special hours with validFrom and validThrough', function (): void {
+		$builder = new LocalBusinessSchema( [
+			'name'         => 'Test Business',
+			'openingHours' => [
+				[
+					'dayOfWeek' => [ 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday' ],
+					'opens'     => '09:00',
+					'closes'    => '17:00',
+				],
+				[
+					'opens'        => '10:00',
+					'closes'       => '14:00',
+					'validFrom'    => '2026-12-24',
+					'validThrough' => '2026-12-24',
+				],
+			],
+		] );
+
+		$schema = $builder->generate();
+
+		expect( $schema['openingHoursSpecification'] )->toHaveCount( 2 )
+			->and( $schema['openingHoursSpecification'][1]['@type'] )->toBe( 'OpeningHoursSpecification' )
+			->and( $schema['openingHoursSpecification'][1]['opens'] )->toBe( '10:00' )
+			->and( $schema['openingHoursSpecification'][1]['closes'] )->toBe( '14:00' )
+			->and( $schema['openingHoursSpecification'][1]['validFrom'] )->toBe( '2026-12-24' )
+			->and( $schema['openingHoursSpecification'][1]['validThrough'] )->toBe( '2026-12-24' );
+	} );
+
+	it( 'emits closed-day hours as 00:00 opens and closes', function (): void {
+		$builder = new LocalBusinessSchema( [
+			'name'         => 'Test Business',
+			'openingHours' => [
+				[
+					'closed'       => true,
+					'validFrom'    => '2026-12-25',
+					'validThrough' => '2026-12-25',
+				],
+			],
+		] );
+
+		$schema = $builder->generate();
+
+		expect( $schema['openingHoursSpecification'] )->toHaveCount( 1 )
+			->and( $schema['openingHoursSpecification'][0]['opens'] )->toBe( '00:00' )
+			->and( $schema['openingHoursSpecification'][0]['closes'] )->toBe( '00:00' )
+			->and( $schema['openingHoursSpecification'][0]['validFrom'] )->toBe( '2026-12-25' )
+			->and( $schema['openingHoursSpecification'][0]['validThrough'] )->toBe( '2026-12-25' );
+	} );
+
+	it( 'closed flag overrides provided opens and closes', function (): void {
+		$builder = new LocalBusinessSchema( [
+			'name'         => 'Test Business',
+			'openingHours' => [
+				[
+					'dayOfWeek' => [ 'Sunday' ],
+					'opens'     => '09:00',
+					'closes'    => '17:00',
+					'closed'    => true,
+				],
+			],
+		] );
+
+		$schema = $builder->generate();
+
+		expect( $schema['openingHoursSpecification'][0]['opens'] )->toBe( '00:00' )
+			->and( $schema['openingHoursSpecification'][0]['closes'] )->toBe( '00:00' );
 	} );
 
 	it( 'includes geo coordinates', function (): void {

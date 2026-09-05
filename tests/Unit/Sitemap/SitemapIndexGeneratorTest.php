@@ -13,6 +13,7 @@
 
 declare( strict_types=1 );
 
+use ArtisanPackUI\SEO\Contracts\SitemapProviderContract;
 use ArtisanPackUI\SEO\Models\SitemapEntry;
 use ArtisanPackUI\SEO\Sitemap\Generators\SitemapIndexGenerator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -63,8 +64,93 @@ describe( 'SitemapIndexGenerator', function (): void {
 		$generator = new SitemapIndexGenerator( 'https://example.com' );
 		$xml       = $generator->generate();
 
-		expect( $xml )->toContain( 'sitemap-page.xml' )
-			->and( $xml )->toContain( 'sitemap-post.xml' );
+		expect( $xml )->toContain( '<loc>https://example.com/sitemap-page-1.xml</loc>' )
+			->and( $xml )->toContain( '<loc>https://example.com/sitemap-post-1.xml</loc>' )
+			->and( $xml )->not->toContain( '<loc>https://example.com/sitemap-page.xml</loc>' )
+			->and( $xml )->not->toContain( '<loc>https://example.com/sitemap-post.xml</loc>' );
+	} );
+
+	it( 'includes the page number for every page of a typed sitemap', function (): void {
+		for ( $i = 1; $i <= 5; $i++ ) {
+			SitemapEntry::create( [
+				'sitemapable_type' => 'App\\Models\\Page',
+				'sitemapable_id'   => $i,
+				'url'              => "https://example.com/page-{$i}",
+				'type'             => 'page',
+			] );
+		}
+
+		$generator = new SitemapIndexGenerator( 'https://example.com', 2 );
+		$xml       = $generator->generate();
+
+		expect( $xml )->toContain( '<loc>https://example.com/sitemap-page-1.xml</loc>' )
+			->and( $xml )->toContain( '<loc>https://example.com/sitemap-page-2.xml</loc>' )
+			->and( $xml )->toContain( '<loc>https://example.com/sitemap-page-3.xml</loc>' )
+			->and( $xml )->not->toContain( '<loc>https://example.com/sitemap-page.xml</loc>' );
+	} );
+
+	it( 'includes the page number for page one of the main sitemap', function (): void {
+		for ( $i = 1; $i <= 3; $i++ ) {
+			SitemapEntry::create( [
+				'sitemapable_type' => 'App\\Models\\Page',
+				'sitemapable_id'   => $i,
+				'url'              => "https://example.com/page-{$i}",
+				'type'             => 'page',
+			] );
+		}
+
+		$generator = new SitemapIndexGenerator( 'https://example.com', 2 );
+		$xml       = $generator->generate();
+
+		expect( $xml )->toContain( '<loc>https://example.com/sitemap-1.xml</loc>' )
+			->and( $xml )->toContain( '<loc>https://example.com/sitemap-2.xml</loc>' )
+			->and( $xml )->not->toContain( '<loc>https://example.com/sitemap.xml</loc>' );
+	} );
+
+	it( 'does not reference itself when the main sitemap fits on one page', function (): void {
+		SitemapEntry::create( [
+			'sitemapable_type' => 'App\\Models\\Page',
+			'sitemapable_id'   => 1,
+			'url'              => 'https://example.com/page-1',
+			'type'             => 'page',
+		] );
+
+		SitemapEntry::create( [
+			'sitemapable_type' => 'App\\Models\\Post',
+			'sitemapable_id'   => 1,
+			'url'              => 'https://example.com/post-1',
+			'type'             => 'post',
+		] );
+
+		$generator = new SitemapIndexGenerator( 'https://example.com' );
+		$xml       = $generator->generate();
+
+		expect( $xml )->toContain( '<loc>https://example.com/sitemap-1.xml</loc>' )
+			->and( $xml )->not->toContain( '<loc>https://example.com/sitemap.xml</loc>' );
+	} );
+
+	it( 'includes the page number for provider sitemaps', function (): void {
+		SitemapEntry::create( [
+			'sitemapable_type' => 'App\\Models\\Page',
+			'sitemapable_id'   => 1,
+			'url'              => 'https://example.com/page-1',
+			'type'             => 'page',
+		] );
+
+		$provider = Mockery::mock( SitemapProviderContract::class );
+		$provider->shouldReceive( 'getUrls' )->andReturn( collect( [
+			[ 'loc' => 'https://example.com/custom-1' ],
+		] ) );
+		$provider->shouldReceive( 'getChangeFrequency' )->andReturn( 'weekly' );
+		$provider->shouldReceive( 'getPriority' )->andReturn( 0.5 );
+		$provider->shouldReceive( 'getType' )->andReturn( 'custom' );
+
+		$generator = new SitemapIndexGenerator( 'https://example.com' );
+		$generator->setProviders( collect( [ 'custom' => $provider ] ) );
+		$xml = $generator->generate();
+
+		expect( $xml )->toContain( '<loc>https://example.com/sitemap-custom-1.xml</loc>' )
+			->and( $xml )->not->toContain( '<loc>https://example.com/sitemap-custom.xml</loc>' );
 	} );
 
 	it( 'checks if index is needed with multiple types', function (): void {
@@ -98,6 +184,22 @@ describe( 'SitemapIndexGenerator', function (): void {
 		$generator = new SitemapIndexGenerator( 'https://example.com', 10000 );
 
 		expect( $generator->needsIndex() )->toBeFalse();
+	} );
+
+	it( 'needs index when a provider is registered even with a single database type', function (): void {
+		SitemapEntry::create( [
+			'sitemapable_type' => 'App\\Models\\Page',
+			'sitemapable_id'   => 1,
+			'url'              => 'https://example.com/page-1',
+			'type'             => 'page',
+		] );
+
+		$provider = Mockery::mock( SitemapProviderContract::class );
+
+		$generator = new SitemapIndexGenerator( 'https://example.com', 10000 );
+		$generator->setProviders( collect( [ 'custom' => $provider ] ) );
+
+		expect( $generator->needsIndex() )->toBeTrue();
 	} );
 
 	it( 'needs index when pagination required', function (): void {

@@ -201,6 +201,44 @@ describe( 'FocusKeywordAnalyzer Subheadings', function (): void {
 
 } );
 
+describe( 'FocusKeywordAnalyzer First Paragraph', function (): void {
+
+	it( 'passes when keyword is in first paragraph', function (): void {
+		$model   = createFocusKeywordTestModel();
+		$content = '<h1>Guide</h1><p>Learning SEO is the fastest way to grow traffic.</p>';
+		$result  = $this->analyzer->analyze( $model, $content, 'seo', null );
+
+		expect( $result['passed'] )->toContain( 'Focus keyword appears in the first paragraph.' )
+			->and( $result['details']['placements']['first_paragraph'] )->toBeTrue();
+	} );
+
+	it( 'suggests introducing keyword in first paragraph when missing', function (): void {
+		$model   = createFocusKeywordTestModel();
+		$content = '<h1>Guide</h1><p>An introduction with no target term.</p><p>Later on we mention seo.</p>';
+		$result  = $this->analyzer->analyze( $model, $content, 'seo', null );
+
+		$hasSuggestion = false;
+		foreach ( $result['suggestions'] as $suggestion ) {
+			if ( str_contains( $suggestion['message'], 'first paragraph' ) ) {
+				$hasSuggestion = true;
+				break;
+			}
+		}
+
+		expect( $hasSuggestion )->toBeTrue()
+			->and( $result['details']['placements']['first_paragraph'] )->toBeFalse();
+	} );
+
+	it( 'falls back to raw content when no paragraph tags exist', function (): void {
+		$model   = createFocusKeywordTestModel();
+		$content = 'A short lead about seo without any paragraph tags.';
+		$result  = $this->analyzer->analyze( $model, $content, 'seo', null );
+
+		expect( $result['details']['placements']['first_paragraph'] )->toBeTrue();
+	} );
+
+} );
+
 describe( 'FocusKeywordAnalyzer Image Alt Text', function (): void {
 
 	it( 'passes when keyword is in image alt text', function (): void {
@@ -237,6 +275,45 @@ describe( 'FocusKeywordAnalyzer Image Alt Text', function (): void {
 
 		expect( $hasSuggestion )->toBeTrue()
 			->and( $result['details']['placements']['alt_text'] )->toBeFalse();
+	} );
+
+} );
+
+describe( 'FocusKeywordAnalyzer Multibyte Handling', function (): void {
+
+	it( 'lowercases multibyte German ß when matching the focus keyword', function (): void {
+		$model   = createFocusKeywordTestModel( [
+			'title' => 'STRASSE Guide',
+			'slug'  => 'strasse-guide',
+		] );
+		$seoMeta = createMockSeoMeta( [
+			'meta_title'       => 'STRASSE overview',
+			'meta_description' => 'Learn about STRASSE today.',
+		] );
+		$content = '<h1>STRASSE</h1><h2>Intro</h2><p>The story of STRASSE.</p>';
+		$result  = $this->analyzer->analyze( $model, $content, 'strasse', $seoMeta );
+
+		expect( $result['details']['placements']['title'] )->toBeTrue()
+			->and( $result['details']['placements']['description'] )->toBeTrue()
+			->and( $result['details']['placements']['h1'] )->toBeTrue()
+			->and( $result['details']['placements']['first_paragraph'] )->toBeTrue();
+	} );
+
+	it( 'lowercases CJK content when matching the focus keyword', function (): void {
+		$model   = createFocusKeywordTestModel( [
+			'title' => '大阪 Guide',
+			'slug'  => 'osaka',
+		] );
+		$seoMeta = createMockSeoMeta( [
+			'meta_title'       => '大阪 overview',
+			'meta_description' => '大阪 story.',
+		] );
+		$content = '<h1>大阪</h1><h2>大阪 tips</h2><p>The story of 大阪.</p>';
+		$result  = $this->analyzer->analyze( $model, $content, '大阪', $seoMeta );
+
+		expect( $result['details']['placements']['title'] )->toBeTrue()
+			->and( $result['details']['placements']['h1'] )->toBeTrue()
+			->and( $result['details']['placements']['first_paragraph'] )->toBeTrue();
 	} );
 
 } );

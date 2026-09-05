@@ -318,12 +318,14 @@ describe( 'Schema Component with Custom Schemas', function (): void {
 			'name'  => 'Test',
 		];
 
-		$component = new Schema(
-			schemas: [ $customSchema ],
-			useGraph: false,
-		);
+		$component = new Schema( schemas: [ $customSchema ] );
+		$view      = $component->render();
+		$html      = $view->with( $component->data() )->render();
+		$jsonLd    = extractJsonLd( $html );
 
-		expect( $component->collectedSchemas[0]['@context'] )->toBe( 'https://schema.org' );
+		expect( $jsonLd )->not->toBeNull()
+			->and( $jsonLd['@context'] )->toBe( 'https://schema.org' )
+			->and( $jsonLd['@type'] )->toBe( 'Product' );
 	} );
 
 	it( 'preserves @context in custom schemas', function (): void {
@@ -333,12 +335,13 @@ describe( 'Schema Component with Custom Schemas', function (): void {
 			'name'     => 'Test',
 		];
 
-		$component = new Schema(
-			schemas: [ $customSchema ],
-			useGraph: false,
-		);
+		$component = new Schema( schemas: [ $customSchema ] );
+		$view      = $component->render();
+		$html      = $view->with( $component->data() )->render();
+		$jsonLd    = extractJsonLd( $html );
 
-		expect( $component->collectedSchemas[0]['@context'] )->toBe( 'https://schema.org' );
+		expect( $jsonLd )->not->toBeNull()
+			->and( $jsonLd['@context'] )->toBe( 'https://schema.org' );
 	} );
 
 } );
@@ -415,7 +418,7 @@ describe( 'Schema Component Graph Mode', function (): void {
 			->and( $jsonLd )->toHaveKey( '@graph' );
 	} );
 
-	it( 'can disable graph mode', function (): void {
+	it( 'accepts the deprecated useGraph=false prop for BC (now a no-op)', function (): void {
 		$component = new Schema(
 			includeOrganization: true,
 			includeWebsite: true,
@@ -425,19 +428,17 @@ describe( 'Schema Component Graph Mode', function (): void {
 		$html   = $view->with( $component->data() )->render();
 		$jsonLd = extractJsonLd( $html );
 
-		// Should output separate script tags without @graph
+		// Since 1.4 the service always wraps multiple entries in @graph;
+		// useGraph is accepted for API compatibility but no longer consulted.
 		expect( $jsonLd )->not->toBeNull()
-			->and( $jsonLd )->not->toHaveKey( '@graph' );
+			->and( $jsonLd )->toHaveKey( '@graph' );
 	} );
 
-	it( 'does not use graph for single schema without flag', function (): void {
-		$component = new Schema(
-			includeOrganization: true,
-			useGraph: false,
-		);
-		$view   = $component->render();
-		$html   = $view->with( $component->data() )->render();
-		$jsonLd = extractJsonLd( $html );
+	it( 'does not use graph for single schema', function (): void {
+		$component = new Schema( includeOrganization: true );
+		$view      = $component->render();
+		$html      = $view->with( $component->data() )->render();
+		$jsonLd    = extractJsonLd( $html );
 
 		expect( $jsonLd )->not->toBeNull()
 			->and( $jsonLd )->not->toHaveKey( '@graph' );

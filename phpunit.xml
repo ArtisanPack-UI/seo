@@ -11,9 +11,11 @@
         <testsuite name="Feature">
             <directory>tests/Feature</directory>
             <exclude>tests/Feature/Ai</exclude>
+            <exclude>tests/Feature/Livewire/Ai</exclude>
         </testsuite>
         <testsuite name="Ai">
             <directory>tests/Feature/Ai</directory>
+            <directory>tests/Feature/Livewire/Ai</directory>
         </testsuite>
     </testsuites>
     <source>

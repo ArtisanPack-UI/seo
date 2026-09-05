@@ -15,15 +15,12 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\SEO\Livewire\Ai;
 
-use ArtisanPackUI\Ai\Contracts\FeatureRegistry;
-use ArtisanPackUI\Ai\Exceptions\FeatureDisabledException;
-use ArtisanPackUI\Ai\Exceptions\FeatureError;
-use ArtisanPackUI\Ai\Exceptions\MissingCredentialsException;
+use ArtisanPackUI\Ai\Livewire\Concerns\ChecksFeatureToggle;
+use ArtisanPackUI\Ai\Livewire\Concerns\InteractsWithAiFeature;
 use ArtisanPackUI\SEO\Ai\Agents\ContentAnalysisAgent;
 use Illuminate\View\View;
 use Livewire\Attributes\On;
 use Livewire\Component;
-use Throwable;
 
 /**
  * Trigger UI for the {@see ContentAnalysisAgent}.
@@ -35,6 +32,9 @@ use Throwable;
  */
 class ContentAnalyzer extends Component
 {
+	use ChecksFeatureToggle;
+	use InteractsWithAiFeature;
+
 	public string $content = '';
 
 	public string $primaryKeyword = '';
@@ -44,16 +44,14 @@ class ContentAnalyzer extends Component
 	 */
 	public array $secondaryKeywords = [];
 
-	public bool $isLoading = false;
-
-	public ?string $error = null;
-
 	public ?int $overallScore = null;
 
 	/**
 	 * @var array<string, array{ score: int, recommendations: array<int, string> }>
 	 */
 	public array $dimensions = [];
+
+	protected string $featureKey = 'seo.analyze_content';
 
 	/**
 	 * Mount the component with initial context from the containing editor.
@@ -108,12 +106,10 @@ class ContentAnalyzer extends Component
 	 */
 	public function analyze(): void
 	{
-		$this->error        = null;
 		$this->overallScore = null;
 		$this->dimensions   = [];
-		$this->isLoading    = true;
 
-		try {
+		$this->runAiFeature( function (): void {
 			$output = ContentAnalysisAgent::for( [
 				'content'            => $this->content,
 				'primary_keyword'    => $this->primaryKeyword,
@@ -122,36 +118,7 @@ class ContentAnalyzer extends Component
 
 			$this->overallScore = (int) ( $output['overall_score'] ?? 0 );
 			$this->dimensions   = is_array( $output['dimensions'] ?? null ) ? $output['dimensions'] : [];
-		} catch ( FeatureDisabledException $exception ) {
-			$this->error = __( 'This AI feature is disabled.' );
-		} catch ( MissingCredentialsException $exception ) {
-			$this->error = __( 'AI credentials are not configured.' );
-		} catch ( FeatureError $exception ) {
-			$this->error = $exception->getMessage();
-		} catch ( Throwable $exception ) {
-			$this->error = __( 'The AI agent could not complete this request.' );
-		} finally {
-			$this->isLoading = false;
-		}
-	}
-
-	/**
-	 * Determine whether this feature is enabled in the registry.
-	 *
-	 * @since 1.2.0
-	 *
-	 * @return bool
-	 */
-	public function getIsEnabledProperty(): bool
-	{
-		$registry = app( FeatureRegistry::class );
-		$key      = 'seo.analyze_content';
-
-		if ( null === $registry->get( $key ) ) {
-			return false;
-		}
-
-		return $registry->isToggleOn( $key );
+		} );
 	}
 
 	/**

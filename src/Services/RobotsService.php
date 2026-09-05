@@ -344,10 +344,43 @@ class RobotsService
 		// Load sitemap URL
 		$this->loadSitemapUrl();
 
+		// Load AI-crawler group rules
+		$this->loadAiCrawlerRules();
+
 		// Load host
 		$host = config( 'seo.robots.host' );
 		if ( null !== $host ) {
 			$this->setHost( $host );
+		}
+	}
+
+	/**
+	 * Load per-bot-group AI crawler rules.
+	 *
+	 * Groups default to allow (no directive emitted). When a group's
+	 * 'blocked' flag is true, each user-agent in that group gets a
+	 * `Disallow: /` block.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @return void
+	 */
+	protected function loadAiCrawlerRules(): void
+	{
+		$service = new AiCrawlerService();
+
+		foreach ( $service->getBlockedUserAgents() as $userAgent ) {
+			// Purge any existing allow rules loaded from seo.robots.rules
+			// before emitting the block. Per RFC 9309 an Allow rule wins
+			// when both match, so leaving them in place would let the
+			// crawler through despite the intended block. Covers both the
+			// explicit blocked=true branch and the default_allow=false
+			// kill-switch branch, since AiCrawlerService::getBlockedUserAgents()
+			// returns UAs from both.
+			if ( isset( $this->rules[ $userAgent ]['allow'] ) ) {
+				$this->rules[ $userAgent ]['allow'] = [];
+			}
+			$this->disallow( '/', $userAgent );
 		}
 	}
 

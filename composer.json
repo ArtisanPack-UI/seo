@@ -3,7 +3,6 @@
   "description": "SEO utilities and meta tag management for Laravel applications",
   "type": "library",
   "license": "MIT",
-  "version": "1.3.0",
   "autoload": {
     "psr-4": {
       "ArtisanPackUI\\SEO\\": "src/"
@@ -25,27 +24,28 @@
   ],
   "require": {
     "php": "^8.2",
-    "illuminate/support": "^10.0|^11.0|^12.0|^13.0",
+    "illuminate/support": "^11.0|^12.0|^13.0",
     "artisanpack-ui/core": "^1.0",
     "artisanpack-ui/hooks": "^1.3"
   },
   "require-dev": {
     "pestphp/pest": "^3.8",
     "pestphp/pest-plugin-laravel": "^3.2",
-    "artisanpack-ui/ai": "^1.0",
+    "artisanpack-ui/ai": "^1.2",
     "artisanpack-ui/code-style": "^1.1",
     "artisanpack-ui/code-style-pint": "^1.1",
     "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
     "laravel/pint": "^1.26",
-    "orchestra/testbench": "^8.0|^9.0|^10.0|^11.0",
+    "orchestra/testbench": "^9.0|^10.0|^11.0",
     "friendsofphp/php-cs-fixer": "^3.75",
-    "livewire/livewire": "^3.6.4"
+    "livewire/livewire": "^3.8.3"
   },
   "suggest": {
-    "livewire/livewire": "Required for using the SeoMetaEditor Livewire component (^3.6.4)",
+    "ext-gd": "Required for the default OG image renderer (GdOgImageRenderer). Without ext-gd, imagecreatetruecolor() is unavailable and the renderer throws RuntimeException.",
+    "livewire/livewire": "Required for using the SeoMetaEditor Livewire component (^3.8.3)",
     "artisanpack-ui/livewire-ui-components": "Required for UI components in the SeoMetaEditor (^1.0)",
     "artisanpack-ui/media-library": "Optional for media library integration in the SeoMetaEditor (^1.0)",
-    "artisanpack-ui/ai": "Required for the AI Feature Suite — five agents for meta title, meta description, content analysis, schema, and hreflang (^1.0; requires PHP 8.3+, Laravel 12+)"
+    "artisanpack-ui/ai": "Required for the AI Feature Suite — five agents for meta title, meta description, content analysis, schema, and hreflang (^1.2; requires PHP 8.3+, Laravel 12+)"
   },
   "scripts": {
     "lint": [

@@ -18,6 +18,7 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\SEO\Schema\Builders;
 
 use ArtisanPackUI\SEO\Contracts\SchemaTypeContract;
+use Throwable;
 
 /**
  * AbstractSchema class.
@@ -79,6 +80,22 @@ abstract class AbstractSchema implements SchemaTypeContract
 	}
 
 	/**
+	 * Get the schema as an array.
+	 *
+	 * Alias for `generate()` with no model context — useful for callers
+	 * (like `apSeoAddSchema()`) that treat a builder as a serializable
+	 * value object.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @return array<string, mixed>
+	 */
+	public function toArray(): array
+	{
+		return $this->generate();
+	}
+
+	/**
 	 * Get the base schema structure.
 	 *
 	 * @since 1.0.0
@@ -87,10 +104,54 @@ abstract class AbstractSchema implements SchemaTypeContract
 	 */
 	protected function getBaseSchema(): array
 	{
-		return [
+		$schema = [
 			'@context' => 'https://schema.org',
 			'@type'    => $this->getType(),
 		];
+
+		$id = $this->getSchemaId();
+		if ( null !== $id && '' !== $id ) {
+			$schema['@id'] = $id;
+		}
+
+		return $schema;
+	}
+
+	/**
+	 * Return a stable @id URL for this schema node so a graph can
+	 * cross-reference entities. Subclasses override this to provide a
+	 * deterministic fragment ID (e.g. `/#organization`). Returning null
+	 * causes no `@id` to be emitted.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @return string|null
+	 */
+	protected function getSchemaId(): ?string
+	{
+		return null;
+	}
+
+	/**
+	 * Build a URL with a fragment for use as an @id, safely falling back
+	 * to the fragment alone when the URL helper is unavailable (e.g.
+	 * in some unit-test contexts).
+	 *
+	 * @since 1.4.0
+	 *
+	 * @param  string  $fragment  Fragment identifier, e.g. `/#organization`.
+	 *
+	 * @return string
+	 */
+	protected function buildIdFor( string $fragment ): string
+	{
+		try {
+			return url( $fragment );
+		} catch ( Throwable $e ) {
+			$appUrl = (string) config( 'app.url', '' );
+
+			return rtrim( $appUrl, '/' ) . $fragment;
+		}
 	}
 
 	/**
@@ -145,16 +206,43 @@ abstract class AbstractSchema implements SchemaTypeContract
 	 *
 	 * @return array<string, string>|null
 	 */
-	protected function buildImageObject( ?string $url ): ?array
+	protected function buildImageObject( array|string|null $url ): ?array
 	{
-		if ( null === $url || '' === $url ) {
+		// String overload (BC): treat as a plain URL.
+		if ( is_string( $url ) ) {
+			if ( '' === $url ) {
+				return null;
+			}
+
+			return [
+				'@type' => 'ImageObject',
+				'url'   => $url,
+			];
+		}
+
+		if ( null === $url ) {
 			return null;
 		}
 
-		return [
+		$src = $url['url'] ?? $url['src'] ?? null;
+		if ( ! is_string( $src ) || '' === $src ) {
+			return null;
+		}
+
+		$image = [
 			'@type' => 'ImageObject',
-			'url'   => $url,
+			'url'   => $src,
 		];
+
+		if ( isset( $url['width'] ) && ( is_int( $url['width'] ) || ( is_numeric( $url['width'] ) && (int) $url['width'] > 0 ) ) ) {
+			$image['width'] = (int) $url['width'];
+		}
+
+		if ( isset( $url['height'] ) && ( is_int( $url['height'] ) || ( is_numeric( $url['height'] ) && (int) $url['height'] > 0 ) ) ) {
+			$image['height'] = (int) $url['height'];
+		}
+
+		return $image;
 	}
 
 	/**

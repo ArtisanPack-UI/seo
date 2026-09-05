@@ -18,6 +18,7 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\SEO\Schema\Builders;
 
 use Illuminate\Database\Eloquent\Model;
+use Throwable;
 
 /**
  * ArticleSchema class.
@@ -178,6 +179,29 @@ class ArticleSchema extends AbstractSchema
 	}
 
 	/**
+	 * Emit a stable @id derived from the article URL (falling back to the
+	 * current request URL). Lets @graph consumers cross-reference the
+	 * same Article node from WebPage.primaryContent, etc.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @return string|null
+	 */
+	protected function getSchemaId(): ?string
+	{
+		$url = $this->get( 'url' );
+		if ( is_string( $url ) && '' !== $url ) {
+			return rtrim( $url, '/' ) . '#article';
+		}
+
+		try {
+			return request()->url() . '#article';
+		} catch ( Throwable $e ) {
+			return $this->buildIdFor( '/#article' );
+		}
+	}
+
+	/**
 	 * Build the publisher schema.
 	 *
 	 * @since 1.0.0
@@ -195,9 +219,11 @@ class ArticleSchema extends AbstractSchema
 			}
 		}
 
-		// Default publisher from config
+		// Default publisher from config — attach a stable @id matching the
+		// Organization node's @id so a shared @graph cross-references cleanly.
 		$publisherSchema = [
 			'@type' => 'Organization',
+			'@id'   => $this->buildIdFor( '/#organization' ),
 			'name'  => config( 'seo.schema.organization.name', config( 'app.name', '' ) ),
 		];
 
