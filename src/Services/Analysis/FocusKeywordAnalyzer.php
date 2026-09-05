@@ -66,7 +66,7 @@ class FocusKeywordAnalyzer implements AnalyzerContract
 			];
 		}
 
-		$keyword      = strtolower( trim( $focusKeyword ) );
+		$keyword      = mb_strtolower( trim( $focusKeyword ), 'UTF-8' );
 		$issues       = [];
 		$suggestions  = [];
 		$passed       = [];
@@ -76,7 +76,7 @@ class FocusKeywordAnalyzer implements AnalyzerContract
 
 		// Check in meta title
 		$checksTotal++;
-		$metaTitle            = strtolower( $seoMeta?->meta_title ?? $model->title ?? '' );
+		$metaTitle            = mb_strtolower( $seoMeta?->meta_title ?? $model->title ?? '', 'UTF-8' );
 		$placements['title']  = str_contains( $metaTitle, $keyword );
 
 		if ( $placements['title'] ) {
@@ -91,7 +91,7 @@ class FocusKeywordAnalyzer implements AnalyzerContract
 
 		// Check in meta description
 		$checksTotal++;
-		$metaDescription            = strtolower( $seoMeta?->meta_description ?? '' );
+		$metaDescription            = mb_strtolower( $seoMeta?->meta_description ?? '', 'UTF-8' );
 		$placements['description']  = str_contains( $metaDescription, $keyword );
 
 		if ( $placements['description'] ) {
@@ -106,7 +106,7 @@ class FocusKeywordAnalyzer implements AnalyzerContract
 
 		// Check in URL/slug
 		$checksTotal++;
-		$slug               = strtolower( $model->slug ?? '' );
+		$slug               = mb_strtolower( $model->slug ?? '', 'UTF-8' );
 		$keywordSlug        = Str::slug( $keyword );
 		$placements['url']  = str_contains( $slug, $keywordSlug );
 
@@ -123,7 +123,7 @@ class FocusKeywordAnalyzer implements AnalyzerContract
 		// Check in H1
 		$checksTotal++;
 		preg_match( '/<h1[^>]*>(.*?)<\/h1>/si', $content, $h1Match );
-		$h1Content         = strtolower( strip_tags( $h1Match[1] ?? $model->title ?? '' ) );
+		$h1Content         = mb_strtolower( strip_tags( $h1Match[1] ?? $model->title ?? '' ), 'UTF-8' );
 		$placements['h1']  = str_contains( $h1Content, $keyword );
 
 		if ( $placements['h1'] ) {
@@ -139,7 +139,7 @@ class FocusKeywordAnalyzer implements AnalyzerContract
 		// Check in subheadings (H2-H6)
 		$checksTotal++;
 		preg_match_all( '/<h[2-6][^>]*>(.*?)<\/h[2-6]>/si', $content, $subheadings );
-		$subheadingText           = strtolower( implode( ' ', $subheadings[1] ?? [] ) );
+		$subheadingText           = mb_strtolower( implode( ' ', $subheadings[1] ?? [] ), 'UTF-8' );
 		$placements['subheading'] = str_contains( $subheadingText, $keyword );
 
 		if ( $placements['subheading'] ) {
@@ -156,7 +156,7 @@ class FocusKeywordAnalyzer implements AnalyzerContract
 		$checksTotal++;
 		$firstParagraph                    = $this->extractFirstParagraph( $content );
 		$placements['first_paragraph']     = '' !== $firstParagraph
-			&& str_contains( strtolower( $firstParagraph ), $keyword );
+			&& str_contains( mb_strtolower( $firstParagraph, 'UTF-8' ), $keyword );
 
 		if ( $placements['first_paragraph'] ) {
 			$passed[] = __( 'Focus keyword appears in the first paragraph.' );
@@ -174,7 +174,7 @@ class FocusKeywordAnalyzer implements AnalyzerContract
 		$hasImages = count( $altTexts[1] ?? [] ) > 0;
 
 		if ( $hasImages ) {
-			$allAltText             = strtolower( implode( ' ', $altTexts[1] ) );
+			$allAltText             = mb_strtolower( implode( ' ', $altTexts[1] ), 'UTF-8' );
 			$placements['alt_text'] = str_contains( $allAltText, $keyword );
 
 			if ( $placements['alt_text'] ) {

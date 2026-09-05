@@ -367,7 +367,7 @@ class AiReadinessAnalyzer implements AnalyzerContract
 			return 0;
 		}
 
-		return str_word_count( $trimmed );
+		return count( preg_split( '/\s+/u', $trimmed, -1, PREG_SPLIT_NO_EMPTY ) ?: [] );
 	}
 
 	/**

@@ -195,6 +195,18 @@ describe( 'AiReadinessAnalyzer Summary Window', function (): void {
 		expect( $hasSuggestion )->toBeTrue();
 	} );
 
+	it( 'counts non-Latin words (Japanese, Cyrillic) instead of returning zero', function (): void {
+		$model = createAiReadinessTestModel();
+
+		$japanese = '<h1>大阪</h1><p>大阪 は 日本 で 二番目 に 大きい 都市 です。</p>';
+		$result   = $this->analyzer->analyze( $model, $japanese, null, null );
+		expect( $result['details']['first_paragraph_words'] )->toBeGreaterThan( 0 );
+
+		$cyrillic = '<h1>Заголовок</h1><p>Это первая часть статьи о СЕО оптимизации сайта.</p>';
+		$result   = $this->analyzer->analyze( $model, $cyrillic, null, null );
+		expect( $result['details']['first_paragraph_words'] )->toBeGreaterThan( 0 );
+	} );
+
 	it( 'warns when there is no opening paragraph at all', function (): void {
 		$model   = createAiReadinessTestModel();
 		$content = '';
