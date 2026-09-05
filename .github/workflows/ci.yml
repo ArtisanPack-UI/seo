@@ -111,6 +111,15 @@ jobs:
       - name: Pin Testbench version for matrix
         run: composer require --dev "orchestra/testbench:${{ matrix.testbench }}" --no-update --no-interaction
 
+      # Composer 2.8+ blocks install of any package with a known security
+      # advisory. Every Laravel 11.x release currently carries one (Laravel 11
+      # is in security-fix-only mode). Disable install-time advisory blocking
+      # so the matrix can resolve; the actual security posture is enforced
+      # separately by `composer audit`, which downstream projects run against
+      # their own installed versions.
+      - name: Allow install of packages with advisories
+        run: composer config policy.advisories.block false
+
       - name: Install dependencies
         run: composer update --no-interaction --prefer-dist
 
