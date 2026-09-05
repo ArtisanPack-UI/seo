@@ -68,3 +68,41 @@ describe( 'LocalBusinessSchema opening hours', function (): void {
 	} );
 
 } );
+
+describe( 'OrganizationSchema sameAs + logo width/height', function (): void {
+
+	it( 'rejects non-URL strings from sameAs', function (): void {
+		$schema = ( new ArtisanPackUI\SEO\Schema\Builders\OrganizationSchema( [
+			'name'   => 'Acme',
+			'sameAs' => [
+				'https://twitter.com/acme',
+				'not-a-url',
+				'   ',
+			],
+		] ) )->generate();
+
+		expect( $schema['sameAs'] ?? [] )->toBe( [ 'https://twitter.com/acme' ] );
+	} );
+
+	it( 'emits width/height on the logo ImageObject when provided as an array', function (): void {
+		$schema = ( new ArtisanPackUI\SEO\Schema\Builders\OrganizationSchema( [
+			'name' => 'Acme',
+			'logo' => [ 'url' => 'https://example.com/logo.png', 'width' => 512, 'height' => 128 ],
+		] ) )->generate();
+
+		expect( $schema['logo']['url'] ?? null )->toBe( 'https://example.com/logo.png' )
+			->and( $schema['logo']['width'] ?? null )->toBe( 512 )
+			->and( $schema['logo']['height'] ?? null )->toBe( 128 );
+	} );
+
+	it( 'still accepts a plain string logo URL for BC', function (): void {
+		$schema = ( new ArtisanPackUI\SEO\Schema\Builders\OrganizationSchema( [
+			'name' => 'Acme',
+			'logo' => 'https://example.com/logo.png',
+		] ) )->generate();
+
+		expect( $schema['logo']['url'] ?? null )->toBe( 'https://example.com/logo.png' )
+			->and( $schema['logo'] ?? [] )->not->toHaveKey( 'width' );
+	} );
+
+} );

@@ -128,7 +128,9 @@ class OrganizationSchema extends AbstractSchema
 		if ( is_array( $sameAs ) ) {
 			$sameAs = array_values( array_unique( array_filter(
 				$sameAs,
-				fn ( $url ): bool => is_string( $url ) && '' !== trim( $url ),
+				fn ( $url ): bool => is_string( $url )
+					&& '' !== trim( $url )
+					&& false !== filter_var( trim( $url ), FILTER_VALIDATE_URL ),
 			) ) );
 			if ( ! empty( $sameAs ) ) {
 				$schema['sameAs'] = $sameAs;

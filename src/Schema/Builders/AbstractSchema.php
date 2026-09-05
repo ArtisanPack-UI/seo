@@ -206,16 +206,43 @@ abstract class AbstractSchema implements SchemaTypeContract
 	 *
 	 * @return array<string, string>|null
 	 */
-	protected function buildImageObject( ?string $url ): ?array
+	protected function buildImageObject( array|string|null $url ): ?array
 	{
-		if ( null === $url || '' === $url ) {
+		// String overload (BC): treat as a plain URL.
+		if ( is_string( $url ) ) {
+			if ( '' === $url ) {
+				return null;
+			}
+
+			return [
+				'@type' => 'ImageObject',
+				'url'   => $url,
+			];
+		}
+
+		if ( null === $url ) {
 			return null;
 		}
 
-		return [
+		$src = $url['url'] ?? $url['src'] ?? null;
+		if ( ! is_string( $src ) || '' === $src ) {
+			return null;
+		}
+
+		$image = [
 			'@type' => 'ImageObject',
-			'url'   => $url,
+			'url'   => $src,
 		];
+
+		if ( isset( $url['width'] ) && ( is_int( $url['width'] ) || ( is_numeric( $url['width'] ) && (int) $url['width'] > 0 ) ) ) {
+			$image['width'] = (int) $url['width'];
+		}
+
+		if ( isset( $url['height'] ) && ( is_int( $url['height'] ) || ( is_numeric( $url['height'] ) && (int) $url['height'] > 0 ) ) ) {
+			$image['height'] = (int) $url['height'];
+		}
+
+		return $image;
 	}
 
 	/**
