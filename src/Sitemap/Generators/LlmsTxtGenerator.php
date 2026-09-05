@@ -458,6 +458,10 @@ class LlmsTxtGenerator
 	 */
 	protected function escapeMarkdown( string $value ): string
 	{
+		// Collapse newlines to spaces first — an unescaped \n would shatter a
+		// Markdown list item into two lines, breaking the outer `- [x](y)` link.
+		$value = (string) preg_replace( '/\r?\n/', ' ', $value );
+
 		return strtr( $value, [ '[' => '\\[', ']' => '\\]' ] );
 	}
 
@@ -472,6 +476,6 @@ class LlmsTxtGenerator
 	 */
 	protected function normalizeDescription( string $value ): string
 	{
-		return trim( (string) preg_replace( '/\s+/', ' ', $value ) );
+		return $this->escapeMarkdown( trim( (string) preg_replace( '/\s+/', ' ', $value ) ) );
 	}
 }

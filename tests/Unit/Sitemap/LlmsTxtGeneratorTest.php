@@ -253,4 +253,38 @@ describe( 'LlmsTxtGenerator', function (): void {
 
 		expect( $service->generateLlmsTxt() )->toContain( 'https://example.com/second' );
 	} );
+
+	it( 'collapses newlines in titles so a Markdown list item stays on one line', function (): void {
+		Filter::add( 'ap.seo.llmsTxtEntries', function ( array $entries ): array {
+			$entries[] = [
+				'url'   => 'https://example.com/mb',
+				'type'  => 'page',
+				'title' => "foo\nbar",
+			];
+
+			return $entries;
+		} );
+
+		$output = ( new LlmsTxtGenerator() )->generate();
+
+		expect( $output )->toContain( '- [foo bar](https://example.com/mb)' )
+			->and( $output )->not->toContain( "foo\nbar" );
+	} );
+
+	it( 'escapes square brackets that appear in a description', function (): void {
+		Filter::add( 'ap.seo.llmsTxtEntries', function ( array $entries ): array {
+			$entries[] = [
+				'url'         => 'https://example.com/desc',
+				'type'        => 'page',
+				'title'       => 'Guide',
+				'description' => 'see [here] for details',
+			];
+
+			return $entries;
+		} );
+
+		$output = ( new LlmsTxtGenerator() )->generate();
+
+		expect( $output )->toContain( 'see \\[here\\] for details' );
+	} );
 } );
