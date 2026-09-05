@@ -131,6 +131,19 @@ class LocalBusinessSchema extends OrganizationSchema
 	}
 
 	/**
+	 * Override the Organization @id so a LocalBusiness node in the same
+	 * graph does not collide with a plain Organization node.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @return string|null
+	 */
+	protected function getSchemaId(): ?string
+	{
+		return $this->buildIdFor( '/#localbusiness' );
+	}
+
+	/**
 	 * Build OpeningHoursSpecification schema array.
 	 *
 	 * Supports both recurring entries (via `dayOfWeek`) and dated entries

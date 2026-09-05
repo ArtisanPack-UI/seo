@@ -18,6 +18,7 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\SEO\Schema\Builders;
 
 use Illuminate\Database\Eloquent\Model;
+use Throwable;
 
 /**
  * WebPageSchema class.
@@ -155,5 +156,34 @@ class WebPageSchema extends AbstractSchema
 		}
 
 		return $this->filterEmpty( $schema );
+	}
+
+	/**
+	 * Prefer an explicit `@id` from the input data (a page URL + `#webpage`
+	 * anchor); otherwise fall back to the current request URL, then the
+	 * app URL. This keeps the WebPage node cross-referenceable from
+	 * WebPage.isPartOf / Article.mainEntityOfPage.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @return string|null
+	 */
+	protected function getSchemaId(): ?string
+	{
+		$id = $this->get( '@id' );
+		if ( is_string( $id ) && '' !== $id ) {
+			return $id;
+		}
+
+		$url = $this->get( 'url' );
+		if ( is_string( $url ) && '' !== $url ) {
+			return rtrim( $url, '/' ) . '#webpage';
+		}
+
+		try {
+			return request()->url() . '#webpage';
+		} catch ( Throwable $e ) {
+			return $this->buildIdFor( '/#webpage' );
+		}
 	}
 }

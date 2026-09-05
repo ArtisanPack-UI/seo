@@ -151,6 +151,20 @@ class OrganizationSchema extends AbstractSchema
 	}
 
 	/**
+	 * Emit a stable @id so downstream nodes (Article.publisher,
+	 * WebPage.isPartOf, ...) can cross-reference the same Organization
+	 * entity in a shared @graph.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @return string|null
+	 */
+	protected function getSchemaId(): ?string
+	{
+		return $this->buildIdFor( '/#organization' );
+	}
+
+	/**
 	 * Get organization data from CMS framework if available.
 	 *
 	 * @since 1.0.0

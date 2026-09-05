@@ -18,6 +18,7 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\SEO\Schema\Builders;
 
 use ArtisanPackUI\SEO\Contracts\SchemaTypeContract;
+use Throwable;
 
 /**
  * AbstractSchema class.
@@ -103,10 +104,54 @@ abstract class AbstractSchema implements SchemaTypeContract
 	 */
 	protected function getBaseSchema(): array
 	{
-		return [
+		$schema = [
 			'@context' => 'https://schema.org',
 			'@type'    => $this->getType(),
 		];
+
+		$id = $this->getSchemaId();
+		if ( null !== $id && '' !== $id ) {
+			$schema['@id'] = $id;
+		}
+
+		return $schema;
+	}
+
+	/**
+	 * Return a stable @id URL for this schema node so a graph can
+	 * cross-reference entities. Subclasses override this to provide a
+	 * deterministic fragment ID (e.g. `/#organization`). Returning null
+	 * causes no `@id` to be emitted.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @return string|null
+	 */
+	protected function getSchemaId(): ?string
+	{
+		return null;
+	}
+
+	/**
+	 * Build a URL with a fragment for use as an @id, safely falling back
+	 * to the fragment alone when the URL helper is unavailable (e.g.
+	 * in some unit-test contexts).
+	 *
+	 * @since 1.4.0
+	 *
+	 * @param  string  $fragment  Fragment identifier, e.g. `/#organization`.
+	 *
+	 * @return string
+	 */
+	protected function buildIdFor( string $fragment ): string
+	{
+		try {
+			return url( $fragment );
+		} catch ( Throwable $e ) {
+			$appUrl = (string) config( 'app.url', '' );
+
+			return rtrim( $appUrl, '/' ) . $fragment;
+		}
 	}
 
 	/**
