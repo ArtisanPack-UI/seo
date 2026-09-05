@@ -123,13 +123,69 @@ describe( 'AiCrawlerService', function (): void {
 			->and( $service->isUserAgentBlocked( '' ) )->toBeFalse();
 	} );
 
-	it( 'flips a group to allow when default_allow is false and blocked is false', function (): void {
+	it( 'keeps a group allowed when default_allow is false but blocked is explicitly false', function (): void {
+		// The shipped defaults set blocked => false on every group, which acts as
+		// an explicit opt-in. Flipping default_allow to false must not override
+		// those explicit opt-ins.
 		config( [ 'seo.robots.ai_crawlers.default_allow' => false ] );
 
 		$rules = ( new AiCrawlerService() )->getResolvedRules();
 
-		expect( $rules['openai']['allow'] )->toBeFalse()
+		expect( $rules['openai']['allow'] )->toBeTrue()
 			->and( $rules['openai']['blocked'] )->toBeFalse();
+	} );
+
+	it( 'blocks a group when default_allow is false and blocked flag is absent', function (): void {
+		config( [
+			'seo.robots.ai_crawlers.default_allow' => false,
+			'seo.robots.ai_crawlers.groups'        => [
+				'openai' => [
+					'label'       => 'OpenAI',
+					'user_agents' => [ 'GPTBot', 'ChatGPT-User' ],
+				],
+				'anthropic' => [
+					'label'       => 'Anthropic',
+					'user_agents' => [ 'ClaudeBot' ],
+					'blocked'     => false,
+				],
+			],
+		] );
+
+		$service = new AiCrawlerService();
+		$rules   = $service->getResolvedRules();
+
+		expect( $rules['openai']['blocked'] )->toBeTrue()
+			->and( $rules['openai']['allow'] )->toBeFalse()
+			->and( $rules['anthropic']['blocked'] )->toBeFalse()
+			->and( $rules['anthropic']['allow'] )->toBeTrue();
+
+		$blocked = $service->getBlockedUserAgents();
+		expect( $blocked )->toContain( 'GPTBot' )
+			->and( $blocked )->toContain( 'ChatGPT-User' )
+			->and( $blocked )->not->toContain( 'ClaudeBot' );
+
+		expect( $service->isGroupBlocked( 'openai' ) )->toBeTrue()
+			->and( $service->isGroupBlocked( 'anthropic' ) )->toBeFalse();
+	} );
+
+	it( 'emits Disallow blocks for every group when default_allow=false and no explicit opt-ins', function (): void {
+		config( [
+			'seo.robots.ai_crawlers.default_allow' => false,
+			'seo.robots.ai_crawlers.groups'        => [
+				'openai' => [
+					'label'       => 'OpenAI',
+					'user_agents' => [ 'GPTBot' ],
+				],
+				'anthropic' => [
+					'label'       => 'Anthropic',
+					'user_agents' => [ 'ClaudeBot' ],
+				],
+			],
+		] );
+
+		$service = new AiCrawlerService();
+
+		expect( $service->getBlockedUserAgents() )->toBe( [ 'GPTBot', 'ClaudeBot' ] );
 	} );
 
 	it( 'reports isGroupBlocked false for unknown groups', function (): void {

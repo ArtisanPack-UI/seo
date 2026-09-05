@@ -73,7 +73,14 @@ class AiCrawlerService
 			return false;
 		}
 
-		return true === ( $groups[ $group ]['blocked'] ?? false );
+		$hasBlockedFlag = array_key_exists( 'blocked', $groups[ $group ] );
+		$explicit       = $hasBlockedFlag ? (bool) $groups[ $group ]['blocked'] : null;
+
+		if ( $this->defaultAllow() ) {
+			return true === $explicit;
+		}
+
+		return false !== $explicit;
 	}
 
 	/**
@@ -110,10 +117,22 @@ class AiCrawlerService
 	 */
 	public function getBlockedUserAgents(): array
 	{
-		$blocked = [];
+		$blocked      = [];
+		$defaultAllow = $this->defaultAllow();
 
 		foreach ( $this->getGroups() as $key => $group ) {
-			if ( true !== ( $group['blocked'] ?? false ) ) {
+			$hasBlockedFlag = array_key_exists( 'blocked', $group );
+			$explicit       = $hasBlockedFlag ? (bool) $group['blocked'] : null;
+
+			if ( $defaultAllow ) {
+				// Opt-in mode: only groups explicitly flagged blocked=true are disallowed.
+				$isBlocked = true === $explicit;
+			} else {
+				// Kill-switch mode: every group is blocked unless explicitly opted back in.
+				$isBlocked = false !== $explicit;
+			}
+
+			if ( ! $isBlocked ) {
 				continue;
 			}
 
@@ -149,14 +168,17 @@ class AiCrawlerService
 		$resolved     = [];
 
 		foreach ( $this->getGroups() as $key => $group ) {
-			$key     = (string) $key;
-			$blocked = true === ( $group['blocked'] ?? false );
+			$key            = (string) $key;
+			$hasBlockedFlag = array_key_exists( 'blocked', $group );
+			$explicit       = $hasBlockedFlag ? (bool) $group['blocked'] : null;
+
+			$blocked = $defaultAllow ? true === $explicit : false !== $explicit;
 
 			$resolved[ $key ] = [
 				'label'       => (string) ( $group['label'] ?? $key ),
 				'user_agents' => $this->getUserAgentsForGroup( $key ),
 				'blocked'     => $blocked,
-				'allow'       => $blocked ? false : $defaultAllow,
+				'allow'       => ! $blocked,
 			];
 		}
 
