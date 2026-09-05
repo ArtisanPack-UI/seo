@@ -4,7 +4,21 @@ title: SEO Analysis
 
 # SEO Analysis
 
-ArtisanPack UI SEO includes a content analysis system with 8 built-in analyzers to help optimize your content for search engines.
+ArtisanPack UI SEO includes a content analysis system with 10 built-in analyzers to help optimize your content for search engines. Two of those — `FocusKeywordAnalyzer` and `AiReadinessAnalyzer` — were added in 1.4.0.
+
+Both new analyzers handle non-ASCII content correctly:
+
+- `FocusKeywordAnalyzer` lowercases through `mb_strtolower` so
+  German `ß`, Turkish dotted `İ`, and CJK keywords all match across
+  the title, description, URL, H1, subheadings, first paragraph, and
+  alt text.
+- `AiReadinessAnalyzer::countWords()` uses `preg_split('/\\s+/u', ...)`
+  so Japanese and Cyrillic first paragraphs report a non-zero word
+  count and no longer trigger a false "no opening paragraph" warning.
+
+The AI-readiness analyzer flags whether the first paragraph fits a
+~60-word summary window (a common LLM extraction target) and whether
+the focus keyword appears in that paragraph.
 
 ## Overview
 

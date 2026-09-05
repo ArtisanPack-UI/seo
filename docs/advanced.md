@@ -50,6 +50,30 @@ Publish React or Vue SEO components and TypeScript type definitions to your appl
 
 [Learn more about Frontend Scaffolding →](Advanced-Frontend-Scaffolding)
 
+### llms.txt (1.4.0+)
+
+Generate an AI-discovery manifest ([llmstxt.org](https://llmstxt.org/)) alongside the XML sitemap.
+
+[Learn more about llms.txt →](Advanced-Llms-Txt)
+
+### IndexNow (1.4.0+)
+
+Notify Bing/Yandex/Seznam/Naver of URL changes with a batching submitter that surfaces per-URL rejections.
+
+[Learn more about IndexNow →](Advanced-Indexnow)
+
+### RSS and Atom Feeds (1.4.0+)
+
+Render RSS 2.0 and Atom 1.0 feeds with sanitized XML output and http-scheme link enforcement.
+
+[Learn more about Feeds →](Advanced-Feeds)
+
+### OG Image Generator (1.4.0+)
+
+Deterministically render MightyShare-style social cards to your storage disk.
+
+[Learn more about OG Images →](Advanced-Og-Image)
+
 ## Quick Reference
 
 ### Enable/Disable Features

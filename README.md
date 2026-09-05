@@ -49,6 +49,12 @@ class Post extends Model
 - **Performance Caching**: Comprehensive caching for meta tags, sitemaps, and redirects
 - **Admin Components**: Livewire components for visual SEO management
 - **AI Features**: Five AI agents for title/description suggestions, content analysis, schema generation, and hreflang gap detection (requires `artisanpack-ui/ai`)
+- **AI Discovery**: `llms.txt` manifest generation ([docs](docs/advanced/llms-txt.md)) and per-group AI-crawler robots controls with a working `default_allow` kill-switch ([docs](docs/advanced/robots.md))
+- **IndexNow**: Batching submitter for Bing/Yandex/Seznam/Naver with per-URL rejection surfacing ([docs](docs/advanced/indexnow.md))
+- **RSS / Atom Feeds**: RSS 2.0 and Atom 1.0 generator with XML control-char sanitization and http-scheme link enforcement ([docs](docs/advanced/feeds.md))
+- **OG Image Generator**: MightyShare-style social cards rendered via GD, deterministically cached, alpha-preserving ([docs](docs/advanced/og-image.md))
+- **AI-Readiness Analyzer**: First-paragraph summary window + focus-keyword placement checks with multibyte support
+- **Extensible Schema Graph**: `apSeoAddSchema()` helper + `SchemaCollector` service, every graph node emits a stable `@id` and cross-references publisher
 
 ## Components
 
@@ -83,6 +89,11 @@ class Post extends Model
 ### Schema Types
 
 Article, BlogPosting, Product, Organization, Person, LocalBusiness, Event, Recipe, FAQPage, HowTo, BreadcrumbList, WebSite, WebPage, VideoObject
+
+Organization now emits validated `sameAs` URLs and supports a
+width/height-carrying `ImageObject` for the publisher logo.
+LocalBusiness accepts dated / holiday `OpeningHoursSpecification`
+entries with strict ISO-8601 `validFrom` / `validThrough`.
 
 ## AI Features
 
