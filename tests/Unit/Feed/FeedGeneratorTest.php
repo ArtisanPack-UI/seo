@@ -496,3 +496,85 @@ describe( 'FeedGenerator providers', function (): void {
 	} );
 
 } );
+
+describe( 'FeedGenerator sanitization + link scheme guards', function (): void {
+
+	it( 'strips XML 1.0 forbidden control characters from RSS entry titles', function (): void {
+		$generator = new FeedGenerator();
+		$entry     = makeFeedEntry( [ 'title' => "\x00\x0B\x0Chello" ] );
+
+		$xml = $generator->generateRss( 'Blog', 'https://example.com', 'desc', [ $entry ] );
+
+		$doc = new DOMDocument();
+		expect( $doc->loadXML( $xml ) )->toBeTrue();
+
+		$title = $doc->getElementsByTagName( 'item' )->item( 0 )->getElementsByTagName( 'title' )->item( 0 )->nodeValue;
+		expect( $title )->toBe( 'hello' )
+			->and( simplexml_load_string( $xml ) )->not->toBeFalse();
+	} );
+
+	it( 'drops feed entries whose link uses javascript: scheme', function (): void {
+		Illuminate\Support\Facades\Log::spy();
+		$generator = new FeedGenerator();
+
+		$bad  = makeFeedEntry( [ 'link' => 'javascript:alert(1)' ] );
+		$good = makeFeedEntry( [ 'link' => 'https://example.com/ok' ] );
+
+		$xml = $generator->generateRss( 'Blog', 'https://example.com', 'desc', [ $bad, $good ] );
+
+		$doc = new DOMDocument();
+		expect( $doc->loadXML( $xml ) )->toBeTrue();
+
+		$items = $doc->getElementsByTagName( 'item' );
+		expect( $items->length )->toBe( 1 );
+		expect( $xml )->not->toContain( 'javascript:' );
+
+		Illuminate\Support\Facades\Log::shouldHaveReceived( 'warning' )->atLeast()->once();
+	} );
+
+	it( 'drops feed entries with data: scheme links from Atom output', function (): void {
+		Illuminate\Support\Facades\Log::spy();
+		$generator = new FeedGenerator();
+
+		$bad = makeFeedEntry( [ 'link' => 'data:text/html,<script>alert(1)</script>' ] );
+
+		$xml = $generator->generateAtom( 'Blog', 'https://example.com', 'desc', [ $bad ] );
+
+		$doc = new DOMDocument();
+		expect( $doc->loadXML( $xml ) )->toBeTrue();
+		expect( $doc->getElementsByTagName( 'entry' )->length )->toBe( 0 );
+	} );
+
+	it( 'logs a notice when Atom feed_id defaults to the feed URL', function (): void {
+		Illuminate\Support\Facades\Log::spy();
+		config()->set( 'seo.feeds.feed_id', null );
+
+		$generator = new FeedGenerator();
+		$generator->generateAtom( 'Blog', 'https://example.com', 'desc', [] );
+
+		Illuminate\Support\Facades\Log::shouldHaveReceived( 'notice' )->atLeast()->once();
+	} );
+
+	it( 'uses a configured seo.feeds.feed_id verbatim as Atom <id>', function (): void {
+		config()->set( 'seo.feeds.feed_id', 'tag:example.com,2026:blog' );
+
+		$generator = new FeedGenerator();
+		$xml       = $generator->generateAtom( 'Blog', 'https://example.com', 'desc', [] );
+
+		$doc = new DOMDocument();
+		expect( $doc->loadXML( $xml ) )->toBeTrue();
+		expect( $doc->getElementsByTagName( 'id' )->item( 0 )->nodeValue )->toBe( 'tag:example.com,2026:blog' );
+	} );
+
+	it( 'preserves the ]]> escape while sanitizing control chars in CDATA', function (): void {
+		$generator = new FeedGenerator();
+		$entry     = makeFeedEntry( [ 'summary' => "before]]>after\x0C" ] );
+
+		$xml = $generator->generateRss( 'Blog', 'https://example.com', 'desc', [ $entry ] );
+
+		$doc = new DOMDocument();
+		expect( $doc->loadXML( $xml ) )->toBeTrue();
+		expect( $xml )->toContain( 'before' )->and( $xml )->toContain( 'after' );
+	} );
+
+} );

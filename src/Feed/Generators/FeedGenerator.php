@@ -23,6 +23,7 @@ use DateTimeImmutable;
 use DateTimeInterface;
 use Exception;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 use XMLWriter;
 use function applyFilters;
 
@@ -94,9 +95,9 @@ class FeedGenerator
 		$writer->writeAttribute( 'xmlns:dc', self::RSS_DC_NS );
 
 		$writer->startElement( 'channel' );
-		$writer->writeElement( 'title', $title );
-		$writer->writeElement( 'link', $link );
-		$writer->writeElement( 'description', $description );
+		$writer->writeElement( 'title', $this->sanitizeXmlText( $title ) );
+		$writer->writeElement( 'link', $this->isValidLinkScheme( $link ) ? $link : '' );
+		$writer->writeElement( 'description', $this->sanitizeXmlText( $description ) );
 		// RSS 2.0 <language> follows RFC 1766 (e.g. en-us). Laravel's app.locale
 		// often uses the underscore form (en_US, pt_BR); normalize it so feed
 		// validators accept the output.
@@ -106,7 +107,7 @@ class FeedGenerator
 		$lastBuild = $this->resolveFeedTimestamp( $options['updated_at'] ?? null, $normalized );
 		$writer->writeElement( 'lastBuildDate', $lastBuild->format( DateTimeInterface::RSS ) );
 
-		if ( ! empty( $options['feed_url'] ) ) {
+		if ( ! empty( $options['feed_url'] ) && $this->isValidLinkScheme( (string) $options['feed_url'] ) ) {
 			$writer->startElement( 'atom:link' );
 			$writer->writeAttribute( 'href', (string) $options['feed_url'] );
 			$writer->writeAttribute( 'rel', 'self' );
@@ -149,7 +150,14 @@ class FeedGenerator
 		$normalized = $this->applyEntriesFilter( $normalized, 'atom' );
 
 		$feedUrl = (string) ( $options['feed_url'] ?? $link );
-		$feedId  = (string) ( $options['feed_id'] ?? $feedUrl );
+
+		$configuredFeedId = $options['feed_id'] ?? config( 'seo.feeds.feed_id' );
+		if ( null === $configuredFeedId || '' === (string) $configuredFeedId ) {
+			$feedId = $feedUrl;
+			Log::notice( 'Atom feed-level <id> defaulted to feed URL; set seo.feeds.feed_id to a stable tag: IRI.' );
+		} else {
+			$feedId = (string) $configuredFeedId;
+		}
 
 		$writer = new XMLWriter();
 		$writer->openMemory();
@@ -160,21 +168,25 @@ class FeedGenerator
 		$writer->startElement( 'feed' );
 		$writer->writeAttribute( 'xmlns', self::ATOM_NS );
 
-		$writer->writeElement( 'title', $title );
-		$writer->writeElement( 'subtitle', $description );
+		$writer->writeElement( 'title', $this->sanitizeXmlText( $title ) );
+		$writer->writeElement( 'subtitle', $this->sanitizeXmlText( $description ) );
 		$writer->writeElement( 'id', $feedId );
 
-		$writer->startElement( 'link' );
-		$writer->writeAttribute( 'rel', 'alternate' );
-		$writer->writeAttribute( 'type', 'text/html' );
-		$writer->writeAttribute( 'href', $link );
-		$writer->endElement();
+		if ( $this->isValidLinkScheme( $link ) ) {
+			$writer->startElement( 'link' );
+			$writer->writeAttribute( 'rel', 'alternate' );
+			$writer->writeAttribute( 'type', 'text/html' );
+			$writer->writeAttribute( 'href', $link );
+			$writer->endElement();
+		}
 
-		$writer->startElement( 'link' );
-		$writer->writeAttribute( 'rel', 'self' );
-		$writer->writeAttribute( 'type', 'application/atom+xml' );
-		$writer->writeAttribute( 'href', $feedUrl );
-		$writer->endElement();
+		if ( $this->isValidLinkScheme( $feedUrl ) ) {
+			$writer->startElement( 'link' );
+			$writer->writeAttribute( 'rel', 'self' );
+			$writer->writeAttribute( 'type', 'application/atom+xml' );
+			$writer->writeAttribute( 'href', $feedUrl );
+			$writer->endElement();
+		}
 
 		$updated = $this->resolveFeedTimestamp( $options['updated_at'] ?? null, $normalized );
 		$writer->writeElement( 'updated', $updated->format( DateTimeInterface::ATOM ) );
@@ -185,9 +197,9 @@ class FeedGenerator
 		$feedAuthorName  = (string) ( $options['author'] ?? config( 'app.name', 'Site' ) );
 		$feedAuthorEmail = isset( $options['author_email'] ) ? (string) $options['author_email'] : null;
 		$writer->startElement( 'author' );
-		$writer->writeElement( 'name', $feedAuthorName );
+		$writer->writeElement( 'name', $this->sanitizeXmlText( $feedAuthorName ) );
 		if ( null !== $feedAuthorEmail ) {
-			$writer->writeElement( 'email', $feedAuthorEmail );
+			$writer->writeElement( 'email', $this->sanitizeXmlText( $feedAuthorEmail ) );
 		}
 		$writer->endElement();
 
@@ -255,17 +267,66 @@ class FeedGenerator
 		$normalized = [];
 
 		foreach ( $entries as $entry ) {
+			$dto = null;
 			if ( $entry instanceof FeedEntryDTO ) {
-				$normalized[] = $entry;
+				$dto = $entry;
+			} elseif ( is_array( $entry ) ) {
+				$dto = FeedEntryDTO::fromArray( $entry );
+			}
+
+			if ( null === $dto ) {
 				continue;
 			}
 
-			if ( is_array( $entry ) ) {
-				$normalized[] = FeedEntryDTO::fromArray( $entry );
+			if ( ! $this->isValidLinkScheme( $dto->link ) ) {
+				Log::warning( 'Dropped feed entry with disallowed link scheme.', [
+					'link'  => $dto->link,
+					'title' => $dto->title,
+				] );
+				continue;
 			}
+
+			$normalized[] = $dto;
 		}
 
 		return collect( $normalized );
+	}
+
+	/**
+	 * Return true when a URL uses an http/https scheme.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @param  string  $url  The URL to validate.
+	 *
+	 * @return bool
+	 */
+	protected function isValidLinkScheme( string $url ): bool
+	{
+		if ( '' === $url ) {
+			return false;
+		}
+
+		$scheme = parse_url( $url, PHP_URL_SCHEME );
+		if ( ! is_string( $scheme ) ) {
+			return false;
+		}
+
+		return in_array( strtolower( $scheme ), [ 'http', 'https' ], true );
+	}
+
+	/**
+	 * Strip XML 1.0 forbidden control characters from consumer-supplied text.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @param  string  $value  Raw text.
+	 *
+	 * @return string
+	 */
+	protected function sanitizeXmlText( string $value ): string
+	{
+		return preg_replace( '/[\x00-\x08\x0B\x0C\x0E-\x1F]/u', '', $value ) ?? '';
 	}
 
 	/**
@@ -303,7 +364,7 @@ class FeedGenerator
 	{
 		$writer->startElement( 'item' );
 
-		$writer->writeElement( 'title', $entry->title );
+		$writer->writeElement( 'title', $this->sanitizeXmlText( $entry->title ) );
 		$writer->writeElement( 'link', $entry->link );
 
 		$writer->startElement( 'description' );
@@ -318,15 +379,15 @@ class FeedGenerator
 			$authorValue = null !== $entry->author
 				? sprintf( '%s (%s)', $entry->authorEmail, $entry->author )
 				: $entry->authorEmail;
-			$writer->writeElement( 'author', $authorValue );
+			$writer->writeElement( 'author', $this->sanitizeXmlText( $authorValue ) );
 		} elseif ( null !== $entry->author ) {
 			// RSS 2.0 requires <author> to be an email address; use Dublin Core
 			// for name-only authorship so validators accept the feed.
-			$writer->writeElement( 'dc:creator', $entry->author );
+			$writer->writeElement( 'dc:creator', $this->sanitizeXmlText( $entry->author ) );
 		}
 
 		foreach ( $entry->categories as $category ) {
-			$writer->writeElement( 'category', $category );
+			$writer->writeElement( 'category', $this->sanitizeXmlText( $category ) );
 		}
 
 		$guid = $entry->guid ?? $entry->link;
@@ -352,7 +413,7 @@ class FeedGenerator
 	{
 		$writer->startElement( 'entry' );
 
-		$writer->writeElement( 'title', $entry->title );
+		$writer->writeElement( 'title', $this->sanitizeXmlText( $entry->title ) );
 
 		$writer->startElement( 'link' );
 		$writer->writeAttribute( 'rel', 'alternate' );
@@ -371,16 +432,16 @@ class FeedGenerator
 
 		if ( null !== $entry->author ) {
 			$writer->startElement( 'author' );
-			$writer->writeElement( 'name', $entry->author );
+			$writer->writeElement( 'name', $this->sanitizeXmlText( $entry->author ) );
 			if ( null !== $entry->authorEmail ) {
-				$writer->writeElement( 'email', $entry->authorEmail );
+				$writer->writeElement( 'email', $this->sanitizeXmlText( $entry->authorEmail ) );
 			}
 			$writer->endElement();
 		}
 
 		foreach ( $entry->categories as $category ) {
 			$writer->startElement( 'category' );
-			$writer->writeAttribute( 'term', $category );
+			$writer->writeAttribute( 'term', $this->sanitizeXmlText( $category ) );
 			$writer->endElement();
 		}
 
@@ -410,7 +471,7 @@ class FeedGenerator
 	 */
 	protected function escapeCdata( string $value ): string
 	{
-		return str_replace( ']]>', ']]]]><![CDATA[>', $value );
+		return str_replace( ']]>', ']]]]><![CDATA[>', $this->sanitizeXmlText( $value ) );
 	}
 
 	/**
