@@ -52,10 +52,25 @@ jobs:
       matrix:
         include:
           - php: '8.2'
+            laravel: '11.*'
+            with-ai: false
+          - php: '8.2'
+            laravel: '12.*'
             with-ai: false
           - php: '8.3'
+            laravel: '11.*'
+            with-ai: true
+          - php: '8.3'
+            laravel: '12.*'
+            with-ai: true
+          - php: '8.3'
+            laravel: '13.*'
             with-ai: true
           - php: '8.4'
+            laravel: '12.*'
+            with-ai: true
+          - php: '8.4'
+            laravel: '13.*'
             with-ai: true
 
     steps:
@@ -86,6 +101,9 @@ jobs:
       - name: Remove AI dev dep (PHP 8.2)
         if: matrix.with-ai == false
         run: composer remove artisanpack-ui/ai --dev --no-update
+
+      - name: Pin Laravel version for matrix
+        run: composer require "illuminate/support:${{ matrix.laravel }}" --no-update --no-interaction
 
       - name: Install dependencies
         run: composer update --no-interaction --prefer-dist
