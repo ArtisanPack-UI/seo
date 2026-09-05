@@ -12,6 +12,16 @@ service always resolves to the same file — no re-render on cache hits.
 > Backend rationale is documented in
 > [og-image-backend-decision.md](../og-image-backend-decision.md).
 
+## Requirements
+
+The default renderer (`GdOgImageRenderer`) requires PHP's **`ext-gd`**
+extension. Without it, `imagecreatetruecolor()` is unavailable and the
+renderer throws `RuntimeException` on first use. `ext-gd` is listed in
+`composer.json`'s `suggest` block — required only when this feature is
+active. Confirm the extension is loaded in production (`php -m | grep -i gd`)
+and in CI (`extensions: gd` under `shivammathur/setup-php`). Swap in a
+custom `OgImageRendererContract` binding to avoid the dependency.
+
 ## Configuration
 
 ```php

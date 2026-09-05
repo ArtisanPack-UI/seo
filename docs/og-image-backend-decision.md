@@ -2,6 +2,19 @@
 
 Related: issue #74.
 
+## Requirements
+
+The default `GdOgImageRenderer` requires PHP's **`ext-gd`** extension.
+Without it, `imagecreatetruecolor()` is unavailable and the renderer
+throws `RuntimeException` the first time it is invoked. `ext-gd` is
+declared in `composer.json`'s `suggest` block rather than `require`
+because it is only needed when the OG image feature is used — swap in
+a custom `OgImageRendererContract` binding to avoid the dependency.
+
+Enable the extension in production PHP builds (most Docker base images
+and shared hosts include it; verify with `php -m | grep -i gd`) and in
+CI (`extensions: gd` under `shivammathur/setup-php`).
+
 ## Options considered
 
 | Backend | Availability | Fidelity | Ops cost | Test friendliness |

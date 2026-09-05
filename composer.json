@@ -41,6 +41,7 @@
     "livewire/livewire": "^3.8.3"
   },
   "suggest": {
+    "ext-gd": "Required for the default OG image renderer (GdOgImageRenderer). Without ext-gd, imagecreatetruecolor() is unavailable and the renderer throws RuntimeException.",
     "livewire/livewire": "Required for using the SeoMetaEditor Livewire component (^3.8.3)",
     "artisanpack-ui/livewire-ui-components": "Required for UI components in the SeoMetaEditor (^1.0)",
     "artisanpack-ui/media-library": "Optional for media library integration in the SeoMetaEditor (^1.0)",
