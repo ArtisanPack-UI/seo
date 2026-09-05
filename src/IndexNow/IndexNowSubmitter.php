@@ -191,7 +191,7 @@ class IndexNowSubmitter
 			'urlList' => array_values( $batchUrls ),
 		];
 
-		$keyLocation = $this->keyProvider->getKeyLocation();
+		$keyLocation = $this->keyProvider->getKeyLocation( array_values( $batchUrls ) );
 
 		if ( null !== $keyLocation && '' !== $keyLocation ) {
 			$payload['keyLocation'] = $keyLocation;

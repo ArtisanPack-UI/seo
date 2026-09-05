@@ -33,7 +33,7 @@ function bindIndexNowKey( string $key ): void
 			return $this->key;
 		}
 
-		public function getKeyLocation(): ?string
+		public function getKeyLocation( ?array $urlBatch = null ): ?string
 		{
 			return null;
 		}

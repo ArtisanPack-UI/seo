@@ -40,7 +40,7 @@ function makeKeyProvider( string $key = 'a1b2c3d4e5f6a7b8', ?string $location = 
 			return $this->key;
 		}
 
-		public function getKeyLocation(): ?string
+		public function getKeyLocation( ?array $urlBatch = null ): ?string
 		{
 			return $this->location;
 		}
@@ -238,5 +238,65 @@ describe( 'IndexNowSubmitter', function (): void {
 		$first     = $submitter->submit( 'https://example.com/x' )->first();
 
 		expect( $first['success'] )->toBeTrue();
+	} );
+
+	it( 'omits keyLocation from batches whose host is outside the configured location', function (): void {
+		// keyLocation is verified only on a.example.com; a second host in
+		// the submission must not carry the same keyLocation, or IndexNow
+		// rejects the payload as unverified. The provider must return
+		// null for the out-of-scope batch so the submitter falls back to
+		// the default per-host location (key only, no keyLocation).
+		Illuminate\Support\Facades\Log::spy();
+
+		config( [
+			'seo.indexnow.key'          => 'abcdef1234567890',
+			'seo.indexnow.key_location' => 'https://a.example.com/abcdef1234567890.txt',
+		] );
+
+		Http::fake( [ 'api.indexnow.org/*' => Http::response( '', 200 ) ] );
+
+		$submitter = new IndexNowSubmitter( new ConfigIndexNowKeyProvider() );
+		$submitter->submit( [
+			'https://a.example.com/one',
+			'https://b.example.com/two',
+		] );
+
+		Http::assertSent( function ( HttpRequest $request ): bool {
+			if ( 'a.example.com' !== $request->data()['host'] ) {
+				return false;
+			}
+
+			return ( $request->data()['keyLocation'] ?? null ) === 'https://a.example.com/abcdef1234567890.txt';
+		} );
+
+		Http::assertSent( function ( HttpRequest $request ): bool {
+			if ( 'b.example.com' !== $request->data()['host'] ) {
+				return false;
+			}
+
+			return ! array_key_exists( 'keyLocation', $request->data() );
+		} );
+
+		Illuminate\Support\Facades\Log::shouldHaveReceived( 'warning' )
+			->atLeast()
+			->once();
+	} );
+
+	it( 'omits keyLocation when its path does not cover the batch URLs', function (): void {
+		config( [
+			'seo.indexnow.key'          => 'abcdef1234567890',
+			'seo.indexnow.key_location' => 'https://example.com/verify/abcdef1234567890.txt',
+		] );
+
+		$provider = new ConfigIndexNowKeyProvider();
+
+		// URL under /verify/ is covered.
+		expect( $provider->getKeyLocation( [ 'https://example.com/verify/child' ] ) )
+			->toBe( 'https://example.com/verify/abcdef1234567890.txt' );
+
+		// URL outside /verify/ is not covered — the key file only proves
+		// ownership of the /verify/ subtree per the IndexNow spec.
+		expect( $provider->getKeyLocation( [ 'https://example.com/blog/post' ] ) )
+			->toBeNull();
 	} );
 } );
