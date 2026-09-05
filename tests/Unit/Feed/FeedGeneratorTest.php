@@ -76,7 +76,7 @@ describe( 'FeedGenerator RSS 2.0', function (): void {
 
 		expect( $item->getElementsByTagName( 'title' )->item( 0 )->nodeValue )->toBe( 'Hello & Welcome' )
 			->and( $item->getElementsByTagName( 'link' )->item( 0 )->nodeValue )->toBe( 'https://example.com/posts/hello' )
-			->and( $item->getElementsByTagName( 'description' )->item( 0 )->nodeValue )->toBe( '<p>First post.</p>' )
+			->and( $item->getElementsByTagName( 'description' )->item( 0 )->nodeValue )->toBe( 'First post.' )
 			->and( $item->getElementsByTagName( 'pubDate' )->item( 0 )->nodeValue )->toBe( 'Fri, 02 Jan 2026 10:00:00 +0000' )
 			->and( $item->getElementsByTagName( 'author' )->item( 0 )->nodeValue )->toBe( 'jane@example.com (Jane Doe)' );
 
@@ -331,8 +331,11 @@ describe( 'FeedGenerator security & spec compliance', function (): void {
 
 	it( 'neutralizes CDATA terminators embedded in summaries', function (): void {
 		$generator = new FeedGenerator();
-		$payload   = 'safe]]><script>alert(1)</script><![CDATA[still safe';
-		$entry     = new FeedEntryDTO(
+		// Summary contains both a CDATA breakout AND hostile HTML; the
+		// generator must strip HTML before rendering so no <script> tag
+		// survives into the feed and no CDATA section closes early.
+		$payload = 'safe]]><script>alert(1)</script><![CDATA[still safe';
+		$entry   = new FeedEntryDTO(
 			title: 'CDATA breakout',
 			link: 'https://example.com/x',
 			summary: $payload,
@@ -341,13 +344,13 @@ describe( 'FeedGenerator security & spec compliance', function (): void {
 		$rss = $generator->generateRss( 'Blog', 'https://example.com', 'Desc', [ $entry ] );
 		$doc = new DOMDocument();
 		expect( $doc->loadXML( $rss ) )->toBeTrue();
-		// One item, no injected sibling <script>, payload preserved verbatim.
 		$item = $doc->getElementsByTagName( 'item' );
 		expect( $item->length )->toBe( 1 )
 			->and( $doc->getElementsByTagName( 'script' )->length )->toBe( 0 );
 		$itemDescs = $item->item( 0 )->getElementsByTagName( 'description' );
 		expect( $itemDescs->length )->toBe( 1 )
-			->and( $itemDescs->item( 0 )->nodeValue )->toBe( $payload );
+			->and( $itemDescs->item( 0 )->nodeValue )->toContain( 'safe' )
+			->and( $itemDescs->item( 0 )->nodeValue )->not->toContain( '<script' );
 
 		$atom = $generator->generateAtom( 'Blog', 'https://example.com', 'Desc', [ $entry ] );
 		$doc  = new DOMDocument();
@@ -564,6 +567,38 @@ describe( 'FeedGenerator sanitization + link scheme guards', function (): void {
 		$doc = new DOMDocument();
 		expect( $doc->loadXML( $xml ) )->toBeTrue();
 		expect( $doc->getElementsByTagName( 'id' )->item( 0 )->nodeValue )->toBe( 'tag:example.com,2026:blog' );
+	} );
+
+	it( 'strips HTML from summaries to prevent stored XSS in feed readers', function (): void {
+		$generator = new FeedGenerator();
+		$entry     = new FeedEntryDTO(
+			title: 'XSS attempt',
+			link: 'https://example.com/xss',
+			summary: '<script>alert(1)</script><img src=x onerror=alert(2)>hello world',
+		);
+
+		// RSS: description is CDATA-wrapped but must not carry a <script>.
+		$rss = $generator->generateRss( 'Blog', 'https://example.com', 'desc', [ $entry ] );
+		$doc = new DOMDocument();
+		expect( $doc->loadXML( $rss ) )->toBeTrue();
+		$desc = $doc->getElementsByTagName( 'description' )->item( 1 );
+		expect( $desc )->not->toBeNull()
+			->and( $desc->nodeValue )->toContain( 'hello world' )
+			->and( $desc->nodeValue )->not->toContain( '<script' )
+			->and( $desc->nodeValue )->not->toContain( 'onerror' )
+			->and( $rss )->not->toContain( '<script>alert' );
+
+		// Atom: summary now emitted as type="text", so any surviving markup
+		// is escaped by XMLWriter::text() rather than rendered as HTML.
+		$atom = $generator->generateAtom( 'Blog', 'https://example.com', 'desc', [ $entry ] );
+		$doc  = new DOMDocument();
+		expect( $doc->loadXML( $atom ) )->toBeTrue();
+		$summary = $doc->getElementsByTagNameNS( 'http://www.w3.org/2005/Atom', 'summary' )->item( 0 );
+		expect( $summary )->not->toBeNull()
+			->and( $summary->getAttribute( 'type' ) )->toBe( 'text' )
+			->and( $summary->nodeValue )->toContain( 'hello world' )
+			->and( $summary->nodeValue )->not->toContain( '<script' )
+			->and( $atom )->not->toContain( '<script>alert' );
 	} );
 
 	it( 'preserves the ]]> escape while sanitizing control chars in CDATA', function (): void {

@@ -368,7 +368,7 @@ class FeedGenerator
 		$writer->writeElement( 'link', $entry->link );
 
 		$writer->startElement( 'description' );
-		$writer->writeCdata( $this->escapeCdata( $entry->summary ) );
+		$writer->writeCdata( $this->escapeCdata( $this->sanitizeSummary( $entry->summary ) ) );
 		$writer->endElement();
 
 		if ( null !== $entry->publishedAt ) {
@@ -446,8 +446,8 @@ class FeedGenerator
 		}
 
 		$writer->startElement( 'summary' );
-		$writer->writeAttribute( 'type', 'html' );
-		$writer->writeCdata( $this->escapeCdata( $entry->summary ) );
+		$writer->writeAttribute( 'type', 'text' );
+		$writer->text( $this->sanitizeSummary( $entry->summary ) );
 		$writer->endElement();
 
 		$writer->endElement(); // entry
@@ -472,6 +472,30 @@ class FeedGenerator
 	protected function escapeCdata( string $value ): string
 	{
 		return str_replace( ']]>', ']]]]><![CDATA[>', $this->sanitizeXmlText( $value ) );
+	}
+
+	/**
+	 * Strip HTML from an entry summary to prevent stored XSS in feed readers.
+	 *
+	 * escapeCdata() protects the XML syntax layer but does not remove active
+	 * HTML such as `<script>` tags, event handlers, or `javascript:` URLs.
+	 * Rendering an untrusted summary as HTML in a subscriber's reader is a
+	 * stored-XSS vector; treating it as plain text is safer and matches the
+	 * expectations of most modern feed readers. Consumers who need rich
+	 * HTML in summaries should sanitize upstream (e.g. via kses) before
+	 * populating the FeedEntryDTO.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @param  string  $summary  The raw summary payload.
+	 *
+	 * @return string
+	 */
+	protected function sanitizeSummary( string $summary ): string
+	{
+		$stripped = strip_tags( $summary );
+
+		return html_entity_decode( $stripped, ENT_QUOTES | ENT_HTML5, 'UTF-8' );
 	}
 
 	/**
