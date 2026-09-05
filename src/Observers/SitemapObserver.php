@@ -22,6 +22,7 @@ use ArtisanPackUI\SEO\Services\SitemapService;
 use DateTimeInterface;
 use Exception;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 /**
@@ -127,6 +128,15 @@ class SitemapObserver
 	 * variants; without invalidation the pre-change snapshot keeps serving
 	 * until the TTL expires.
 	 *
+	 * The clear is deferred to `DB::afterCommit()` so that when the model
+	 * change is happening inside an outer transaction, the cache is not
+	 * purged until the writes are visible to other connections. A
+	 * concurrent sitemap request between the observer firing and the
+	 * transaction committing would otherwise re-cache pre-commit data
+	 * under the new generation, effectively pinning the stale snapshot
+	 * until the next mutation. If no transaction is active, Laravel runs
+	 * the callback immediately.
+	 *
 	 * @since 1.4.0
 	 *
 	 * @return void
@@ -135,7 +145,9 @@ class SitemapObserver
 	{
 		$service = $this->sitemapService ?? app( SitemapService::class );
 
-		$service->clearCache();
+		DB::afterCommit( static function () use ( $service ): void {
+			$service->clearCache();
+		} );
 	}
 
 	/**

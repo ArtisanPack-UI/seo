@@ -15,12 +15,14 @@
 declare( strict_types=1 );
 
 use ArtisanPackUI\SEO\Models\SitemapEntry;
+use ArtisanPackUI\SEO\Observers\SitemapObserver;
 use ArtisanPackUI\SEO\Services\SitemapService;
 use ArtisanPackUI\SEO\Traits\HasSeo;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 uses( RefreshDatabase::class );
@@ -138,6 +140,35 @@ it( 'invalidates cached sitemap XML when a soft-deleted model is restored', func
 	// request rebuilds fresh XML that still contains the restored URL.
 	$fresh = $service->generate();
 	expect( $fresh )->toContain( 'https://example.com/coming-back' );
+} );
+
+it( 'defers cache invalidation until after the outer DB transaction commits', function (): void {
+	// A spy service that counts clearCache() calls so the test can assert
+	// timing relative to the enclosing transaction. Using an in-place double
+	// rather than a mock keeps the test decoupled from the real cache store.
+	$spy = new class () extends SitemapService {
+		public int $clearCalls = 0;
+
+		public function clearCache(): void
+		{
+			++$this->clearCalls;
+		}
+	};
+
+	$observer = new SitemapObserver( $spy );
+
+	DB::transaction( function () use ( $observer, $spy ): void {
+		$page = SitemapObserverTestPage::create( [ 'title' => 'Txn', 'slug' => 'txn' ] );
+		$observer->saved( $page );
+
+		// Still inside the outer transaction: the deferred invalidation
+		// must not have fired yet, or a concurrent read could re-cache
+		// pre-commit data under the new generation.
+		expect( $spy->clearCalls )->toBe( 0 );
+	} );
+
+	// Once the transaction commits, DB::afterCommit fires the callback.
+	expect( $spy->clearCalls )->toBe( 1 );
 } );
 
 it( 'invalidates trailing sitemap pages when deletion shrinks the page count', function (): void {
