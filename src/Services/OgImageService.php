@@ -22,7 +22,9 @@ namespace ArtisanPackUI\SEO\Services;
 use ArtisanPackUI\SEO\Contracts\OgImageRendererContract;
 use ArtisanPackUI\SEO\DTOs\OgImageTemplate;
 use Illuminate\Contracts\Filesystem\Filesystem;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
+use Throwable;
 
 /**
  * OgImageService class.
@@ -88,7 +90,7 @@ class OgImageService
 		$disk     = $this->disk();
 
 		if ( $forceRegenerate || ! $disk->exists( $path ) ) {
-			$disk->put( $path, $this->renderer->render( $template, $title, $subtitle ) );
+			$this->renderUnderLock( $path, $template, $title, $subtitle, $disk, $forceRegenerate );
 		}
 
 		return $disk->url( $path );
@@ -156,6 +158,46 @@ class OgImageService
 		$config = (array) config( 'seo.og_image.template', [] );
 
 		return OgImageTemplate::fromConfig( $config, $overrides );
+	}
+
+	/**
+	 * Render the image under a cache lock so concurrent misses don't each
+	 * spend ~200ms of GD CPU on identical work. Falls back to a plain
+	 * render when the underlying cache store doesn't support locks.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @param  string           $path            Relative storage path.
+	 * @param  OgImageTemplate  $template        Resolved template.
+	 * @param  string           $title           Title text.
+	 * @param  string|null      $subtitle        Optional subtitle.
+	 * @param  Filesystem       $disk            Storage disk.
+	 * @param  bool             $forceRegenerate Whether force flag was set.
+	 *
+	 * @return void
+	 */
+	protected function renderUnderLock(
+		string $path,
+		OgImageTemplate $template,
+		string $title,
+		?string $subtitle,
+		Filesystem $disk,
+		bool $forceRegenerate,
+	): void {
+		try {
+			$lock = Cache::lock( 'og-image:' . $path, 30 );
+			$lock->block( 5, function () use ( $disk, $path, $template, $title, $subtitle, $forceRegenerate ): void {
+				// Re-check after acquiring the lock: another worker may have
+				// finished the render while we were queued.
+				if ( ! $forceRegenerate && $disk->exists( $path ) ) {
+					return;
+				}
+
+				$disk->put( $path, $this->renderer->render( $template, $title, $subtitle ) );
+			} );
+		} catch ( Throwable $e ) {
+			$disk->put( $path, $this->renderer->render( $template, $title, $subtitle ) );
+		}
 	}
 
 	/**

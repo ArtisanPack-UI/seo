@@ -20,6 +20,7 @@ namespace ArtisanPackUI\SEO\Services\OgImage;
 use ArtisanPackUI\SEO\Contracts\OgImageRendererContract;
 use ArtisanPackUI\SEO\DTOs\OgImageTemplate;
 use GdImage;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
 /**
@@ -60,20 +61,32 @@ class GdOgImageRenderer implements OgImageRendererContract
 			throw new RuntimeException( 'GD failed to allocate the OG image canvas.' );
 		}
 
-		$this->fillBackground( $image, $template );
-		$this->drawBackgroundImage( $image, $template );
-		$this->drawLogo( $image, $template );
-		$this->drawTitle( $image, $template, $title );
+		// Enable alpha preservation so a transparent PNG logo composites
+		// onto the canvas without producing black halos (P1-7).
+		imagesavealpha( $image, true );
 
-		if ( null !== $subtitle && '' !== trim( $subtitle ) ) {
-			$this->drawSubtitle( $image, $template, $subtitle );
+		try {
+			$this->fillBackground( $image, $template );
+			$this->drawBackgroundImage( $image, $template );
+			$this->drawLogo( $image, $template );
+			$this->drawTitle( $image, $template, $title );
+
+			if ( null !== $subtitle && '' !== trim( $subtitle ) ) {
+				$this->drawSubtitle( $image, $template, $subtitle );
+			}
+
+			ob_start();
+			imagepng( $image );
+			$png = (string) ob_get_clean();
+
+			return $png;
+		} finally {
+			// Release GD resources — queue workers rendering many images
+			// otherwise grow their memory footprint unboundedly (P1-6).
+			if ( $image instanceof GdImage ) {
+				imagedestroy( $image );
+			}
 		}
-
-		ob_start();
-		imagepng( $image );
-		$png = (string) ob_get_clean();
-
-		return $png;
 	}
 
 	/**
@@ -122,18 +135,22 @@ class GdOgImageRenderer implements OgImageRendererContract
 			return;
 		}
 
-		imagecopyresampled(
-			$image,
-			$bg,
-			0,
-			0,
-			0,
-			0,
-			$template->width,
-			$template->height,
-			imagesx( $bg ),
-			imagesy( $bg ),
-		);
+		try {
+			imagecopyresampled(
+				$image,
+				$bg,
+				0,
+				0,
+				0,
+				0,
+				$template->width,
+				$template->height,
+				imagesx( $bg ),
+				imagesy( $bg ),
+			);
+		} finally {
+			imagedestroy( $bg );
+		}
 	}
 
 	/**
@@ -160,29 +177,33 @@ class GdOgImageRenderer implements OgImageRendererContract
 			return;
 		}
 
-		$sourceWidth  = imagesx( $logo );
-		$sourceHeight = imagesy( $logo );
+		try {
+			$sourceWidth  = imagesx( $logo );
+			$sourceHeight = imagesy( $logo );
 
-		if ( 0 === $sourceWidth || 0 === $sourceHeight ) {
-			return;
+			if ( 0 === $sourceWidth || 0 === $sourceHeight ) {
+				return;
+			}
+
+			$targetWidth  = $template->logoWidth;
+			$targetHeight = (int) round( $sourceHeight * ( $targetWidth / $sourceWidth ) );
+
+			imagealphablending( $image, true );
+			imagecopyresampled(
+				$image,
+				$logo,
+				$template->padding,
+				$template->padding,
+				0,
+				0,
+				$targetWidth,
+				$targetHeight,
+				$sourceWidth,
+				$sourceHeight,
+			);
+		} finally {
+			imagedestroy( $logo );
 		}
-
-		$targetWidth  = $template->logoWidth;
-		$targetHeight = (int) round( $sourceHeight * ( $targetWidth / $sourceWidth ) );
-
-		imagealphablending( $image, true );
-		imagecopyresampled(
-			$image,
-			$logo,
-			$template->padding,
-			$template->padding,
-			0,
-			0,
-			$targetWidth,
-			$targetHeight,
-			$sourceWidth,
-			$sourceHeight,
-		);
 	}
 
 	/**
@@ -356,7 +377,16 @@ class GdOgImageRenderer implements OgImageRendererContract
 
 		$bitmapFont = $this->bitmapFontFor( $size );
 
-		return imagefontwidth( $bitmapFont ) * strlen( $text );
+		// Use mb_strlen so multibyte characters are counted once each; the
+		// bitmap fallback still renders only Latin-1, so warn the caller
+		// when the text is not ASCII.
+		if ( 1 !== preg_match( '/^[\x20-\x7E]*$/', $text ) ) {
+			Log::warning( 'OG image bitmap fallback rendering non-ASCII text will produce mojibake; provide a TTF font path.', [
+				'text_length' => mb_strlen( $text, 'UTF-8' ),
+			] );
+		}
+
+		return imagefontwidth( $bitmapFont ) * mb_strlen( $text, 'UTF-8' );
 	}
 
 	/**
@@ -420,7 +450,18 @@ class GdOgImageRenderer implements OgImageRendererContract
 
 		$resource = @$loader( $path );
 
-		return $resource instanceof GdImage ? $resource : null;
+		if ( ! $resource instanceof GdImage ) {
+			return null;
+		}
+
+		// Preserve PNG alpha channel so a transparent logo doesn't
+		// composite onto a black rectangle (P1-7).
+		if ( IMAGETYPE_PNG === $info[2] || IMAGETYPE_WEBP === $info[2] ) {
+			imagealphablending( $resource, false );
+			imagesavealpha( $resource, true );
+		}
+
+		return $resource;
 	}
 
 	/**
@@ -444,7 +485,11 @@ class GdOgImageRenderer implements OgImageRendererContract
 		}
 
 		if ( 6 !== strlen( $hex ) || 1 !== preg_match( '/^[0-9a-fA-F]{6}$/', $hex ) ) {
-			return [ 0, 0, 0 ];
+			Log::warning( 'Malformed hex color supplied to OG image renderer; defaulting to white to avoid black-on-black cards.', [
+				'value' => $hex,
+			] );
+
+			return [ 255, 255, 255 ];
 		}
 
 		return [

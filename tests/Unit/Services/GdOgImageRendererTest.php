@@ -154,4 +154,35 @@ describe( 'GdOgImageRenderer', function (): void {
 		}
 	} );
 
+	it( 'renders 20 images in a loop without leaking (smoke)', function (): void {
+		$renderer = new GdOgImageRenderer();
+		$template = new OgImageTemplate(
+			width: 200,
+			height: 100,
+			backgroundColor: '#123456',
+			padding: 10,
+		);
+
+		for ( $i = 0; $i < 20; $i++ ) {
+			$png = $renderer->render( $template, 'Iteration ' . $i );
+			expect( strlen( $png ) )->toBeGreaterThan( 0 );
+		}
+	} );
+
+	it( 'logs a warning when non-ASCII text falls back to the bitmap renderer', function (): void {
+		Illuminate\Support\Facades\Log::spy();
+
+		$renderer = new GdOgImageRenderer();
+		$template = new OgImageTemplate(
+			width: 400,
+			height: 200,
+			backgroundColor: '#ffffff',
+			padding: 20,
+		);
+
+		$renderer->render( $template, 'Straße Café' );
+
+		Illuminate\Support\Facades\Log::shouldHaveReceived( 'warning' )->atLeast()->once();
+	} );
+
 } );
