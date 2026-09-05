@@ -5,7 +5,104 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.4.0] - 2026-09-05
+
+### Added
+
+- **`llms.txt` AI-discovery manifest generator** driven by the same
+  indexable `SitemapEntry` source as the XML sitemap, with a new
+  `ap.seo.llmsTxtEntries` filter hook and an opt-in
+  `GET /llms.txt` route toggle (#68).
+- **IndexNow submitter + sitemap-ping path** for Bing/Yandex/Seznam/
+  Naver with a configurable key provider contract and an opt-in
+  `GET /{key}.txt` key-verification route (#69).
+- **Config-driven AI-crawler robots controls** grouping related bots
+  (OpenAI, Anthropic, Google-Extended, Perplexity, Common Crawl,
+  ByteDance, Meta) with a working `default_allow` kill switch (#70).
+- **RSS 2.0 and Atom 1.0 feed generator** with sanitized XML output,
+  an opt-in `/feed.xml` + `/feed.atom` route toggle backed by a
+  `FeedProviderContract` binding, a `seo.feeds` config block, and the
+  `ap.seo.feedEntries` filter hook (#72, #88).
+- **Organization `sameAs` + `logo`** on the schema graph, with
+  `sameAs` URL validation and a width/height-carrying `ImageObject`
+  for the publisher logo (#73).
+- **OG image generator service** (MightyShare-style social cards)
+  rendered via GD, deterministically cached, alpha-preserving, and
+  under a cache lock to coalesce concurrent misses (#74).
+- **`apSeoAddSchema()` helper + `SchemaCollector` service** (#77) and
+  **`SchemaService` render-pipeline centralization** (#78).
+- **Stable `@id` on every schema graph node** (Organization,
+  LocalBusiness, WebSite, WebPage, Article); `Article.publisher`
+  cross-references the Organization by `@id`.
+
+### Changed
+
+- **`artisanpack-ui/ai` constraint bumped to `^1.2`**. The SEO AI
+  Livewire components now compose the `ChecksFeatureToggle` and
+  `InteractsWithAiFeature` traits (#76 / #92). See
+  `docs/upgrade-1.4.0.md` for the downstream extension BC note.
+- **`livewire/livewire` require-dev + suggest constraint bumped to
+  `^3.8.3`** to pick up the CVE-2026-81887 patch.
+
+### Fixed
+
+- **`seo.robots.ai_crawlers.default_allow=false` is now a real kill
+  switch** — previously a silent no-op that emitted the same
+  `robots.txt` as `default_allow=true`.
+- **RSS/Atom feeds strip XML 1.0 forbidden control characters** and
+  drop entries whose `link` uses a non-http(s) scheme (log-and-drop
+  so a single bad row can't kill the feed).
+- **Atom `<id>` reads `seo.feeds.feed_id`** when set; when unset,
+  falls back to the feed URL AND logs a `Log::notice` pointing at
+  the config key.
+- **`LlmsTxtGenerator` collapses newlines in titles** and escapes
+  `[` / `]` in descriptions so a Markdown list item can no longer
+  shatter mid-line.
+- **IndexNow surfaces per-URL rejections carried in an otherwise-200
+  body** (`code=UnverifiedHost`, `warnings[]`) as `success=false` with
+  a `warning` field populated; logged response bodies capped via
+  `Str::limit(..., 512)`.
+- **`FocusKeywordAnalyzer` uses `mb_strtolower('UTF-8')`** across all
+  seven placement checks so multibyte keywords no longer under-match.
+- **`AiReadinessAnalyzer::countWords()` uses `preg_split('/\\s+/u')`**
+  so Japanese and Cyrillic first paragraphs stop reporting zero words.
+- **GD OG image renderer releases GD resources** via `try`/`finally`
+  around `imagedestroy` on the canvas + loaded PNG handles, preserves
+  PNG alpha (no more black halos on transparent logos), and switches
+  width measurement to `mb_strlen`; the bitmap fallback now logs a
+  warning when asked to render non-ASCII text.
+- **`GdOgImageRenderer::hexToRgb()` falls back to white and logs a
+  warning** on malformed color input rather than silently producing
+  black-on-black cards.
+- **`LocalBusinessSchema` drops the flat `openingHours`** when a
+  structured `openingHoursSpecification` is emitted, and normalizes
+  `validFrom`/`validThrough` through a strict `Y-m-d` or
+  `DateTimeInterface` normalizer.
+- **`OrganizationSchema.sameAs` filters entries through
+  `FILTER_VALIDATE_URL`**.
+
+### Security
+
+- **`squizlabs/php_codesniffer` updated to `3.13.6`** (CVE-2026-67434,
+  OS command injection).
+- **`livewire/livewire` updated to `3.8.7`** (CVE-2026-81887,
+  DOM-based XSS).
+
+### Removed
+
+- **Inline `version` field from `composer.json`** — git tags drive
+  versioning; the field had drifted from tags in past releases.
+
+### CI
+
+- PHPCS excludes Blade stubs; CI no longer swallows PHPCS errors
+  (`continue-on-error: true` removed).
+- Test matrix varies Laravel version (11.x, 12.x, 13.x) alongside PHP.
+
+## [Unreleased-Beta History]
+
+Entries below were accumulated pre-1.4.0 and are rolled into the
+1.4.0 release above.
 
 ### Added
 
