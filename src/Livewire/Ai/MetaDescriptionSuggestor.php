@@ -26,7 +26,8 @@ use Livewire\Component;
  * Trigger UI for the {@see MetaDescriptionAgent}.
  *
  * Emits `seo-ai-description-selected` (payload: `[ 'description' => string ]`)
- * when the user accepts the suggestion.
+ * when the user picks a variant, so the containing editor can wire whichever
+ * field update it wants.
  *
  * @package    ArtisanPack_UI
  * @subpackage SEO
@@ -42,11 +43,10 @@ class MetaDescriptionSuggestor extends Component
 
 	public string $primaryKeyword = '';
 
-	public ?string $suggestion = null;
-
-	public int $characterCount = 0;
-
-	public string $rationale = '';
+	/**
+	 * @var array<int, array{ meta_description: string, character_count: int, rationale: string }>
+	 */
+	public array $variants = [];
 
 	protected string $featureKey = 'seo.suggest_meta_description';
 
@@ -86,7 +86,7 @@ class MetaDescriptionSuggestor extends Component
 	}
 
 	/**
-	 * Run the agent and populate the suggestion or error.
+	 * Run the agent and populate `$variants` or `$error`.
 	 *
 	 * @since 1.2.0
 	 *
@@ -94,9 +94,7 @@ class MetaDescriptionSuggestor extends Component
 	 */
 	public function suggest(): void
 	{
-		$this->suggestion     = null;
-		$this->characterCount = 0;
-		$this->rationale      = '';
+		$this->variants = [];
 
 		$this->runAiFeature( function (): void {
 			$output = MetaDescriptionAgent::for( [
@@ -104,26 +102,26 @@ class MetaDescriptionSuggestor extends Component
 				'primary_keyword' => $this->primaryKeyword,
 			] )->run();
 
-			$this->suggestion     = $output['meta_description'] ?? '';
-			$this->characterCount = (int) ( $output['character_count'] ?? 0 );
-			$this->rationale      = (string) ( $output['rationale'] ?? '' );
+			$this->variants = $output['variants'] ?? [];
 		} );
 	}
 
 	/**
-	 * Emit the current suggestion back to the parent editor.
+	 * Emit the chosen variant back to the parent editor.
 	 *
 	 * @since 1.2.0
 	 *
+	 * @param  int  $index  Variant index.
+	 *
 	 * @return void
 	 */
-	public function accept(): void
+	public function select( int $index ): void
 	{
-		if ( null === $this->suggestion || '' === $this->suggestion ) {
+		if ( ! isset( $this->variants[ $index ] ) ) {
 			return;
 		}
 
-		$this->dispatch( 'seo-ai-description-selected', description: $this->suggestion );
+		$this->dispatch( 'seo-ai-description-selected', description: $this->variants[ $index ]['meta_description'] );
 	}
 
 	/**

@@ -21,7 +21,7 @@ use ArtisanPackUI\Ai\Credentials\Credentials;
 use ArtisanPackUI\Ai\Exceptions\FeatureError;
 
 /**
- * Generate one meta description between 150 and 160 characters.
+ * Suggest N meta description variants between 150 and 160 characters.
  *
  * ## Input
  *
@@ -29,6 +29,8 @@ use ArtisanPackUI\Ai\Exceptions\FeatureError;
  * [
  *   'content'         => string,   // required
  *   'primary_keyword' => string,   // optional
+ *   'h1'              => string,   // optional; used to reject verbatim restates
+ *   'n'               => int,      // optional; default 5, clamped to [1, 10]
  * ]
  * ```
  *
@@ -36,11 +38,13 @@ use ArtisanPackUI\Ai\Exceptions\FeatureError;
  *
  * ```
  * {
- *   meta_description: string(<=160),
- *   character_count:  int,
- *   rationale:        string
+ *   variants: [
+ *     { meta_description: string(<=160), character_count: int, rationale: string }
+ *   ]
  * }
  * ```
+ *
+ * Existing single-variant callers keep working via `$variants[0]`.
  *
  * @package    ArtisanPack_UI
  * @subpackage SEO
@@ -49,6 +53,28 @@ use ArtisanPackUI\Ai\Exceptions\FeatureError;
  */
 class MetaDescriptionAgent extends ArtisanPackAgent
 {
+	/**
+	 * Absolute upper limit on rendered description length.
+	 */
+	protected const MAX_LENGTH = 160;
+
+	/**
+	 * Lower bound. Matches the prompt's stated 150–160 window so a variant
+	 * that undershoots the window is rejected at the agent boundary rather
+	 * than shipping a truncated-looking snippet to the SERP.
+	 */
+	protected const MIN_LENGTH = 150;
+
+	/**
+	 * Absolute cap on variants returned in one call.
+	 */
+	protected const MAX_VARIANTS = 10;
+
+	/**
+	 * Default variant count when caller doesn't specify `n`.
+	 */
+	protected const DEFAULT_VARIANTS = 5;
+
 	/**
 	 * {@inheritDoc}
 	 */
@@ -70,16 +96,47 @@ class MetaDescriptionAgent extends ArtisanPackAgent
 	public function instructions(): string
 	{
 		return <<<'PROMPT'
-You generate a single SEO meta description for a web page.
+You write SEO meta descriptions for a single web page. Return exactly the number
+of variants requested — high-quality, distinct, and specific to the page.
 
-Requirements:
-- The `meta_description` MUST be between 150 and 160 characters inclusive, including spaces and punctuation. Set `character_count` to the exact length.
-- Naturally include `primary_keyword` (or a very close morphological variant) when provided — do NOT keyword-stuff.
-- Summarize the value the page delivers to the reader. Use active voice.
-- End with an implicit call to action ("Learn how...", "Discover...", "See...") when it fits naturally.
-- `rationale` is one sentence explaining the angle you took.
+Hard rules (every variant):
+- 150 to 160 characters, inclusive of spaces and punctuation. Set
+  `character_count` to the exact length. A variant longer than 160 will be
+  discarded, so stay in the target window.
+- 1 or 2 complete sentences. No trailing ellipsis. No emoji.
+- Front-load the specific what and why — what the page is about, and why the
+  reader should care — in the first sentence. Do NOT restate the H1 verbatim.
+- Include `primary_keyword` (or a very close morphological variant) naturally
+  when provided. Never keyword-stuff.
+- End with a soft nudge or benefit that tells the reader what they get, e.g.
+  "…with side-by-side pricing and setup times." Not a hard CTA.
+- Forbidden openers (empty filler that wastes SERP real estate):
+  "Discover…", "Learn…", "Everything you need…", "The ultimate guide…",
+  "Welcome to…", "Looking for…", "In this article…". Rephrase instead.
+- Active voice. Specific nouns. No hedging ("might", "may help").
+- Vary the angle across variants — outcome, comparison, how, who-it's-for,
+  differentiator — so the caller gets meaningfully different options.
+- `rationale` is one sentence naming the angle.
 
-Return a JSON object with keys: meta_description (string), character_count (int), rationale (string).
+Few-shot examples:
+
+  Page: comparing burr and blade coffee grinders for espresso.
+  Good: "Burr grinders produce a uniform grind that pulls balanced espresso;
+         blade grinders don't. Here's when each earns its counter space and
+         which one wins for daily shots."
+  Bad:  "Discover the best coffee grinders in our ultimate guide. Learn
+         everything you need to know about grinding coffee for espresso today."
+         (empty filler, no specifics, no reason to click)
+
+  Page: pricing page for a project-management SaaS.
+  Good: "Every plan includes unlimited projects, guest seats, and native
+         integrations — from a free tier through the $19/mo Business plan.
+         Pick the tier that fits your team size."
+  Bad:  "Welcome to our pricing page. We have three plans to choose from that
+         fit any budget. Sign up today to get started with our platform."
+
+Return a JSON object with key `variants` (array of objects with
+`meta_description`, `character_count`, `rationale`).
 PROMPT;
 	}
 
@@ -91,11 +148,23 @@ PROMPT;
 		return [
 			'type'                 => 'object',
 			'additionalProperties' => false,
-			'required'             => [ 'meta_description', 'character_count', 'rationale' ],
+			'required'             => [ 'variants' ],
 			'properties'           => [
-				'meta_description' => [ 'type' => 'string', 'maxLength' => 160 ],
-				'character_count'  => [ 'type' => 'integer', 'minimum' => 1, 'maximum' => 160 ],
-				'rationale'        => [ 'type' => 'string' ],
+				'variants' => [
+					'type'     => 'array',
+					'minItems' => 1,
+					'maxItems' => self::MAX_VARIANTS,
+					'items'    => [
+						'type'                 => 'object',
+						'additionalProperties' => false,
+						'required'             => [ 'meta_description', 'character_count', 'rationale' ],
+						'properties'           => [
+							'meta_description' => [ 'type' => 'string', 'maxLength' => self::MAX_LENGTH ],
+							'character_count'  => [ 'type' => 'integer', 'minimum' => 1, 'maximum' => self::MAX_LENGTH ],
+							'rationale'        => [ 'type' => 'string' ],
+						],
+					],
+				],
 			],
 		];
 	}
@@ -118,7 +187,7 @@ PROMPT;
 		);
 
 		return [
-			'output'        => $this->validateOutput( $result['output'] ?? [] ),
+			'output'        => $this->validateOutput( $result['output'] ?? [], $normalized ),
 			'input_tokens'  => (int) ( $result['input_tokens'] ?? 0 ),
 			'output_tokens' => (int) ( $result['output_tokens'] ?? 0 ),
 		];
@@ -131,7 +200,7 @@ PROMPT;
 	 *
 	 * @param  mixed  $input  Raw agent input.
 	 *
-	 * @return array{ content: string, primary_keyword: string|null }
+	 * @return array{ content: string, primary_keyword: string|null, h1: string|null, n: int }
 	 */
 	protected function normalizeInput( mixed $input ): array
 	{
@@ -151,10 +220,16 @@ PROMPT;
 		$primary = isset( $input['primary_keyword'] ) && is_string( $input['primary_keyword'] )
 			? trim( $input['primary_keyword'] )
 			: '';
+		$h1      = isset( $input['h1'] ) && is_string( $input['h1'] ) ? trim( $input['h1'] ) : '';
+
+		$n = isset( $input['n'] ) && is_numeric( $input['n'] ) ? (int) $input['n'] : self::DEFAULT_VARIANTS;
+		$n = max( 1, min( self::MAX_VARIANTS, $n ) );
 
 		return [
 			'content'         => $content,
 			'primary_keyword' => '' === $primary ? null : $primary,
+			'h1'              => '' === $h1 ? null : $h1,
+			'n'               => $n,
 		];
 	}
 
@@ -163,7 +238,7 @@ PROMPT;
 	 *
 	 * @since 1.2.0
 	 *
-	 * @param  array{ content: string, primary_keyword: string|null }  $normalized  Normalized input.
+	 * @param  array{ content: string, primary_keyword: string|null, h1: string|null, n: int }  $normalized  Normalized input.
 	 *
 	 * @return array<int, array<string, string>>
 	 */
@@ -171,8 +246,14 @@ PROMPT;
 	{
 		$parts = [];
 
+		$parts[] = [ 'type' => 'text', 'text' => sprintf( 'Return exactly %d variants.', $normalized['n'] ) ];
+
 		if ( null !== $normalized['primary_keyword'] ) {
 			$parts[] = [ 'type' => 'text', 'text' => sprintf( 'Primary keyword: %s', $normalized['primary_keyword'] ) ];
+		}
+
+		if ( null !== $normalized['h1'] ) {
+			$parts[] = [ 'type' => 'text', 'text' => sprintf( 'Page H1 (do NOT restate verbatim): %s', $normalized['h1'] ) ];
 		}
 
 		$parts[] = [ 'type' => 'text', 'text' => "Page content:\n" . $normalized['content'] ];
@@ -181,26 +262,77 @@ PROMPT;
 	}
 
 	/**
-	 * Enforce output invariants — clamp length, coerce counts.
+	 * Enforce output invariants — length cap, empty/duplicate rejection, count cap.
 	 *
 	 * @since 1.2.0
 	 *
-	 * @param  array<string, mixed>  $output  Decoded model output.
+	 * @param  array<string, mixed>                                                             $output      Decoded model output.
+	 * @param  array{ content: string, primary_keyword: string|null, h1: string|null, n: int }  $normalized  Normalized input.
 	 *
-	 * @return array{ meta_description: string, character_count: int, rationale: string }
+	 * @return array{ variants: array<int, array{ meta_description: string, character_count: int, rationale: string }> }
 	 */
-	protected function validateOutput( array $output ): array
+	protected function validateOutput( array $output, array $normalized ): array
 	{
-		$description = isset( $output['meta_description'] ) ? trim( (string) $output['meta_description'] ) : '';
+		$raw = $output['variants'] ?? [];
 
-		if ( mb_strlen( $description ) > 160 ) {
-			$description = mb_substr( $description, 0, 160 );
+		if ( ! is_array( $raw ) ) {
+			$raw = [];
 		}
 
-		return [
-			'meta_description' => $description,
-			'character_count'  => mb_strlen( $description ),
-			'rationale'        => isset( $output['rationale'] ) ? trim( (string) $output['rationale'] ) : '',
-		];
+		$variants = [];
+		$seen     = [];
+		$h1Key    = null !== $normalized['h1'] ? mb_strtolower( $normalized['h1'] ) : null;
+
+		foreach ( $raw as $variant ) {
+			if ( ! is_array( $variant ) ) {
+				continue;
+			}
+
+			$description = isset( $variant['meta_description'] ) ? trim( (string) $variant['meta_description'] ) : '';
+
+			if ( '' === $description ) {
+				continue;
+			}
+
+			$length = mb_strlen( $description );
+
+			// Reject anything outside the 150–160 window. Overshoots truncate
+			// to a dangling clause; undershoots read like a snippet the model
+			// gave up on. Both are worse than returning fewer variants.
+			if ( $length < self::MIN_LENGTH || $length > self::MAX_LENGTH ) {
+				continue;
+			}
+
+			$key = mb_strtolower( $description );
+
+			if ( null !== $h1Key && $key === $h1Key ) {
+				continue;
+			}
+
+			if ( isset( $seen[ $key ] ) ) {
+				continue;
+			}
+
+			$seen[ $key ] = true;
+
+			$variants[] = [
+				'meta_description' => $description,
+				'character_count'  => mb_strlen( $description ),
+				'rationale'        => isset( $variant['rationale'] ) ? trim( (string) $variant['rationale'] ) : '',
+			];
+		}
+
+		if ( count( $variants ) > $normalized['n'] ) {
+			$variants = array_slice( $variants, 0, $normalized['n'] );
+		}
+
+		if ( [] === $variants ) {
+			throw FeatureError::forFeature(
+				$this->featureKey,
+				'the model returned no meta description variants inside the 150–160 character window.',
+			);
+		}
+
+		return [ 'variants' => $variants ];
 	}
 }
