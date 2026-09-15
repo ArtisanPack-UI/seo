@@ -21,7 +21,7 @@ use ArtisanPackUI\Ai\Credentials\Credentials;
 use ArtisanPackUI\Ai\Exceptions\FeatureError;
 
 /**
- * Suggest 3-5 SEO title variants for a page.
+ * Suggest N SEO title variants for a page.
  *
  * ## Input
  *
@@ -30,6 +30,8 @@ use ArtisanPackUI\Ai\Exceptions\FeatureError;
  *   'content'         => string,   // required
  *   'primary_keyword' => string,   // optional
  *   'brand'           => string,   // optional
+ *   'h1'              => string,   // optional; used to reject verbatim restates
+ *   'n'               => int,      // optional; default 5, clamped to [1, 10]
  * ]
  * ```
  *
@@ -43,6 +45,8 @@ use ArtisanPackUI\Ai\Exceptions\FeatureError;
  * }
  * ```
  *
+ * Existing single-variant callers keep working via `$variants[0]`.
+ *
  * @package    ArtisanPack_UI
  * @subpackage SEO
  *
@@ -50,6 +54,21 @@ use ArtisanPackUI\Ai\Exceptions\FeatureError;
  */
 class MetaTitleSuggestionAgent extends ArtisanPackAgent
 {
+	/**
+	 * Absolute upper limit on rendered title length.
+	 */
+	protected const MAX_TITLE_LENGTH = 60;
+
+	/**
+	 * Absolute cap on variants returned in one call.
+	 */
+	protected const MAX_VARIANTS = 10;
+
+	/**
+	 * Default variant count when caller doesn't specify `n`.
+	 */
+	protected const DEFAULT_VARIANTS = 5;
+
 	/**
 	 * {@inheritDoc}
 	 */
@@ -71,17 +90,42 @@ class MetaTitleSuggestionAgent extends ArtisanPackAgent
 	public function instructions(): string
 	{
 		return <<<'PROMPT'
-You generate 3 to 5 SEO title variants for a single web page.
+You write SEO meta titles for a single web page. Return exactly the number of
+variants requested — high-quality, click-worthy, and distinct.
 
-Requirements:
-- Every `title` MUST be 60 characters or fewer, including spaces and punctuation. Set `char_count` to the exact length.
-- Optimize for click-through: front-load the strongest term, prefer specific over generic, avoid clickbait, avoid ALL-CAPS.
-- When `primary_keyword` is provided, include it verbatim (or a very close morphological variant) in every variant, ideally near the start.
-- When `brand` is provided, append it separated by " | " ONLY when it fits under the 60-character limit; otherwise omit it.
-- Each `rationale` is a single sentence (<= 140 chars) explaining what angle the variant leans on.
-- Return between 3 and 5 variants. Do not return duplicates or trivial re-orderings.
+Hard rules (every variant):
+- 60 characters or fewer, including spaces and punctuation. Set `char_count` to
+  the exact length. A variant that exceeds 60 will be discarded.
+- Front-load the specific value, entity, or benefit — the most useful word
+  belongs in the first 30 characters, where SERP snippets truncate.
+- Do NOT restate the page's H1 verbatim. If an H1 is provided, treat it as a
+  starting point to rephrase, not copy.
+- Do NOT lead with the brand name. Append `" | {brand}"` at the end only if
+  `brand` is provided AND the full string still fits under 60 chars. The one
+  exception: pages that are explicitly ABOUT the brand (homepage, about page,
+  brand-name product pages) may begin with the brand.
+- Include `primary_keyword` (or a very close morphological variant) in every
+  variant when it is provided, ideally within the first 30 characters.
+- Prefer active voice and specific nouns. Avoid ALL-CAPS, avoid clickbait
+  ("You Won't Believe…"), avoid empty openers ("Discover…", "Everything about…",
+  "Ultimate guide to…").
+- Vary the angle across variants — how-to, comparison, benefit, question,
+  outcome — so the caller gets meaningfully different options, not re-orderings.
+- `rationale` is a single sentence (<= 140 chars) naming the angle.
 
-Return a JSON object with key `variants` (array of objects with `title`, `char_count`, `rationale`).
+Few-shot examples (input → good variant):
+
+  Input: an article comparing burr and blade grinders for espresso.
+  Good:  "Burr vs. Blade Grinder: Which Wins for Espresso?"
+  Bad:   "Discover Everything About Coffee Grinders Today"  (empty opener)
+  Bad:   "Acme | The Complete Coffee Grinder Buying Guide"  (brand-first)
+
+  Input: pricing page for a project-management SaaS.
+  Good:  "Project Management Pricing — Plans From $9/mo"
+  Bad:   "Pricing"  (too generic; wastes the first 30 chars)
+
+Return a JSON object with key `variants` (array of objects with `title`,
+`char_count`, `rationale`).
 PROMPT;
 	}
 
@@ -97,15 +141,15 @@ PROMPT;
 			'properties'           => [
 				'variants' => [
 					'type'     => 'array',
-					'minItems' => 3,
-					'maxItems' => 5,
+					'minItems' => 1,
+					'maxItems' => self::MAX_VARIANTS,
 					'items'    => [
 						'type'                 => 'object',
 						'additionalProperties' => false,
 						'required'             => [ 'title', 'char_count', 'rationale' ],
 						'properties'           => [
-							'title'      => [ 'type' => 'string', 'maxLength' => 60 ],
-							'char_count' => [ 'type' => 'integer', 'minimum' => 1, 'maximum' => 60 ],
+							'title'      => [ 'type' => 'string', 'maxLength' => self::MAX_TITLE_LENGTH ],
+							'char_count' => [ 'type' => 'integer', 'minimum' => 1, 'maximum' => self::MAX_TITLE_LENGTH ],
 							'rationale'  => [ 'type' => 'string' ],
 						],
 					],
@@ -132,7 +176,7 @@ PROMPT;
 		);
 
 		return [
-			'output'        => $this->validateOutput( $result['output'] ?? [] ),
+			'output'        => $this->validateOutput( $result['output'] ?? [], $normalized ),
 			'input_tokens'  => (int) ( $result['input_tokens'] ?? 0 ),
 			'output_tokens' => (int) ( $result['output_tokens'] ?? 0 ),
 		];
@@ -145,7 +189,7 @@ PROMPT;
 	 *
 	 * @param  mixed  $input  Raw agent input.
 	 *
-	 * @return array{ content: string, primary_keyword: string|null, brand: string|null }
+	 * @return array{ content: string, primary_keyword: string|null, brand: string|null, h1: string|null, n: int }
 	 */
 	protected function normalizeInput( mixed $input ): array
 	{
@@ -166,11 +210,17 @@ PROMPT;
 			? trim( $input['primary_keyword'] )
 			: '';
 		$brand   = isset( $input['brand'] ) && is_string( $input['brand'] ) ? trim( $input['brand'] ) : '';
+		$h1      = isset( $input['h1'] ) && is_string( $input['h1'] ) ? trim( $input['h1'] ) : '';
+
+		$n = isset( $input['n'] ) && is_numeric( $input['n'] ) ? (int) $input['n'] : self::DEFAULT_VARIANTS;
+		$n = max( 1, min( self::MAX_VARIANTS, $n ) );
 
 		return [
 			'content'         => $content,
 			'primary_keyword' => '' === $primary ? null : $primary,
 			'brand'           => '' === $brand ? null : $brand,
+			'h1'              => '' === $h1 ? null : $h1,
+			'n'               => $n,
 		];
 	}
 
@@ -179,13 +229,15 @@ PROMPT;
 	 *
 	 * @since 1.2.0
 	 *
-	 * @param  array{ content: string, primary_keyword: string|null, brand: string|null }  $normalized  Normalized input.
+	 * @param  array{ content: string, primary_keyword: string|null, brand: string|null, h1: string|null, n: int }  $normalized  Normalized input.
 	 *
 	 * @return array<int, array<string, string>>
 	 */
 	protected function buildMessage( array $normalized ): array
 	{
 		$parts = [];
+
+		$parts[] = [ 'type' => 'text', 'text' => sprintf( 'Return exactly %d variants.', $normalized['n'] ) ];
 
 		if ( null !== $normalized['primary_keyword'] ) {
 			$parts[] = [ 'type' => 'text', 'text' => sprintf( 'Primary keyword: %s', $normalized['primary_keyword'] ) ];
@@ -195,21 +247,26 @@ PROMPT;
 			$parts[] = [ 'type' => 'text', 'text' => sprintf( 'Brand: %s', $normalized['brand'] ) ];
 		}
 
+		if ( null !== $normalized['h1'] ) {
+			$parts[] = [ 'type' => 'text', 'text' => sprintf( 'Page H1 (do NOT restate verbatim): %s', $normalized['h1'] ) ];
+		}
+
 		$parts[] = [ 'type' => 'text', 'text' => "Page content:\n" . $normalized['content'] ];
 
 		return $parts;
 	}
 
 	/**
-	 * Enforce output invariants — variant count, title length, integer counts.
+	 * Enforce output invariants — length cap, empty/duplicate rejection, count cap.
 	 *
 	 * @since 1.2.0
 	 *
-	 * @param  array<string, mixed>  $output  Decoded model output.
+	 * @param  array<string, mixed>                                                                                    $output      Decoded model output.
+	 * @param  array{ content: string, primary_keyword: string|null, brand: string|null, h1: string|null, n: int }  $normalized  Normalized input.
 	 *
 	 * @return array{ variants: array<int, array{ title: string, char_count: int, rationale: string }> }
 	 */
-	protected function validateOutput( array $output ): array
+	protected function validateOutput( array $output, array $normalized ): array
 	{
 		$raw = $output['variants'] ?? [];
 
@@ -218,6 +275,8 @@ PROMPT;
 		}
 
 		$variants = [];
+		$seen     = [];
+		$h1Key    = null !== $normalized['h1'] ? mb_strtolower( $normalized['h1'] ) : null;
 
 		foreach ( $raw as $variant ) {
 			if ( ! is_array( $variant ) ) {
@@ -230,9 +289,23 @@ PROMPT;
 				continue;
 			}
 
-			if ( mb_strlen( $title ) > 60 ) {
-				$title = mb_substr( $title, 0, 60 );
+			// Reject rather than truncate — truncation destroys the front-load
+			// discipline the prompt is optimizing for.
+			if ( mb_strlen( $title ) > self::MAX_TITLE_LENGTH ) {
+				continue;
 			}
+
+			$key = mb_strtolower( $title );
+
+			if ( null !== $h1Key && $key === $h1Key ) {
+				continue;
+			}
+
+			if ( isset( $seen[ $key ] ) ) {
+				continue;
+			}
+
+			$seen[ $key ] = true;
 
 			$variants[] = [
 				'title'      => $title,
@@ -241,8 +314,8 @@ PROMPT;
 			];
 		}
 
-		if ( count( $variants ) > 5 ) {
-			$variants = array_slice( $variants, 0, 5 );
+		if ( count( $variants ) > $normalized['n'] ) {
+			$variants = array_slice( $variants, 0, $normalized['n'] );
 		}
 
 		return [ 'variants' => $variants ];
