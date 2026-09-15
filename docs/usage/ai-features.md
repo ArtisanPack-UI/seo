@@ -20,8 +20,8 @@ When `artisanpack-ui/ai` is not installed, the AI Livewire components, `/api/seo
 
 | Feature key | Agent class | Purpose |
 |---|---|---|
-| `seo.suggest_meta_title` | `MetaTitleSuggestionAgent` | 3-5 CTR-optimized title variants ≤60 chars |
-| `seo.suggest_meta_description` | `MetaDescriptionAgent` | One 150-160 char meta description |
+| `seo.suggest_meta_title` | `MetaTitleSuggestionAgent` | N CTR-optimized title variants ≤60 chars (default 5, max 10) |
+| `seo.suggest_meta_description` | `MetaDescriptionAgent` | N 150-160 char meta description variants (default 5, max 10) |
 | `seo.analyze_content` | `ContentAnalysisAgent` | Weighted 0-100 quality score across four dimensions with recommendations |
 | `seo.generate_schema` | `SchemaGenerationAgent` | Suggests a JSON-LD type from the 14 supported schemas and returns a starter object |
 | `seo.suggest_hreflang` | `HreflangSuggestionAgent` | Flags missing reciprocals, self-refs, x-default, and inconsistent lang codes |
@@ -173,9 +173,15 @@ Every response is wrapped in a `data` envelope with the feature key echoed back:
 {
 	"content": "Full page content or draft body...",
 	"primary_keyword": "laravel seo",
-	"brand": "Acme"
+	"brand": "Acme",
+	"h1": "Laravel SEO: A Practical Guide",
+	"n": 5
 }
 ```
+
+`h1` and `n` are optional. `n` defaults to `5` and is clamped to
+`[1, 10]`. Any variant that restates the provided `h1` verbatim is
+dropped.
 
 **Output**
 
@@ -187,7 +193,8 @@ Every response is wrapped in a `data` envelope with the feature key echoed back:
 }
 ```
 
-Returns 3-5 variants, each ≤60 characters.
+Each variant is ≤60 characters, deduplicated case-insensitively.
+The agent raises a `FeatureError` if zero variants survive validation.
 
 ### Meta description — `POST /api/seo/ai/suggest-meta-description`
 
@@ -196,21 +203,33 @@ Returns 3-5 variants, each ≤60 characters.
 ```json
 {
 	"content": "...",
-	"primary_keyword": "laravel seo"
+	"primary_keyword": "laravel seo",
+	"h1": "Laravel SEO: A Practical Guide",
+	"n": 5
 }
 ```
+
+`h1` and `n` are optional. `n` defaults to `5` and is clamped to
+`[1, 10]`. Any variant that restates the provided `h1` verbatim is
+dropped.
 
 **Output**
 
 ```json
 {
-	"meta_description": "...",
-	"character_count": 156,
-	"rationale": "Leans on the practical outcome angle."
+	"variants": [
+		{ "meta_description": "...", "character_count": 156, "rationale": "Leans on the practical outcome angle." }
+	]
 }
 ```
 
-Always 150-160 characters.
+Each variant is 150-160 characters, deduplicated case-insensitively.
+The agent raises a `FeatureError` if zero variants survive validation.
+
+> **Breaking change in v1.5.0:** the top-level
+> `{ meta_description, character_count, rationale }` shape is gone.
+> Callers that want a single result should read `variants[0]`. See
+> `docs/upgrade-1.5.0.md`.
 
 ### Content analysis — `POST /api/seo/ai/analyze-content`
 
@@ -332,4 +351,5 @@ Each agent declares a sensible default (`claude-haiku-4-5` for the short-generat
 
 - [Configuration](Installation-Configuration) — enabling/disabling AI features
 - [Frontend Scaffolding](Advanced-Frontend-Scaffolding) — publishing the React/Vue components
-- [Upgrading to 1.2.0](Upgrade-1.2.0) — migration notes
+- [Upgrading to 1.2.0](Upgrade-1.2.0) — original AI Feature Suite migration notes
+- [Upgrading to 1.5.0](Upgrade-1.5.0) — meta agent variants + `MetaDescriptionAgent` output shape change
