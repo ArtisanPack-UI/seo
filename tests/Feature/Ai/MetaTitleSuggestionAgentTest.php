@@ -95,6 +95,37 @@ it( 'trims variants to the requested `n`', function (): void {
 	expect( $result['variants'] )->toHaveCount( 5 );
 } );
 
+it( 'returns 5 variants by default when `n` is omitted', function (): void {
+	$this->prompter->queue( [
+		'variants' => array_map(
+			static fn ( int $i ): array => [
+				'title'      => "Distinct Title Number {$i}",
+				'char_count' => 24,
+				'rationale'  => "reason {$i}",
+			],
+			range( 1, 7 ),
+		),
+	] );
+
+	$result = MetaTitleSuggestionAgent::for( [ 'content' => 'sample' ] )->run();
+
+	expect( $result['variants'] )->toHaveCount( 5 );
+} );
+
+it( 'raises FeatureError when every variant is filtered out', function (): void {
+	$oversize = str_repeat( 'x', 80 );
+
+	$this->prompter->queue( [
+		'variants' => [
+			[ 'title' => $oversize, 'char_count' => 80, 'rationale' => 'overshoots' ],
+			[ 'title' => '', 'char_count' => 0, 'rationale' => 'empty' ],
+		],
+	] );
+
+	expect( fn () => MetaTitleSuggestionAgent::for( [ 'content' => 'sample' ] )->run() )
+		->toThrow( FeatureError::class );
+} );
+
 it( 'clamps `n` above the max down to the ceiling of 10', function (): void {
 	$this->prompter->queue( [
 		'variants' => array_map(

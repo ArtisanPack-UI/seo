@@ -59,10 +59,11 @@ class MetaDescriptionAgent extends ArtisanPackAgent
 	protected const MAX_LENGTH = 160;
 
 	/**
-	 * Preferred lower bound — descriptions under this get flagged in prompt
-	 * but are not rejected; short-but-useful still beats padded filler.
+	 * Lower bound. Matches the prompt's stated 150–160 window so a variant
+	 * that undershoots the window is rejected at the agent boundary rather
+	 * than shipping a truncated-looking snippet to the SERP.
 	 */
-	protected const MIN_LENGTH = 120;
+	protected const MIN_LENGTH = 150;
 
 	/**
 	 * Absolute cap on variants returned in one call.
@@ -293,9 +294,12 @@ PROMPT;
 				continue;
 			}
 
-			// Reject overshoots — truncation would leave a trailing dangling
-			// clause that reads worse than dropping the variant outright.
-			if ( mb_strlen( $description ) > self::MAX_LENGTH ) {
+			$length = mb_strlen( $description );
+
+			// Reject anything outside the 150–160 window. Overshoots truncate
+			// to a dangling clause; undershoots read like a snippet the model
+			// gave up on. Both are worse than returning fewer variants.
+			if ( $length < self::MIN_LENGTH || $length > self::MAX_LENGTH ) {
 				continue;
 			}
 
@@ -320,6 +324,13 @@ PROMPT;
 
 		if ( count( $variants ) > $normalized['n'] ) {
 			$variants = array_slice( $variants, 0, $normalized['n'] );
+		}
+
+		if ( [] === $variants ) {
+			throw FeatureError::forFeature(
+				$this->featureKey,
+				'the model returned no meta description variants inside the 150–160 character window.',
+			);
 		}
 
 		return [ 'variants' => $variants ];

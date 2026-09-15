@@ -318,6 +318,13 @@ PROMPT;
 			$variants = array_slice( $variants, 0, $normalized['n'] );
 		}
 
+		if ( [] === $variants ) {
+			throw FeatureError::forFeature(
+				$this->featureKey,
+				'the model returned no meta title variants that satisfied the 60-character and H1-restate constraints.',
+			);
+		}
+
 		return [ 'variants' => $variants ];
 	}
 }

@@ -63,6 +63,51 @@ it( 'drops variants that overshoot the 160 char limit', function (): void {
 	expect( $result['variants'][0]['meta_description'] )->toBe( $good );
 } );
 
+it( 'drops variants that undershoot the 150 char minimum', function (): void {
+	$short = 'Too short to ship.';
+	$good  = fillDescription( 'In-window description that meets the lower bound. ', 155 );
+
+	$this->prompter->queue( [
+		'variants' => [
+			[ 'meta_description' => $short, 'character_count' => mb_strlen( $short ), 'rationale' => 'undershoots' ],
+			[ 'meta_description' => $good, 'character_count' => mb_strlen( $good ), 'rationale' => 'in-window' ],
+		],
+	] );
+
+	$result = MetaDescriptionAgent::for( [ 'content' => 'sample' ] )->run();
+
+	expect( $result['variants'] )->toHaveCount( 1 );
+	expect( $result['variants'][0]['meta_description'] )->toBe( $good );
+} );
+
+it( 'accepts descriptions exactly at 150 and 160 characters', function (): void {
+	$exactMin = fillDescription( 'Lower bound edge case. ', 150 );
+	$exactMax = fillDescription( 'Upper bound edge case. ', 160 );
+
+	$this->prompter->queue( [
+		'variants' => [
+			[ 'meta_description' => $exactMin, 'character_count' => 150, 'rationale' => 'min edge' ],
+			[ 'meta_description' => $exactMax, 'character_count' => 160, 'rationale' => 'max edge' ],
+		],
+	] );
+
+	$result = MetaDescriptionAgent::for( [ 'content' => 'sample' ] )->run();
+
+	expect( $result['variants'] )->toHaveCount( 2 );
+} );
+
+it( 'raises FeatureError when every variant is filtered out', function (): void {
+	$this->prompter->queue( [
+		'variants' => [
+			[ 'meta_description' => 'too short', 'character_count' => 9, 'rationale' => 'undershoots' ],
+			[ 'meta_description' => str_repeat( 'x', 200 ), 'character_count' => 200, 'rationale' => 'overshoots' ],
+		],
+	] );
+
+	expect( fn () => MetaDescriptionAgent::for( [ 'content' => 'sample' ] )->run() )
+		->toThrow( FeatureError::class );
+} );
+
 it( 'deduplicates variants case-insensitively', function (): void {
 	$a = fillDescription( 'Balanced espresso demands a consistent grind. ', 155 );
 	$b = mb_strtoupper( $a );
@@ -94,6 +139,21 @@ it( 'trims variants to the requested `n`', function (): void {
 	$result = MetaDescriptionAgent::for( [ 'content' => 'sample', 'n' => 3 ] )->run();
 
 	expect( $result['variants'] )->toHaveCount( 3 );
+} );
+
+it( 'returns 5 variants by default when `n` is omitted', function (): void {
+	$variants = [];
+
+	for ( $i = 0; $i < 7; $i++ ) {
+		$text       = fillDescription( "Variant {$i} sits inside the window and reads distinctly. ", 155 );
+		$variants[] = [ 'meta_description' => $text, 'character_count' => mb_strlen( $text ), 'rationale' => "reason {$i}" ];
+	}
+
+	$this->prompter->queue( [ 'variants' => $variants ] );
+
+	$result = MetaDescriptionAgent::for( [ 'content' => 'sample' ] )->run();
+
+	expect( $result['variants'] )->toHaveCount( 5 );
 } );
 
 it( 'clamps `n` above the max down to the ceiling of 10', function (): void {
