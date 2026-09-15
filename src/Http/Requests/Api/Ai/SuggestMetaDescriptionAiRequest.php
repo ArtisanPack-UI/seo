@@ -44,6 +44,8 @@ class SuggestMetaDescriptionAiRequest extends FormRequest
 		return [
 			'content'         => [ 'required', 'string', 'min:1', 'max:20000' ],
 			'primary_keyword' => [ 'nullable', 'string', 'max:200' ],
+			'h1'              => [ 'nullable', 'string', 'max:200' ],
+			'n'               => [ 'nullable', 'integer', 'min:1', 'max:10' ],
 		];
 	}
 }

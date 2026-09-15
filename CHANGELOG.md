@@ -5,6 +5,50 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-09-15
+
+### Added
+
+- **`MetaTitleSuggestionAgent` and `MetaDescriptionAgent` now accept
+  `n`** (default `5`, clamped to `[1, 10]`) and return that many
+  deduplicated variants per call. Callers that want a single result
+  read `$variants[0]` — the array shape is uniform across both
+  agents (#94).
+- **Both agents accept an optional `h1`** and drop any variant that
+  restates the H1 verbatim, so the meta line adds context instead of
+  echoing the visible headline (#94).
+- **Golden-file test pins the rendered prompts** for both agents
+  (`tests/Feature/Ai/MetaAgentPromptGoldenTest.php`), so prompt
+  regressions surface as a diff instead of silent quality drift.
+
+### Changed
+
+- **`MetaDescriptionAgent` output is now `{ variants: [...] }`**
+  (BREAKING). The old single-object shape
+  (`meta_description` / `character_count` / `rationale` at the top
+  level) is gone; take `$variants[0]` in downstream code. See
+  `docs/upgrade-1.5.0.md` for the migration.
+- **Meta prompts rewritten with a real quality pass** — front-load
+  the specific value, forbid brand-first titles unless the page is
+  about the brand, ban filler openers ("Discover…", "Learn…",
+  "Ultimate guide…", "Welcome to…"), require active voice, and
+  include few-shot examples pulled from representative SERP
+  snippets (#94).
+- **`MetaDescriptionAgent::MIN_LENGTH` raised from `120` to `150`**
+  so the validator matches the prompt contract; variants outside
+  the full 150–160 window are rejected rather than truncated.
+- **`MetaDescriptionSuggestor` Livewire component + view render the
+  variants list**, matching `MetaTitleSuggestor`.
+
+### Fixed
+
+- **Both agents now raise `FeatureError` when zero variants survive
+  validation**, so callers get an explicit failure instead of a
+  silent empty list.
+- **Variants that overshoot the length cap are rejected outright**
+  instead of being truncated — a truncated title/description loses
+  the front-load discipline the prompt optimizes for.
+
 ## [1.4.0] - 2026-09-05
 
 ### Added

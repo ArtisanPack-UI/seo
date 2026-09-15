@@ -52,6 +52,8 @@ Welcome to the documentation for **ArtisanPack UI SEO**, a comprehensive Laravel
   - [Frontend Scaffolding (React & Vue)](Advanced-Frontend-Scaffolding)
 
 - **Upgrade Guides**
+  - [Upgrading to 1.5.0](Upgrade-1.5.0)
+  - [Upgrading to 1.4.0](Upgrade-1.4.0)
   - [Upgrading to 1.3.0](Upgrade-1.3.0)
   - [Upgrading to 1.2.0](Upgrade-1.2.0)
   - [Upgrading to 1.1.0](Upgrade-1.1.0)
