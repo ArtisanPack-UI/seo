@@ -258,6 +258,32 @@ describe( 'GdOgImageRenderer', function (): void {
 		expect( ( $rgb >> 16 ) & 0xFF )->toBe( 255 );
 	} );
 
+	it( 'does not scrim a canvas whose background image path resolves to nothing', function (): void {
+		// A configured-but-nonexistent path (or one loadImage can't decode)
+		// leaves the canvas at the flat background color. Scrimming it
+		// would darken a palette the operator explicitly picked for readable
+		// text — the whole point of the "no scrim without a background image"
+		// contract from CodeRabbit's review.
+		$renderer = new GdOgImageRenderer();
+		$template = new OgImageTemplate(
+			width: 200,
+			height: 100,
+			backgroundColor: '#ff0000',
+			padding: 10,
+			backgroundImagePath: '/definitely/not/a/real/background.png',
+			backgroundScrimOpacity: 100, // Max scrim: only fires if we actually drew a background image.
+			backgroundScrimGradient: false,
+		);
+
+		$png   = $renderer->render( $template, 'Untouched' );
+		$image = imagecreatefromstring( $png );
+
+		$rgb = imagecolorat( $image, 5, 5 );
+		$r   = ( $rgb >> 16 ) & 0xFF;
+
+		expect( $r )->toBe( 255 );
+	} );
+
 	it( 'does not draw a scrim when no background image is set', function (): void {
 		// A plain color background must not be scrimmed — the operator
 		// picked the color/text pair together, adding a scrim would just

@@ -67,8 +67,18 @@ class GdOgImageRenderer implements OgImageRendererContract
 
 		try {
 			$this->fillBackground( $image, $template );
-			$this->drawBackgroundImage( $image, $template );
-			$this->drawBackgroundScrim( $image, $template );
+			$backgroundImageDrawn = $this->drawBackgroundImage( $image, $template );
+
+			// Only scrim when a background image actually landed on the
+			// canvas. A configured-but-nonexistent path, or a file
+			// `loadImage()` can't decode, both leave the canvas at the
+			// flat background color — scrimming that would darken a
+			// palette the operator explicitly picked for readable text
+			// (CodeRabbit).
+			if ( $backgroundImageDrawn ) {
+				$this->drawBackgroundScrim( $image, $template );
+			}
+
 			$this->drawLogo( $image, $template );
 
 			$hasSubtitle = null !== $subtitle && '' !== trim( $subtitle );
@@ -122,20 +132,24 @@ class GdOgImageRenderer implements OgImageRendererContract
 	 * @param  GdImage         $image    The image resource.
 	 * @param  OgImageTemplate $template The template.
 	 *
-	 * @return void
+	 * @return bool True when the background image was successfully
+	 *              composited onto the canvas; false when there was no
+	 *              image configured, the file is missing, or the loader
+	 *              couldn't decode it. The caller uses this to decide
+	 *              whether the scrim should draw (CodeRabbit).
 	 */
-	protected function drawBackgroundImage( GdImage $image, OgImageTemplate $template ): void
+	protected function drawBackgroundImage( GdImage $image, OgImageTemplate $template ): bool
 	{
 		$path = $template->backgroundImagePath;
 
 		if ( null === $path || ! is_file( $path ) ) {
-			return;
+			return false;
 		}
 
 		$bg = $this->loadImage( $path );
 
 		if ( null === $bg ) {
-			return;
+			return false;
 		}
 
 		try {
@@ -154,6 +168,8 @@ class GdOgImageRenderer implements OgImageRendererContract
 		} finally {
 			imagedestroy( $bg );
 		}
+
+		return true;
 	}
 
 	/**
