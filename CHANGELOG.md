@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Default OG card layout is now bottom-left anchored** (#97). The
+  title stack sits against the padded bottom of the canvas (above the
+  subtitle when one is present, on the padded bottom edge when
+  title-only), left-aligned at the template padding so it sits
+  directly under the top-left logo. Matches the MightyShare-style
+  layout the scrim was designed for and gives the title real breathing
+  room over a background photo. Anchor points will be lifted onto
+  `OgImageTemplate` in a follow-up so operators can toggle bottom /
+  center / top layouts from config.
+
 ### Added
 
 - **`GdOgImageRenderer` now composites a semi-transparent scrim

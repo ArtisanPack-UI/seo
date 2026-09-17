@@ -70,9 +70,11 @@ class GdOgImageRenderer implements OgImageRendererContract
 			$this->drawBackgroundImage( $image, $template );
 			$this->drawBackgroundScrim( $image, $template );
 			$this->drawLogo( $image, $template );
-			$this->drawTitle( $image, $template, $title );
 
-			if ( null !== $subtitle && '' !== trim( $subtitle ) ) {
+			$hasSubtitle = null !== $subtitle && '' !== trim( $subtitle );
+			$this->drawTitle( $image, $template, $title, $hasSubtitle );
+
+			if ( $hasSubtitle ) {
 				$this->drawSubtitle( $image, $template, $subtitle );
 			}
 
@@ -331,20 +333,33 @@ class GdOgImageRenderer implements OgImageRendererContract
 	}
 
 	/**
-	 * Draw the title, wrapped to fit the available width.
+	 * Draw the title, wrapped to fit the available width, aligned to
+	 * the bottom-left of the canvas.
 	 *
-	 * The title sits above the vertical center so a subtitle drawn below
-	 * (see {@see drawSubtitle()}) doesn't overlap it.
+	 * The block bottoms out above the subtitle when one is present
+	 * (leaving a small breathing gap), or against the padded bottom of
+	 * the canvas when the card is title-only. Left-aligned at the
+	 * template padding so it lives directly under the top-left logo,
+	 * matching the "logo above, title anchored to bottom-left" layout
+	 * MightyShare-style cards use.
+	 *
+	 * A future revision will lift the title/subtitle anchor points into
+	 * {@see OgImageTemplate} so downstream can toggle bottom vs. center
+	 * vs. top layouts, but the default has moved from "vertically
+	 * centered" to "bottom-left" for #97.
 	 *
 	 * @since 1.4.0
 	 *
-	 * @param  GdImage         $image    The image resource.
-	 * @param  OgImageTemplate $template The template.
-	 * @param  string          $title    The title text.
+	 * @param  GdImage         $image       The image resource.
+	 * @param  OgImageTemplate $template    The template.
+	 * @param  string          $title       The title text.
+	 * @param  bool            $hasSubtitle Whether a subtitle will render below the title.
+	 *                                      When true the title's baseline lifts to leave
+	 *                                      room for the subtitle at the padded bottom.
 	 *
 	 * @return void
 	 */
-	protected function drawTitle( GdImage $image, OgImageTemplate $template, string $title ): void
+	protected function drawTitle( GdImage $image, OgImageTemplate $template, string $title, bool $hasSubtitle = false ): void
 	{
 		[ $r, $g, $b ] = $this->hexToRgb( $template->textColor );
 		$color         = imagecolorallocate( $image, $r, $g, $b );
@@ -359,7 +374,24 @@ class GdOgImageRenderer implements OgImageRendererContract
 		$lineH    = $template->titleFontSize + $lineGap;
 
 		$blockHeight = ( count( $lines ) * $lineH ) - $lineGap;
-		$startY      = (int) round( ( $template->height / 2 ) - ( $blockHeight / 2 ) );
+
+		// Anchor: bottom of the last title line. When a subtitle is
+		// present the anchor lifts to sit `$titleToSubtitleGap` pixels
+		// above the subtitle's own top; without a subtitle it sits on
+		// the padded bottom of the canvas. `titleFontSize * 0.2` was
+		// picked over the internal `lineGap` (0.4 * titleFontSize) so
+		// the gap between the title and subtitle feels tighter than
+		// the gap between wrapped title lines — reads as one text
+		// block rather than two separate paragraphs.
+		if ( $hasSubtitle ) {
+			$subtitleTop           = $template->height - $template->padding - $template->subtitleFontSize;
+			$titleToSubtitleGap    = (int) round( $template->titleFontSize * 0.2 );
+			$titleBottomY          = $subtitleTop - $titleToSubtitleGap;
+		} else {
+			$titleBottomY = $template->height - $template->padding;
+		}
+
+		$startY = $titleBottomY - $blockHeight;
 
 		foreach ( $lines as $index => $line ) {
 			$this->drawTextLine(

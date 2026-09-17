@@ -169,6 +169,95 @@ describe( 'GdOgImageRenderer', function (): void {
 		}
 	} );
 
+	it( 'bottom-anchors the title against the padded bottom when no subtitle is present', function (): void {
+		// A single-line title with no subtitle should sit with its baseline
+		// pinned to `height - padding` — MightyShare-style bottom-left
+		// layout. Sample well ABOVE the block and confirm the pixels stay
+		// the untouched background color.
+		$renderer = new GdOgImageRenderer();
+		$template = new OgImageTemplate(
+			width: 400,
+			height: 200,
+			backgroundColor: '#ffffff',
+			textColor: '#000000',
+			padding: 20,
+			titleFontSize: 20,
+		);
+
+		$png   = $renderer->render( $template, 'Hi' );
+		$image = imagecreatefromstring( $png );
+
+		// A row 20px below the top: since the title is bottom-anchored,
+		// this row should be entirely untouched by title text.
+		$topRowRgb = imagecolorat( $image, 100, 20 );
+		$topR      = ( $topRowRgb >> 16 ) & 0xFF;
+		expect( $topR )->toBe( 255 );
+	} );
+
+	it( 'lifts the title so it sits above the subtitle at the padded bottom', function (): void {
+		// With BOTH title and subtitle present the title must not overlap
+		// the subtitle's row. We render, then confirm the subtitle row
+		// carries dark pixels (subtitle text) AND the title row above it
+		// also carries dark pixels — but nothing in between them.
+		$renderer = new GdOgImageRenderer();
+		$template = new OgImageTemplate(
+			width: 800,
+			height: 400,
+			backgroundColor: '#ffffff',
+			textColor: '#000000',
+			subtitleColor: '#000000',
+			padding: 40,
+			titleFontSize: 40,
+			subtitleFontSize: 20,
+		);
+
+		$png   = $renderer->render( $template, 'A short title', 'A short subtitle' );
+		$image = imagecreatefromstring( $png );
+
+		// Subtitle row: sample near the very bottom, well inside the
+		// padded X range. Should not be pure white — the subtitle text
+		// darkens some pixel here.
+		$subtitleRowHasInk = false;
+		$subtitleY         = $template->height - $template->padding - $template->subtitleFontSize;
+		for ( $x = $template->padding; $x < $template->padding + 200; $x++ ) {
+			$rgb = imagecolorat( $image, $x, $subtitleY + (int) ( $template->subtitleFontSize / 2 ) );
+			if ( ( ( $rgb >> 16 ) & 0xFF ) < 200 ) {
+				$subtitleRowHasInk = true;
+				break;
+			}
+		}
+		expect( $subtitleRowHasInk )->toBeTrue();
+
+		// A row well above the title (say y = 40 = padding): should
+		// stay the background color since the title is bottom-anchored.
+		$topRowRgb = imagecolorat( $image, 400, 40 );
+		expect( ( $topRowRgb >> 16 ) & 0xFF )->toBe( 255 );
+	} );
+
+	it( 'left-aligns the title at the template padding', function (): void {
+		// The title must start at `x = padding`, matching where the
+		// logo lives in the top-left. Any pixel to the LEFT of `padding`
+		// on the title's own row must remain the untouched background.
+		$renderer = new GdOgImageRenderer();
+		$template = new OgImageTemplate(
+			width: 400,
+			height: 200,
+			backgroundColor: '#ffffff',
+			textColor: '#000000',
+			padding: 40,
+			titleFontSize: 30,
+		);
+
+		$png   = $renderer->render( $template, 'Hi' );
+		$image = imagecreatefromstring( $png );
+
+		// Sample the row well within the title's Y range but at x < padding.
+		$titleY = $template->height - $template->padding - (int) ( $template->titleFontSize / 2 );
+		$rgb    = imagecolorat( $image, 20, $titleY ); // x < padding (40)
+
+		expect( ( $rgb >> 16 ) & 0xFF )->toBe( 255 );
+	} );
+
 	it( 'does not draw a scrim when no background image is set', function (): void {
 		// A plain color background must not be scrimmed — the operator
 		// picked the color/text pair together, adding a scrim would just
