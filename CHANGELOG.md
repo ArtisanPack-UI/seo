@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **`GdOgImageRenderer` now composites a semi-transparent scrim
+  between the background image and the text** so title / subtitle
+  text has usable contrast on top of real photos (#97). Only applied
+  when `background_image_path` is set — plain-colored backgrounds
+  are unaffected.
+- **New `OgImageTemplate` fields** — `backgroundScrimColor` (hex),
+  `backgroundScrimOpacity` (percentage 0-100, default 60), and
+  `backgroundScrimGradient` (bool, default true) — plumbed through
+  `fromConfig()`, cache signature, and `config('seo.og_image.template')`
+  as `background_scrim_color` / `background_scrim_opacity` /
+  `background_scrim_gradient`. Set opacity to 0 to disable the scrim.
+- With `background_scrim_gradient = true` (the default), the scrim
+  fades from ~25% of the configured opacity at the top down to full
+  opacity at the bottom so the darkening concentrates where the text
+  sits and the top of the background image stays visible.
+
 ## [1.5.0] - 2026-09-15
 
 ### Added

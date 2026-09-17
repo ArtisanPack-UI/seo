@@ -39,18 +39,29 @@ readonly class OgImageTemplate
 	 *
 	 * @since 1.4.0
 	 *
-	 * @param  int          $width               Image width in pixels.
-	 * @param  int          $height              Image height in pixels.
-	 * @param  string       $backgroundColor     Background color (hex, e.g. "#0f172a").
-	 * @param  string       $textColor           Primary text color (hex).
-	 * @param  string       $subtitleColor       Subtitle text color (hex).
-	 * @param  string|null  $backgroundImagePath Absolute path to an optional background image.
-	 * @param  string|null  $logoPath            Absolute path to an optional logo overlay.
-	 * @param  int          $logoWidth           Logo target width in pixels (aspect preserved).
-	 * @param  string|null  $fontPath            Absolute path to a TTF font, or null for GD bitmap fallback.
-	 * @param  int          $titleFontSize       Title font size in points (TTF) or 1-5 (bitmap fallback).
-	 * @param  int          $subtitleFontSize    Subtitle font size in points (TTF) or 1-5 (bitmap fallback).
-	 * @param  int          $padding             Inner padding in pixels.
+	 * @param  int          $width                  Image width in pixels.
+	 * @param  int          $height                 Image height in pixels.
+	 * @param  string       $backgroundColor        Background color (hex, e.g. "#0f172a").
+	 * @param  string       $textColor              Primary text color (hex).
+	 * @param  string       $subtitleColor          Subtitle text color (hex).
+	 * @param  string|null  $backgroundImagePath    Absolute path to an optional background image.
+	 * @param  string|null  $logoPath               Absolute path to an optional logo overlay.
+	 * @param  int          $logoWidth              Logo target width in pixels (aspect preserved).
+	 * @param  string|null  $fontPath               Absolute path to a TTF font, or null for GD bitmap fallback.
+	 * @param  int          $titleFontSize          Title font size in points (TTF) or 1-5 (bitmap fallback).
+	 * @param  int          $subtitleFontSize       Subtitle font size in points (TTF) or 1-5 (bitmap fallback).
+	 * @param  int          $padding                Inner padding in pixels.
+	 * @param  string       $backgroundScrimColor   Scrim color drawn between the background image and the text
+	 *                                              (hex). Only applied when a `backgroundImagePath` is set.
+	 * @param  int          $backgroundScrimOpacity Scrim opacity as a **percentage** 0-100. 0 disables the
+	 *                                              scrim entirely; 100 fully hides the background image. The
+	 *                                              default (60) keeps enough of the background visible to be
+	 *                                              recognizable while giving light text on top usable contrast.
+	 * @param  bool         $backgroundScrimGradient When true, the scrim fades from ~25% of the configured
+	 *                                              opacity at the top to full opacity at the bottom — the text
+	 *                                              sits low on the canvas by default (subtitle near the bottom
+	 *                                              edge), so concentrating the darkening there preserves the
+	 *                                              maximum amount of visible background image.
 	 */
 	public function __construct(
 		public int $width = 1200,
@@ -65,6 +76,9 @@ readonly class OgImageTemplate
 		public int $titleFontSize = 56,
 		public int $subtitleFontSize = 28,
 		public int $padding = 80,
+		public string $backgroundScrimColor = '#000000',
+		public int $backgroundScrimOpacity = 60,
+		public bool $backgroundScrimGradient = true,
 	) {
 	}
 
@@ -96,6 +110,9 @@ readonly class OgImageTemplate
 			titleFontSize: (int) ( $merged['title_font_size'] ?? $default->titleFontSize ),
 			subtitleFontSize: (int) ( $merged['subtitle_font_size'] ?? $default->subtitleFontSize ),
 			padding: (int) ( $merged['padding'] ?? $default->padding ),
+			backgroundScrimColor: (string) ( $merged['background_scrim_color'] ?? $default->backgroundScrimColor ),
+			backgroundScrimOpacity: (int) ( $merged['background_scrim_opacity'] ?? $default->backgroundScrimOpacity ),
+			backgroundScrimGradient: (bool) ( $merged['background_scrim_gradient'] ?? $default->backgroundScrimGradient ),
 		);
 	}
 
@@ -124,6 +141,9 @@ readonly class OgImageTemplate
 			$this->titleFontSize,
 			$this->subtitleFontSize,
 			$this->padding,
+			$this->backgroundScrimColor,
+			$this->backgroundScrimOpacity,
+			$this->backgroundScrimGradient,
 		] ) ), 0, 12 );
 	}
 }

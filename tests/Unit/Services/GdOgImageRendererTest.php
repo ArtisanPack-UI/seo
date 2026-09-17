@@ -169,6 +169,170 @@ describe( 'GdOgImageRenderer', function (): void {
 		}
 	} );
 
+	it( 'does not draw a scrim when no background image is set', function (): void {
+		// A plain color background must not be scrimmed — the operator
+		// picked the color/text pair together, adding a scrim would just
+		// wash it out.
+		$renderer = new GdOgImageRenderer();
+		$template = new OgImageTemplate(
+			width: 200,
+			height: 100,
+			backgroundColor: '#ff0000',
+			padding: 10,
+			backgroundScrimOpacity: 100, // Even at max opacity: no image → no scrim.
+		);
+
+		$png   = $renderer->render( $template, 'Red' );
+		$image = imagecreatefromstring( $png );
+
+		$rgb = imagecolorat( $image, 5, 5 );
+		$r   = ( $rgb >> 16 ) & 0xFF;
+
+		expect( $r )->toBe( 255 );
+	} );
+
+	it( 'darkens the background image with a flat scrim when a background image is set', function (): void {
+		// Write a bright red PNG and use it as the background.
+		$bgPath = sys_get_temp_dir() . '/seo-og-test-bg.png';
+		$bg     = imagecreatetruecolor( 200, 100 );
+		$red    = imagecolorallocate( $bg, 255, 0, 0 );
+		imagefilledrectangle( $bg, 0, 0, 200, 100, $red );
+		imagepng( $bg, $bgPath );
+		imagedestroy( $bg );
+
+		try {
+			$renderer = new GdOgImageRenderer();
+			$template = new OgImageTemplate(
+				width: 200,
+				height: 100,
+				padding: 10,
+				backgroundImagePath: $bgPath,
+				backgroundScrimColor: '#000000',
+				backgroundScrimOpacity: 60,
+				backgroundScrimGradient: false,
+			);
+
+			$png   = $renderer->render( $template, 'Scrimmed' );
+			$image = imagecreatefromstring( $png );
+
+			// Sample outside the logo/text area. The pure-red source
+			// should be darkened to well under 255 by the black scrim.
+			$rgb = imagecolorat( $image, 195, 95 );
+			$r   = ( $rgb >> 16 ) & 0xFF;
+
+			expect( $r )->toBeLessThan( 200 );
+			expect( $r )->toBeGreaterThan( 40 );
+		} finally {
+			@unlink( $bgPath );
+		}
+	} );
+
+	it( 'skips the scrim entirely when opacity is 0', function (): void {
+		$bgPath = sys_get_temp_dir() . '/seo-og-test-bg-noopacity.png';
+		$bg     = imagecreatetruecolor( 200, 100 );
+		$red    = imagecolorallocate( $bg, 255, 0, 0 );
+		imagefilledrectangle( $bg, 0, 0, 200, 100, $red );
+		imagepng( $bg, $bgPath );
+		imagedestroy( $bg );
+
+		try {
+			$renderer = new GdOgImageRenderer();
+			$template = new OgImageTemplate(
+				width: 200,
+				height: 100,
+				padding: 10,
+				backgroundImagePath: $bgPath,
+				backgroundScrimOpacity: 0,
+			);
+
+			$png   = $renderer->render( $template, 'No scrim' );
+			$image = imagecreatefromstring( $png );
+
+			// The original red pixel survives untouched.
+			$rgb = imagecolorat( $image, 195, 95 );
+			$r   = ( $rgb >> 16 ) & 0xFF;
+
+			expect( $r )->toBe( 255 );
+		} finally {
+			@unlink( $bgPath );
+		}
+	} );
+
+	it( 'gradients the scrim from lighter at top to darker at bottom', function (): void {
+		$bgPath = sys_get_temp_dir() . '/seo-og-test-bg-gradient.png';
+		$bg     = imagecreatetruecolor( 200, 200 );
+		$red    = imagecolorallocate( $bg, 255, 0, 0 );
+		imagefilledrectangle( $bg, 0, 0, 200, 200, $red );
+		imagepng( $bg, $bgPath );
+		imagedestroy( $bg );
+
+		try {
+			$renderer = new GdOgImageRenderer();
+			$template = new OgImageTemplate(
+				width: 200,
+				height: 200,
+				padding: 10,
+				backgroundImagePath: $bgPath,
+				backgroundScrimColor: '#000000',
+				backgroundScrimOpacity: 60,
+				backgroundScrimGradient: true,
+			);
+
+			$png   = $renderer->render( $template, 'Gradient' );
+			$image = imagecreatefromstring( $png );
+
+			// Sample near the top-right (well outside the logo area at
+			// top-left, well away from the vertically-centered title).
+			// Bottom sample is well below the title, in the subtitle band.
+			$topRgb    = imagecolorat( $image, 195, 5 );
+			$bottomRgb = imagecolorat( $image, 195, 195 );
+			$topR      = ( $topRgb >> 16 ) & 0xFF;
+			$bottomR   = ( $bottomRgb >> 16 ) & 0xFF;
+
+			// Gradient shape: top is lighter (higher red channel remains
+			// from the original), bottom is darker.
+			expect( $topR )->toBeGreaterThan( $bottomR );
+		} finally {
+			@unlink( $bgPath );
+		}
+	} );
+
+	it( 'honors the scrim color for tinted overlays', function (): void {
+		// Blue-tinted scrim over a bright white background: red channel
+		// should drop, blue should remain high.
+		$bgPath = sys_get_temp_dir() . '/seo-og-test-bg-tinted.png';
+		$bg     = imagecreatetruecolor( 200, 100 );
+		$white  = imagecolorallocate( $bg, 255, 255, 255 );
+		imagefilledrectangle( $bg, 0, 0, 200, 100, $white );
+		imagepng( $bg, $bgPath );
+		imagedestroy( $bg );
+
+		try {
+			$renderer = new GdOgImageRenderer();
+			$template = new OgImageTemplate(
+				width: 200,
+				height: 100,
+				padding: 10,
+				backgroundImagePath: $bgPath,
+				backgroundScrimColor: '#0000ff', // Pure blue.
+				backgroundScrimOpacity: 100,
+				backgroundScrimGradient: false,
+			);
+
+			$png   = $renderer->render( $template, 'Tinted' );
+			$image = imagecreatefromstring( $png );
+
+			$rgb = imagecolorat( $image, 195, 95 );
+			$r   = ( $rgb >> 16 ) & 0xFF;
+			$b   = $rgb & 0xFF;
+
+			expect( $r )->toBeLessThan( 30 );
+			expect( $b )->toBeGreaterThan( 200 );
+		} finally {
+			@unlink( $bgPath );
+		}
+	} );
+
 	it( 'logs a warning when non-ASCII text falls back to the bitmap renderer', function (): void {
 		Illuminate\Support\Facades\Log::spy();
 

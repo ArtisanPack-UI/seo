@@ -535,18 +535,29 @@ return [
 		'disk'     => env( 'SEO_OG_IMAGE_DISK', 'public' ),
 		'path'     => env( 'SEO_OG_IMAGE_PATH', 'og-images' ),
 		'template' => [
-			'width'                 => 1200,
-			'height'                => 630,
-			'background_color'      => '#0f172a',
-			'text_color'            => '#ffffff',
-			'subtitle_color'        => '#94a3b8',
-			'background_image_path' => null,
-			'logo_path'             => null,
-			'logo_width'            => 160,
-			'font_path'             => null,
-			'title_font_size'       => 56,
-			'subtitle_font_size'    => 28,
-			'padding'               => 80,
+			'width'                     => 1200,
+			'height'                    => 630,
+			'background_color'          => '#0f172a',
+			'text_color'                => '#ffffff',
+			'subtitle_color'            => '#94a3b8',
+			'background_image_path'     => null,
+			'logo_path'                 => null,
+			'logo_width'                => 160,
+			'font_path'                 => null,
+			'title_font_size'           => 56,
+			'subtitle_font_size'        => 28,
+			'padding'                   => 80,
+
+			// Scrim composited between the background image and the text
+			// so a real photo doesn't wash the title out. Only applied when
+			// `background_image_path` is set — plain-color backgrounds are
+			// left alone. `background_scrim_opacity` is a percentage 0-100
+			// (0 disables the scrim); `background_scrim_gradient` fades from
+			// ~25% of that opacity at the top to full opacity at the bottom
+			// so the bulk of the darkening lands where the text sits.
+			'background_scrim_color'    => '#000000',
+			'background_scrim_opacity'  => 60,
+			'background_scrim_gradient' => true,
 		],
 	],
 

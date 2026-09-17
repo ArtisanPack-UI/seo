@@ -68,6 +68,7 @@ class GdOgImageRenderer implements OgImageRendererContract
 		try {
 			$this->fillBackground( $image, $template );
 			$this->drawBackgroundImage( $image, $template );
+			$this->drawBackgroundScrim( $image, $template );
 			$this->drawLogo( $image, $template );
 			$this->drawTitle( $image, $template, $title );
 
@@ -150,6 +151,129 @@ class GdOgImageRenderer implements OgImageRendererContract
 			);
 		} finally {
 			imagedestroy( $bg );
+		}
+	}
+
+	/**
+	 * Composite a semi-transparent scrim over the background image so
+	 * the title / subtitle text has usable contrast on top of any real
+	 * photo (#97). No-op when {@see OgImageTemplate::$backgroundImagePath}
+	 * is null — plain-colored backgrounds don't need a scrim (the operator
+	 * already picked the text and background colors together), and adding
+	 * one there would just wash their palette out.
+	 *
+	 * Opacity is exposed as a percentage 0-100. Internally we convert
+	 * to GD's inverted alpha range (0 = opaque, 127 = fully transparent).
+	 * `backgroundScrimGradient = true` fades the scrim from ~25% of the
+	 * configured opacity at the top down to full opacity at the bottom —
+	 * the title sits center-canvas and the subtitle sits near the bottom,
+	 * so concentrating the darkening in the lower half preserves the most
+	 * visible background image while still giving the text a dark backdrop.
+	 * A flat scrim is drawn as a single filled rectangle for cheapness.
+	 *
+	 * The scrim uses `alphablending = true` so it composites correctly
+	 * onto the RGB background; we restore whatever alphablending mode was
+	 * active before returning so the subsequent PNG-with-alpha logo draw
+	 * behaves as {@see drawLogo()} expects.
+	 *
+	 * @since 1.6.0
+	 *
+	 * @param  GdImage         $image    The image resource.
+	 * @param  OgImageTemplate $template The template.
+	 *
+	 * @return void
+	 */
+	protected function drawBackgroundScrim( GdImage $image, OgImageTemplate $template ): void
+	{
+		// Guard clauses: no background image → no scrim needed;
+		// opacity <= 0 → operator opted out.
+		if ( null === $template->backgroundImagePath ) {
+			return;
+		}
+
+		$opacityPercent = max( 0, min( 100, $template->backgroundScrimOpacity ) );
+
+		if ( 0 === $opacityPercent ) {
+			return;
+		}
+
+		[ $r, $g, $b ] = $this->hexToRgb( $template->backgroundScrimColor );
+
+		// Percentage → GD alpha. GD's alpha channel is inverted:
+		// 0 = fully opaque, 127 = fully transparent. `intval` because
+		// alpha must be an int for `imagecolorallocatealpha`.
+		$maxAlpha = (int) round( 127 - ( $opacityPercent * 127 / 100 ) );
+
+		// Enable alpha blending so the scrim composites onto the
+		// background image rather than replacing it pixel-for-pixel.
+		// Turn savealpha off during the composite so the blended pixel
+		// values overwrite the canvas alpha (which was preserved from
+		// the logo pass); we'll re-enable savealpha before returning.
+		imagealphablending( $image, true );
+		imagesavealpha( $image, false );
+
+		try {
+			if ( $template->backgroundScrimGradient ) {
+				$this->drawScrimGradient( $image, $template, $r, $g, $b, $maxAlpha );
+			} else {
+				$this->drawScrimFlat( $image, $template, $r, $g, $b, $maxAlpha );
+			}
+		} finally {
+			imagesavealpha( $image, true );
+		}
+	}
+
+	/**
+	 * Draw the scrim as a single flat rectangle at the configured
+	 * opacity. Cheapest, safest path — used when
+	 * `backgroundScrimGradient = false`.
+	 *
+	 * @since 1.6.0
+	 */
+	protected function drawScrimFlat( GdImage $image, OgImageTemplate $template, int $r, int $g, int $b, int $alpha ): void
+	{
+		$color = imagecolorallocatealpha( $image, $r, $g, $b, $alpha );
+
+		if ( false === $color ) {
+			return;
+		}
+
+		imagefilledrectangle( $image, 0, 0, $template->width, $template->height, $color );
+	}
+
+	/**
+	 * Draw the scrim as a vertical gradient of horizontal 1-pixel
+	 * bands, fading from ~25% of the configured opacity at the top to
+	 * full opacity at the bottom. The exact top-of-range multiplier
+	 * (0.25) is a taste call — enough to keep the top of the image
+	 * darker where the logo sits, not so much that the sky/highlights
+	 * of a bright photo swallow the logo.
+	 *
+	 * Bands are 4 pixels tall rather than 1 to keep the per-render
+	 * cost bounded for 1200x630 canvases (that's 158 filled rectangles
+	 * instead of 630). At OG image size the seams aren't visible.
+	 *
+	 * @since 1.6.0
+	 */
+	protected function drawScrimGradient( GdImage $image, OgImageTemplate $template, int $r, int $g, int $b, int $maxAlpha ): void
+	{
+		$bandHeight = 4;
+		$topAlpha   = 127 - (int) round( ( 127 - $maxAlpha ) * 0.25 );
+		$height     = max( 1, $template->height );
+
+		for ( $y = 0; $y < $height; $y += $bandHeight ) {
+			$ratio = $y / max( 1, ( $height - 1 ) );
+			$alpha = (int) round( $topAlpha + ( ( $maxAlpha - $topAlpha ) * $ratio ) );
+			$alpha = max( 0, min( 127, $alpha ) );
+
+			$color = imagecolorallocatealpha( $image, $r, $g, $b, $alpha );
+
+			if ( false === $color ) {
+				continue;
+			}
+
+			$y2 = min( $height - 1, $y + $bandHeight - 1 );
+			imagefilledrectangle( $image, 0, $y, $template->width, $y2, $color );
 		}
 	}
 
