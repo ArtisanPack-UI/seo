@@ -67,11 +67,24 @@ class GdOgImageRenderer implements OgImageRendererContract
 
 		try {
 			$this->fillBackground( $image, $template );
-			$this->drawBackgroundImage( $image, $template );
-			$this->drawLogo( $image, $template );
-			$this->drawTitle( $image, $template, $title );
+			$backgroundImageDrawn = $this->drawBackgroundImage( $image, $template );
 
-			if ( null !== $subtitle && '' !== trim( $subtitle ) ) {
+			// Only scrim when a background image actually landed on the
+			// canvas. A configured-but-nonexistent path, or a file
+			// `loadImage()` can't decode, both leave the canvas at the
+			// flat background color — scrimming that would darken a
+			// palette the operator explicitly picked for readable text
+			// (CodeRabbit).
+			if ( $backgroundImageDrawn ) {
+				$this->drawBackgroundScrim( $image, $template );
+			}
+
+			$this->drawLogo( $image, $template );
+
+			$hasSubtitle = null !== $subtitle && '' !== trim( $subtitle );
+			$this->drawTitle( $image, $template, $title, $hasSubtitle );
+
+			if ( $hasSubtitle ) {
 				$this->drawSubtitle( $image, $template, $subtitle );
 			}
 
@@ -119,20 +132,24 @@ class GdOgImageRenderer implements OgImageRendererContract
 	 * @param  GdImage         $image    The image resource.
 	 * @param  OgImageTemplate $template The template.
 	 *
-	 * @return void
+	 * @return bool True when the background image was successfully
+	 *              composited onto the canvas; false when there was no
+	 *              image configured, the file is missing, or the loader
+	 *              couldn't decode it. The caller uses this to decide
+	 *              whether the scrim should draw (CodeRabbit).
 	 */
-	protected function drawBackgroundImage( GdImage $image, OgImageTemplate $template ): void
+	protected function drawBackgroundImage( GdImage $image, OgImageTemplate $template ): bool
 	{
 		$path = $template->backgroundImagePath;
 
 		if ( null === $path || ! is_file( $path ) ) {
-			return;
+			return false;
 		}
 
 		$bg = $this->loadImage( $path );
 
 		if ( null === $bg ) {
-			return;
+			return false;
 		}
 
 		try {
@@ -150,6 +167,131 @@ class GdOgImageRenderer implements OgImageRendererContract
 			);
 		} finally {
 			imagedestroy( $bg );
+		}
+
+		return true;
+	}
+
+	/**
+	 * Composite a semi-transparent scrim over the background image so
+	 * the title / subtitle text has usable contrast on top of any real
+	 * photo (#97). No-op when {@see OgImageTemplate::$backgroundImagePath}
+	 * is null — plain-colored backgrounds don't need a scrim (the operator
+	 * already picked the text and background colors together), and adding
+	 * one there would just wash their palette out.
+	 *
+	 * Opacity is exposed as a percentage 0-100. Internally we convert
+	 * to GD's inverted alpha range (0 = opaque, 127 = fully transparent).
+	 * `backgroundScrimGradient = true` fades the scrim from ~25% of the
+	 * configured opacity at the top down to full opacity at the bottom —
+	 * the title sits center-canvas and the subtitle sits near the bottom,
+	 * so concentrating the darkening in the lower half preserves the most
+	 * visible background image while still giving the text a dark backdrop.
+	 * A flat scrim is drawn as a single filled rectangle for cheapness.
+	 *
+	 * The scrim uses `alphablending = true` so it composites correctly
+	 * onto the RGB background; we restore whatever alphablending mode was
+	 * active before returning so the subsequent PNG-with-alpha logo draw
+	 * behaves as {@see drawLogo()} expects.
+	 *
+	 * @since 1.6.0
+	 *
+	 * @param  GdImage         $image    The image resource.
+	 * @param  OgImageTemplate $template The template.
+	 *
+	 * @return void
+	 */
+	protected function drawBackgroundScrim( GdImage $image, OgImageTemplate $template ): void
+	{
+		// Guard clauses: no background image → no scrim needed;
+		// opacity <= 0 → operator opted out.
+		if ( null === $template->backgroundImagePath ) {
+			return;
+		}
+
+		$opacityPercent = max( 0, min( 100, $template->backgroundScrimOpacity ) );
+
+		if ( 0 === $opacityPercent ) {
+			return;
+		}
+
+		[ $r, $g, $b ] = $this->hexToRgb( $template->backgroundScrimColor );
+
+		// Percentage → GD alpha. GD's alpha channel is inverted:
+		// 0 = fully opaque, 127 = fully transparent. `intval` because
+		// alpha must be an int for `imagecolorallocatealpha`.
+		$maxAlpha = (int) round( 127 - ( $opacityPercent * 127 / 100 ) );
+
+		// Enable alpha blending so the scrim composites onto the
+		// background image rather than replacing it pixel-for-pixel.
+		// Turn savealpha off during the composite so the blended pixel
+		// values overwrite the canvas alpha (which was preserved from
+		// the logo pass); we'll re-enable savealpha before returning.
+		imagealphablending( $image, true );
+		imagesavealpha( $image, false );
+
+		try {
+			if ( $template->backgroundScrimGradient ) {
+				$this->drawScrimGradient( $image, $template, $r, $g, $b, $maxAlpha );
+			} else {
+				$this->drawScrimFlat( $image, $template, $r, $g, $b, $maxAlpha );
+			}
+		} finally {
+			imagesavealpha( $image, true );
+		}
+	}
+
+	/**
+	 * Draw the scrim as a single flat rectangle at the configured
+	 * opacity. Cheapest, safest path — used when
+	 * `backgroundScrimGradient = false`.
+	 *
+	 * @since 1.6.0
+	 */
+	protected function drawScrimFlat( GdImage $image, OgImageTemplate $template, int $r, int $g, int $b, int $alpha ): void
+	{
+		$color = imagecolorallocatealpha( $image, $r, $g, $b, $alpha );
+
+		if ( false === $color ) {
+			return;
+		}
+
+		imagefilledrectangle( $image, 0, 0, $template->width, $template->height, $color );
+	}
+
+	/**
+	 * Draw the scrim as a vertical gradient of horizontal 1-pixel
+	 * bands, fading from ~25% of the configured opacity at the top to
+	 * full opacity at the bottom. The exact top-of-range multiplier
+	 * (0.25) is a taste call — enough to keep the top of the image
+	 * darker where the logo sits, not so much that the sky/highlights
+	 * of a bright photo swallow the logo.
+	 *
+	 * Bands are 4 pixels tall rather than 1 to keep the per-render
+	 * cost bounded for 1200x630 canvases (that's 158 filled rectangles
+	 * instead of 630). At OG image size the seams aren't visible.
+	 *
+	 * @since 1.6.0
+	 */
+	protected function drawScrimGradient( GdImage $image, OgImageTemplate $template, int $r, int $g, int $b, int $maxAlpha ): void
+	{
+		$bandHeight = 4;
+		$topAlpha   = 127 - (int) round( ( 127 - $maxAlpha ) * 0.25 );
+		$height     = max( 1, $template->height );
+
+		for ( $y = 0; $y < $height; $y += $bandHeight ) {
+			$ratio = $y / max( 1, ( $height - 1 ) );
+			$alpha = (int) round( $topAlpha + ( ( $maxAlpha - $topAlpha ) * $ratio ) );
+			$alpha = max( 0, min( 127, $alpha ) );
+
+			$color = imagecolorallocatealpha( $image, $r, $g, $b, $alpha );
+
+			if ( false === $color ) {
+				continue;
+			}
+
+			$y2 = min( $height - 1, $y + $bandHeight - 1 );
+			imagefilledrectangle( $image, 0, $y, $template->width, $y2, $color );
 		}
 	}
 
@@ -207,20 +349,33 @@ class GdOgImageRenderer implements OgImageRendererContract
 	}
 
 	/**
-	 * Draw the title, wrapped to fit the available width.
+	 * Draw the title, wrapped to fit the available width, aligned to
+	 * the bottom-left of the canvas.
 	 *
-	 * The title sits above the vertical center so a subtitle drawn below
-	 * (see {@see drawSubtitle()}) doesn't overlap it.
+	 * The block bottoms out above the subtitle when one is present
+	 * (leaving a small breathing gap), or against the padded bottom of
+	 * the canvas when the card is title-only. Left-aligned at the
+	 * template padding so it lives directly under the top-left logo,
+	 * matching the "logo above, title anchored to bottom-left" layout
+	 * MightyShare-style cards use.
+	 *
+	 * A future revision will lift the title/subtitle anchor points into
+	 * {@see OgImageTemplate} so downstream can toggle bottom vs. center
+	 * vs. top layouts, but the default has moved from "vertically
+	 * centered" to "bottom-left" for #97.
 	 *
 	 * @since 1.4.0
 	 *
-	 * @param  GdImage         $image    The image resource.
-	 * @param  OgImageTemplate $template The template.
-	 * @param  string          $title    The title text.
+	 * @param  GdImage         $image       The image resource.
+	 * @param  OgImageTemplate $template    The template.
+	 * @param  string          $title       The title text.
+	 * @param  bool            $hasSubtitle Whether a subtitle will render below the title.
+	 *                                      When true the title's baseline lifts to leave
+	 *                                      room for the subtitle at the padded bottom.
 	 *
 	 * @return void
 	 */
-	protected function drawTitle( GdImage $image, OgImageTemplate $template, string $title ): void
+	protected function drawTitle( GdImage $image, OgImageTemplate $template, string $title, bool $hasSubtitle = false ): void
 	{
 		[ $r, $g, $b ] = $this->hexToRgb( $template->textColor );
 		$color         = imagecolorallocate( $image, $r, $g, $b );
@@ -235,7 +390,24 @@ class GdOgImageRenderer implements OgImageRendererContract
 		$lineH    = $template->titleFontSize + $lineGap;
 
 		$blockHeight = ( count( $lines ) * $lineH ) - $lineGap;
-		$startY      = (int) round( ( $template->height / 2 ) - ( $blockHeight / 2 ) );
+
+		// Anchor: bottom of the last title line. When a subtitle is
+		// present the anchor lifts to sit `$titleToSubtitleGap` pixels
+		// above the subtitle's own top; without a subtitle it sits on
+		// the padded bottom of the canvas. `titleFontSize * 0.2` was
+		// picked over the internal `lineGap` (0.4 * titleFontSize) so
+		// the gap between the title and subtitle feels tighter than
+		// the gap between wrapped title lines — reads as one text
+		// block rather than two separate paragraphs.
+		if ( $hasSubtitle ) {
+			$subtitleTop           = $template->height - $template->padding - $template->subtitleFontSize;
+			$titleToSubtitleGap    = (int) round( $template->titleFontSize * 0.2 );
+			$titleBottomY          = $subtitleTop - $titleToSubtitleGap;
+		} else {
+			$titleBottomY = $template->height - $template->padding;
+		}
+
+		$startY = $titleBottomY - $blockHeight;
 
 		foreach ( $lines as $index => $line ) {
 			$this->drawTextLine(
