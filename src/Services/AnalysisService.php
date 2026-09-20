@@ -18,11 +18,13 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\SEO\Services;
 
 use ArtisanPackUI\SEO\Contracts\AnalyzerContract;
+use ArtisanPackUI\SEO\Contracts\SeoAnalyzableContent;
 use ArtisanPackUI\SEO\DTOs\AnalysisResultDTO;
 use ArtisanPackUI\SEO\Models\SeoAnalysisCache;
 use ArtisanPackUI\SEO\Models\SeoMeta;
 use Illuminate\Database\Eloquent\Model;
 use InvalidArgumentException;
+use function applyFilters;
 
 /**
  * AnalysisService class.
@@ -108,16 +110,19 @@ class AnalysisService
 		$seoMeta      = $this->getSeoMeta( $model );
 		$focusKeyword = $focusKeyword ?? $seoMeta?->focus_keyword;
 
+		// Extract content up-front so cache validation can fingerprint
+		// the resolved-and-filtered HTML — template markup or filter
+		// output can change without touching the model's content field.
+		$content     = $this->extractContent( $model );
+		$contentHash = $this->hashContent( $content );
+
 		// Check cache first
 		if ( $useCache && config( 'seo.analysis.cache_enabled', true ) ) {
-			$cached = $this->getCachedResult( $seoMeta, $focusKeyword );
+			$cached = $this->getCachedResult( $seoMeta, $focusKeyword, $contentHash );
 			if ( null !== $cached ) {
 				return $cached;
 			}
 		}
-
-		// Extract content from model
-		$content = $this->extractContent( $model );
 
 		// Run all analyzers
 		$results      = [];
@@ -167,7 +172,7 @@ class AnalysisService
 
 		// Cache the results
 		if ( config( 'seo.analysis.cache_enabled', true ) && null !== $seoMeta ) {
-			$this->cacheResults( $seoMeta, $analysisResult );
+			$this->cacheResults( $seoMeta, $analysisResult, $contentHash );
 		}
 
 		return $analysisResult;
@@ -402,6 +407,41 @@ class AnalysisService
 	 */
 	protected function extractContent( Model $model ): string
 	{
+		$content = $this->resolveModelContent( $model );
+
+		/**
+		 * Filter the HTML fed to SEO analyzers.
+		 *
+		 * Hosts can append template-provided markup (e.g. an H1 rendered
+		 * outside the content body by the theme's page-title bar or hero
+		 * component) so analyzers score the page the way a visitor sees it.
+		 *
+		 * @since 1.7.0
+		 *
+		 * @param  string  $content  The HTML the analyzers will receive.
+		 * @param  Model   $model    The model being analyzed.
+		 */
+		$filtered = applyFilters( 'ap.seo.analysisContent', $content, $model );
+
+		return is_string( $filtered ) ? $filtered : $content;
+	}
+
+	/**
+	 * Resolve the raw content string for a model prior to filtering.
+	 *
+	 * @since 1.7.0
+	 *
+	 * @param  Model  $model  The model.
+	 *
+	 * @return string
+	 */
+	protected function resolveModelContent( Model $model ): string
+	{
+		// Prefer the SeoAnalyzableContent contract when implemented.
+		if ( $model instanceof SeoAnalyzableContent ) {
+			return $model->getSeoAnalysisHtml();
+		}
+
 		// Try common content field names
 		$contentFields = [ 'content', 'body', 'description', 'text' ];
 
@@ -527,7 +567,7 @@ class AnalysisService
 	 *
 	 * @return AnalysisResultDTO|null
 	 */
-	protected function getCachedResult( ?SeoMeta $seoMeta, ?string $focusKeyword ): ?AnalysisResultDTO
+	protected function getCachedResult( ?SeoMeta $seoMeta, ?string $focusKeyword, ?string $contentHash = null ): ?AnalysisResultDTO
 	{
 		if ( null === $seoMeta ) {
 			return null;
@@ -549,7 +589,29 @@ class AnalysisService
 			return null;
 		}
 
+		// Invalidate when the resolved-and-filtered analysis HTML no longer
+		// matches the fingerprint the cache was stored with. A null hash
+		// on the cache row means the entry pre-dates fingerprinting; treat
+		// that as a miss so it is refreshed on next run.
+		if ( null !== $contentHash && $cache->content_hash !== $contentHash ) {
+			return null;
+		}
+
 		return AnalysisResultDTO::fromCache( $cache );
+	}
+
+	/**
+	 * Fingerprint the resolved analysis content for cache validation.
+	 *
+	 * @since 1.7.0
+	 *
+	 * @param  string  $content  The resolved-and-filtered analysis HTML.
+	 *
+	 * @return string
+	 */
+	protected function hashContent( string $content ): string
+	{
+		return hash( 'xxh128', $content );
 	}
 
 	/**
@@ -557,12 +619,13 @@ class AnalysisService
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param  SeoMeta            $seoMeta  The SEO meta.
-	 * @param  AnalysisResultDTO  $result   The analysis result.
+	 * @param  SeoMeta            $seoMeta      The SEO meta.
+	 * @param  AnalysisResultDTO  $result       The analysis result.
+	 * @param  string|null        $contentHash  Fingerprint of the resolved analysis HTML.
 	 *
 	 * @return SeoAnalysisCache
 	 */
-	protected function cacheResults( SeoMeta $seoMeta, AnalysisResultDTO $result ): SeoAnalysisCache
+	protected function cacheResults( SeoMeta $seoMeta, AnalysisResultDTO $result, ?string $contentHash = null ): SeoAnalysisCache
 	{
 		return SeoAnalysisCache::updateOrCreate(
 			[ 'seo_meta_id' => $seoMeta->id ],
@@ -579,6 +642,7 @@ class AnalysisService
 				'analyzed_at'        => now(),
 				'focus_keyword_used' => $result->focusKeyword,
 				'content_word_count' => $result->wordCount,
+				'content_hash'       => $contentHash,
 			],
 		);
 	}
