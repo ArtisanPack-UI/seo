@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Extension seam for `AnalysisService::extractContent()`** (#100). SEO
+  analyzers can now see template-provided markup (e.g. an H1 rendered
+  by a page-title bar, hero component, or `single-*.blade.php`) instead
+  of scoring only the model's content field. Two hooks land together:
+  the `ap.seo.analysisContent` filter fires with the resolved content
+  and the model so hosts can append template markup, and a new
+  `ArtisanPackUI\SEO\Contracts\SeoAnalyzableContent` interface lets
+  models return the exact HTML analyzers should reason over via
+  `getSeoAnalysisHtml()`. Fixes the `HeadingStructureAnalyzer` false
+  "No H1 heading found" flag on pages whose H1 lives outside the
+  content body.
+- **`seo_analysis_cache.content_hash` column + fingerprint-aware cache
+  lookup** (#100). The analysis cache now fingerprints the
+  resolved-and-filtered HTML on write and compares it on read, so
+  template-provided markup or `ap.seo.analysisContent` filter output
+  changes invalidate the cached result even when the model's content
+  field is untouched. Existing rows without a hash are treated as a
+  miss so they refresh on next run.
+
 ## [1.6.0] - 2026-09-17
 
 ### Changed

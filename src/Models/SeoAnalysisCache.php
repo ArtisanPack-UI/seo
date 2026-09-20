@@ -39,6 +39,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property Carbon|null $analyzed_at
  * @property string|null $focus_keyword_used
  * @property int         $content_word_count
+ * @property string|null $content_hash
  * @property Carbon      $created_at
  * @property Carbon      $updated_at
  * @property-read SeoMeta $seoMeta
@@ -76,6 +77,7 @@ class SeoAnalysisCache extends Model
 		'analyzed_at',
 		'focus_keyword_used',
 		'content_word_count',
+		'content_hash',
 	];
 
 	/**
