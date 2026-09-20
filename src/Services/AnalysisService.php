@@ -18,11 +18,13 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\SEO\Services;
 
 use ArtisanPackUI\SEO\Contracts\AnalyzerContract;
+use ArtisanPackUI\SEO\Contracts\SeoAnalyzableContent;
 use ArtisanPackUI\SEO\DTOs\AnalysisResultDTO;
 use ArtisanPackUI\SEO\Models\SeoAnalysisCache;
 use ArtisanPackUI\SEO\Models\SeoMeta;
 use Illuminate\Database\Eloquent\Model;
 use InvalidArgumentException;
+use function applyFilters;
 
 /**
  * AnalysisService class.
@@ -402,6 +404,41 @@ class AnalysisService
 	 */
 	protected function extractContent( Model $model ): string
 	{
+		$content = $this->resolveModelContent( $model );
+
+		/**
+		 * Filter the HTML fed to SEO analyzers.
+		 *
+		 * Hosts can append template-provided markup (e.g. an H1 rendered
+		 * outside the content body by the theme's page-title bar or hero
+		 * component) so analyzers score the page the way a visitor sees it.
+		 *
+		 * @since 1.7.0
+		 *
+		 * @param  string  $content  The HTML the analyzers will receive.
+		 * @param  Model   $model    The model being analyzed.
+		 */
+		$filtered = applyFilters( 'ap.seo.analysisContent', $content, $model );
+
+		return is_string( $filtered ) ? $filtered : $content;
+	}
+
+	/**
+	 * Resolve the raw content string for a model prior to filtering.
+	 *
+	 * @since 1.7.0
+	 *
+	 * @param  Model  $model  The model.
+	 *
+	 * @return string
+	 */
+	protected function resolveModelContent( Model $model ): string
+	{
+		// Prefer the SeoAnalyzableContent contract when implemented.
+		if ( $model instanceof SeoAnalyzableContent ) {
+			return $model->getSeoAnalysisHtml();
+		}
+
 		// Try common content field names
 		$contentFields = [ 'content', 'body', 'description', 'text' ];
 
