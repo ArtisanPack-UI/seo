@@ -286,6 +286,53 @@ class CustomAnalyzer implements AnalyzerInterface
 }
 ```
 
+## Feeding template markup into analyzers
+
+Since **1.7.0**, analyzers can score the full HTML a visitor sees rather than just the model's content field. This matters when template-provided markup — a page-title bar's H1, a hero component's headline, `single-*.blade.php` wrappers — lives outside the content column but should still be considered "on the page." Two entry points ship together.
+
+### `ap.seo.analysisContent` filter
+
+Register from a service provider to append template markup before analyzers run:
+
+```php
+use Illuminate\Database\Eloquent\Model;
+
+addFilter( 'ap.seo.analysisContent', function ( string $content, Model $model ): string {
+	if ( ! $model instanceof \App\Models\Post ) {
+		return $content;
+	}
+
+	$titleBar = view( 'partials.page-title-bar', [ 'post' => $model ] )->render();
+
+	return $titleBar . $content;
+} );
+```
+
+Return a non-string and `AnalysisService::extractContent()` silently falls back to the original content — a broken filter cannot break analysis.
+
+### `SeoAnalyzableContent` contract
+
+Implement on a model that already knows how to render its full analyzable HTML:
+
+```php
+use ArtisanPackUI\SEO\Contracts\SeoAnalyzableContent;
+use Illuminate\Database\Eloquent\Model;
+
+class Post extends Model implements SeoAnalyzableContent
+{
+	public function getSeoAnalysisHtml(): string
+	{
+		return view( 'posts.seo-analysis', [ 'post' => $this ] )->render();
+	}
+}
+```
+
+`getSeoAnalysisHtml()` runs first, then the filter chain layers on top, so both mechanisms compose cleanly.
+
+### Cache invalidation
+
+Analysis results are fingerprinted by an xxh3 hash of the resolved-and-filtered HTML stored in `seo_analysis_cache.content_hash`. Template markup or filter output changes invalidate the cached result on the next run automatically — no manual `analysis:clear` required.
+
 ### Registering Analyzers
 
 ```php
