@@ -20,6 +20,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `getSeoAnalysisHtml()`. Fixes the `HeadingStructureAnalyzer` false
   "No H1 heading found" flag on pages whose H1 lives outside the
   content body.
+- **`seo_analysis_cache.content_hash` column + fingerprint-aware cache
+  lookup** (#100). The analysis cache now fingerprints the
+  resolved-and-filtered HTML on write and compares it on read, so
+  template-provided markup or `ap.seo.analysisContent` filter output
+  changes invalidate the cached result even when the model's content
+  field is untouched. Existing rows without a hash are treated as a
+  miss so they refresh on next run.
 
 ## [1.6.0] - 2026-09-17
 
