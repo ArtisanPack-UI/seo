@@ -331,7 +331,7 @@ class Post extends Model implements SeoAnalyzableContent
 
 ### Cache invalidation
 
-Analysis results are fingerprinted by an xxh3 hash of the resolved-and-filtered HTML stored in `seo_analysis_cache.content_hash`. Template markup or filter output changes invalidate the cached result on the next run automatically — no manual `analysis:clear` required.
+Analysis results are fingerprinted by an xxh128 hash of the resolved-and-filtered HTML stored in `seo_analysis_cache.content_hash`. Template markup or filter output changes invalidate the cached result on the next run automatically — no manual `analysis:clear` required.
 
 ### Registering Analyzers
 

@@ -95,7 +95,7 @@ customizable per project.
 
 ## Cache invalidation
 
-The `content_hash` column stores an xxh3 fingerprint of the
+The `content_hash` column stores an xxh128 fingerprint of the
 resolved-and-filtered HTML on write and compares it on read. Change
 the template markup or filter callback and the next analysis run
 recomputes and re-caches without a manual `analysis:clear`.
