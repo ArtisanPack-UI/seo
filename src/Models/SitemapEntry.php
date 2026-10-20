@@ -17,6 +17,7 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\SEO\Models;
 
+use ArtisanPackUI\SEO\Traits\ResolvesMorphModels;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
@@ -47,6 +48,8 @@ use InvalidArgumentException;
  */
 class SitemapEntry extends Model
 {
+	use ResolvesMorphModels;
+
 	/**
 	 * Valid change frequency values per sitemap protocol.
 	 *

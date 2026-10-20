@@ -120,7 +120,11 @@ class CacheService
 	/**
 	 * Get cache key for a model's meta tags.
 	 *
+	 * Includes the table so records of one model class stored in several
+	 * tables (see MorphModelResolver) don't share an entry.
+	 *
 	 * @since 1.0.0
+	 * @since 1.8.0 Key includes the model's table.
 	 *
 	 * @param  Model  $model  The model instance.
 	 *
@@ -129,8 +133,9 @@ class CacheService
 	public function getMetaCacheKey( Model $model ): string
 	{
 		return sprintf(
-			'meta:%s:%s',
+			'meta:%s:%s:%s',
 			class_basename( $model ),
+			$model->getTable(),
 			$model->getKey(),
 		);
 	}
@@ -139,6 +144,7 @@ class CacheService
 	 * Get cache key for a model's analysis.
 	 *
 	 * @since 1.0.0
+	 * @since 1.8.0 Key includes the model's table.
 	 *
 	 * @param  Model  $model  The model instance.
 	 *
@@ -147,8 +153,9 @@ class CacheService
 	public function getAnalysisCacheKey( Model $model ): string
 	{
 		return sprintf(
-			'analysis:%s:%s',
+			'analysis:%s:%s:%s',
 			class_basename( $model ),
+			$model->getTable(),
 			$model->getKey(),
 		);
 	}
