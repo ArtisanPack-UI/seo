@@ -201,6 +201,16 @@ describe( 'Dynamic seoMeta relation integration', function (): void {
 			->and( SeoMetaResolver::resolve( $post->fresh() )?->meta_title )->toBe( 'Updated Title' );
 	} );
 
+	it( 'refreshes the loaded relation after SeoService::updateSeoMeta() creates a row', function (): void {
+		$post = ResolverDynamicPost::create( [ 'title' => 'Update Me' ] );
+
+		expect( SeoMetaResolver::resolve( $post ) )->toBeNull();
+
+		app( SeoService::class )->updateSeoMeta( $post, [ 'meta_title' => 'Created Title' ] );
+
+		expect( SeoMetaResolver::resolve( $post )?->meta_title )->toBe( 'Created Title' );
+	} );
+
 	it( 'rejects SeoService::updateSeoMeta() for a model without the relation', function (): void {
 		$post = ResolverPlainPost::create( [ 'title' => 'Plain' ] );
 

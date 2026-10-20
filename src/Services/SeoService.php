@@ -211,6 +211,9 @@ class SeoService
 		$seoMeta->fill( $data );
 		$seoMeta->save();
 
+		// Replace a previously loaded null relation so later lookups on this instance see the new row
+		$model->setRelation( SeoMetaResolver::RELATION, $seoMeta );
+
 		// Clear cache
 		$this->cacheService->clearMetaCache( $model );
 
