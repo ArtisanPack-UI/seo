@@ -22,14 +22,14 @@ $tags = seo()->generateMetaTags($post);
 
 ### seoMeta()
 
-Get the SEO meta record for a model.
+Get the SEO meta record for a model, or `null` if the model has no record or no `seoMeta` relation. Works with the `HasSeo` trait and, since 1.7.1, with relations registered via `Model::resolveRelationUsing()`.
 
 ```php
 $meta = seoMeta($post);
 
 // Access properties
-$title = $meta->meta_title;
-$description = $meta->meta_description;
+$title = $meta?->meta_title;
+$description = $meta?->meta_description;
 ```
 
 ### seoConfig()

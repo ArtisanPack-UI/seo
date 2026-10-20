@@ -13,7 +13,7 @@ The main orchestrator service that coordinates all SEO functionality.
 ### Access
 
 ```php
-use ArtisanPackUI\Seo\Services\SeoService;
+use ArtisanPackUI\SEO\Services\SeoService;
 
 // Via dependency injection
 public function __construct(protected SeoService $seo) {}
@@ -21,44 +21,48 @@ public function __construct(protected SeoService $seo) {}
 // Via helper
 $seo = seo();
 
-// Via facade
-use ArtisanPackUI\Seo\Facades\Seo;
-$meta = Seo::getMetaForModel($post);
-
 // Via container
-$seo = app('seo');
+$seo = app(SeoService::class);
 ```
+
+> The `SEO` facade and the `app('seo')` binding resolve the `ArtisanPackUI\SEO\SEO` registry class (analyzers, schema types, sitemap providers), not `SeoService`.
 
 ### Methods
 
 ```php
-// Get or create SEO meta for a model
-$meta = $seo->getMetaForModel($post);
+// Get the SeoMeta record (null if none exists)
+$meta = $seo->getSeoMeta($post);
 
-// Update SEO meta
-$meta = $seo->updateMeta($post, [
+// Create or update SEO meta (the model must be persisted)
+$meta = $seo->updateSeoMeta($post, [
     'meta_title' => 'Title',
     'meta_description' => 'Description',
 ]);
 
-// Generate all meta tags
-$tags = $seo->generateMetaTags($post);
+// Get all SEO data (meta, Open Graph, Twitter Card, hreflang), cached
+$data = $seo->getAll($post);
 
-// Generate Open Graph tags
-$ogTags = $seo->generateOpenGraphTags($post);
+// Get individual pieces as DTOs
+$metaTags = $seo->getMetaTags($post);       // MetaTagsDTO
+$openGraph = $seo->getOpenGraph($post);     // OpenGraphDTO
+$twitterCard = $seo->getTwitterCard($post); // TwitterCardDTO
 
-// Generate Twitter Card tags
-$twitterTags = $seo->generateTwitterCardTags($post);
+// Get hreflang tags (includes x-default when configured)
+$hreflang = $seo->getHreflang($post);
+// Returns: [['hreflang' => 'en', 'href' => '...'], ...]
 
-// Generate schema markup
-$schema = $seo->generateSchema($post);
+// Title helpers
+$suffix = $seo->getTitleSuffix();
+$separator = $seo->getTitleSeparator();
+$title = $seo->buildTitle('My Post');        // "My Post | Site Name"
+$title = $seo->buildTitle('My Post', false); // "My Post"
 
-// Get SEO data with fallbacks
-$data = $seo->getSeoData($post);
-
-// Check if model should be indexed
-$indexable = $seo->shouldBeIndexed($post);
+// Clear caches
+$seo->clearCache($post);
+$seo->clearAllCaches();
 ```
+
+`getSeoMeta()` and `updateSeoMeta()` work with models that use the `HasSeo` trait and with models whose `seoMeta` relation is registered via `Model::resolveRelationUsing()` (since 1.7.1). `updateSeoMeta()` throws an `InvalidArgumentException` when the model has neither or hasn't been saved yet.
 
 ---
 
@@ -449,35 +453,42 @@ Handles SEO content analysis.
 ### Access
 
 ```php
-use ArtisanPackUI\Seo\Services\AnalysisService;
+use ArtisanPackUI\SEO\Services\AnalysisService;
 
-$analysisService = app('seo.analysis');
+$analysisService = app(AnalysisService::class);
 ```
 
 ### Methods
 
 ```php
-// Run full analysis
-$results = $analysisService->analyze($post);
-// Returns: ['score' => 75, 'readability' => [...], ...]
+// Run full analysis (uses the persisted focus keyword and the cache)
+$result = $analysisService->analyze($post); // AnalysisResultDTO
+$result->overallScore;   // 75
+$result->getGrade();     // Letter grade
+$result->issues;         // Also ->suggestions, ->passedChecks, getErrors(), getWarnings()
 
-// Run specific analyzer
-$readability = $analysisService->runAnalyzer('readability', $post);
+// Override the focus keyword and skip the cache
+$result = $analysisService->analyze($post, 'laravel seo', useCache: false);
 
-// Get overall score
-$score = $analysisService->getScore($post);
-
-// Get registered analyzers
-$analyzers = $analysisService->getAnalyzers();
-
-// Register custom analyzer
+// Manage analyzers
+$analyzers = $analysisService->getAnalyzers(); // array<string, AnalyzerContract>
 $analysisService->registerAnalyzer('custom', new CustomAnalyzer());
+$analysisService->unregisterAnalyzer('custom');
+$analysisService->hasAnalyzer('readability');
+$contentAnalyzers = $analysisService->getAnalyzersByCategory('content');
 
-// Clear analysis cache
-$analysisService->clearCache($post);
+// Category weights used for the overall score (readability, keyword, meta, content)
+$analysisService->setCategoryWeights(['readability' => 30, 'keyword' => 25]);
+$weights = $analysisService->getCategoryWeights();
+$weight = $analysisService->getCategoryWeight('readability');
 
-// Refresh analysis
-$results = $analysisService->refresh($post);
+// Cache management
+$analysisService->clearCache($post);           // bool
+$cleared = $analysisService->clearAllCaches(); // int, records cleared
+
+// Aggregate statistics across cached analyses
+$stats = $analysisService->getStatistics();
+// Returns: ['total' => ..., 'good_count' => ..., 'average_score' => ..., ...]
 ```
 
 ---
