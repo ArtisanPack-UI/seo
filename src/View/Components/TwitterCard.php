@@ -18,6 +18,7 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\SEO\View\Components;
 
 use ArtisanPackUI\SEO\Services\SocialMetaService;
+use ArtisanPackUI\SEO\Support\SeoMetaResolver;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\View\Component;
@@ -114,7 +115,7 @@ class TwitterCard extends Component
 
 		if ( null !== $model ) {
 			// Get SEO meta from model if it has the seoMeta relationship
-			$seoMeta = method_exists( $model, 'seoMeta' ) ? $model->seoMeta : null;
+			$seoMeta = SeoMetaResolver::resolve( $model );
 			$dto     = $socialMetaService->generateTwitterCard( $model, $seoMeta );
 
 			$this->card               = $card ?? $dto->card;

@@ -20,6 +20,7 @@ namespace ArtisanPackUI\SEO\Http\Controllers\Api;
 use ArtisanPackUI\SEO\Http\Requests\Api\AnalyzeContentRequest;
 use ArtisanPackUI\SEO\Models\SeoAnalysisCache;
 use ArtisanPackUI\SEO\Services\AnalysisService;
+use ArtisanPackUI\SEO\Support\SeoMetaResolver;
 use Illuminate\Database\Eloquent\Relations\Relation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
@@ -101,10 +102,7 @@ class AnalysisApiController extends Controller
 			], 404 );
 		}
 
-		$seoMeta = null;
-		if ( method_exists( $model, 'seoMeta' ) ) {
-			$seoMeta = $model->seoMeta;
-		}
+		$seoMeta = SeoMetaResolver::resolve( $model );
 
 		if ( null === $seoMeta ) {
 			return response()->json( [

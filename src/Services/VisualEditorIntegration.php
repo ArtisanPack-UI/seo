@@ -20,6 +20,7 @@ namespace ArtisanPackUI\SEO\Services;
 use ArtisanPackUI\SEO\DTOs\AnalysisResultDTO;
 use ArtisanPackUI\SEO\Models\SeoMeta;
 use ArtisanPackUI\SEO\Support\PackageDetector;
+use ArtisanPackUI\SEO\Support\SeoMetaResolver;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
 use function addFilter;
@@ -227,11 +228,7 @@ class VisualEditorIntegration
 	 */
 	protected function getSeoMeta( Model $page ): ?SeoMeta
 	{
-		if ( method_exists( $page, 'seoMeta' ) ) {
-			return $page->seoMeta;
-		}
-
-		return null;
+		return SeoMetaResolver::resolve( $page );
 	}
 
 	/**
