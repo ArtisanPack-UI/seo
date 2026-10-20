@@ -18,6 +18,7 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\SEO\Services;
 
 use ArtisanPackUI\SEO\Models\SeoMeta;
+use ArtisanPackUI\SEO\Support\SeoMetaResolver;
 use Illuminate\Database\Eloquent\Model;
 use InvalidArgumentException;
 
@@ -466,11 +467,7 @@ class HreflangService
 	 */
 	protected function getSeoMeta( Model $model ): ?SeoMeta
 	{
-		if ( method_exists( $model, 'seoMeta' ) ) {
-			return $model->seoMeta;
-		}
-
-		return null;
+		return SeoMetaResolver::resolve( $model );
 	}
 
 	/**

@@ -37,6 +37,31 @@ public function seoMeta(): MorphOne
 }
 ```
 
+### Models Without the Trait
+
+Since **1.7.1**, the package also recognizes a `seoMeta` relation registered at runtime with `Model::resolveRelationUsing()`. Use this for models you can't edit, such as models shipped by another package:
+
+```php
+use ArtisanPackUI\SEO\Models\SeoMeta;
+use Vendor\Package\Models\Page;
+
+// In a service provider's boot() method
+Page::resolveRelationUsing('seoMeta', function (Page $page) {
+    return $page->morphOne(SeoMeta::class, 'seoable');
+});
+```
+
+Meta tag components, the `seoMeta()` helper, `SeoService`, `HreflangService`, content analysis, and the visual editor integration all pick up the dynamic relation. The `HasSeo` convenience methods (`getSeoTitle()`, `updateSeoMeta()`, and so on) aren't available on these models; use `seo()->updateSeoMeta($page, [...])` and `seo()->getSeoMeta($page)` instead.
+
+To check for the relation in your own code, use `SeoMetaResolver` rather than `method_exists()`, which misses dynamic relations:
+
+```php
+use ArtisanPackUI\SEO\Support\SeoMetaResolver;
+
+SeoMetaResolver::hasRelation($page); // true for HasSeo or resolveRelationUsing()
+SeoMetaResolver::resolve($page);     // SeoMeta|null
+```
+
 ## Core Methods
 
 ### getOrCreateSeoMeta()

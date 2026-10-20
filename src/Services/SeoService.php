@@ -21,6 +21,7 @@ use ArtisanPackUI\SEO\DTOs\MetaTagsDTO;
 use ArtisanPackUI\SEO\DTOs\OpenGraphDTO;
 use ArtisanPackUI\SEO\DTOs\TwitterCardDTO;
 use ArtisanPackUI\SEO\Models\SeoMeta;
+use ArtisanPackUI\SEO\Support\SeoMetaResolver;
 use Illuminate\Database\Eloquent\Model;
 use InvalidArgumentException;
 
@@ -173,11 +174,7 @@ class SeoService
 	 */
 	public function getSeoMeta( Model $model ): ?SeoMeta
 	{
-		if ( method_exists( $model, 'seoMeta' ) ) {
-			return $model->seoMeta;
-		}
-
-		return null;
+		return SeoMetaResolver::resolve( $model );
 	}
 
 	/**
@@ -188,14 +185,14 @@ class SeoService
 	 * @param  Model                 $model  The model to update.
 	 * @param  array<string, mixed>  $data   The SEO data to update.
 	 *
-	 * @throws InvalidArgumentException If model doesn't use HasSeo trait or is not persisted.
+	 * @throws InvalidArgumentException If model has no seoMeta relationship or is not persisted.
 	 *
 	 * @return SeoMeta
 	 */
 	public function updateSeoMeta( Model $model, array $data ): SeoMeta
 	{
-		if ( ! method_exists( $model, 'seoMeta' ) ) {
-			throw new InvalidArgumentException( 'Model must use the HasSeo trait.' );
+		if ( ! SeoMetaResolver::hasRelation( $model ) ) {
+			throw new InvalidArgumentException( 'Model must use the HasSeo trait or define a seoMeta relationship.' );
 		}
 
 		// Guard against unsaved models to prevent orphaned SeoMeta records
@@ -213,6 +210,9 @@ class SeoService
 
 		$seoMeta->fill( $data );
 		$seoMeta->save();
+
+		// Replace a previously loaded null relation so later lookups on this instance see the new row
+		$model->setRelation( SeoMetaResolver::RELATION, $seoMeta );
 
 		// Clear cache
 		$this->cacheService->clearMetaCache( $model );

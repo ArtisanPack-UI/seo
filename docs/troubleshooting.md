@@ -233,6 +233,10 @@ $post->getSeoUrl();
 $post->seoMeta->focus_keyword;
 ```
 
+### "Meta description is missing." on every record
+
+If the model gets its `seoMeta` relation from `Model::resolveRelationUsing()` rather than the `HasSeo` trait, versions before 1.7.1 didn't detect the relation. Analysis ignored the saved meta description and focus keyword and never cached results. Upgrade to 1.7.1 or later.
+
 ### Analysis queue not processing
 
 ```bash
@@ -375,7 +379,7 @@ $posts = Post::with('seoMeta')->get();
 
 ## Error Messages
 
-### "Model does not use HasSeo trait"
+### "Model must use the HasSeo trait or define a seoMeta relationship."
 
 Add the trait to your model:
 
@@ -387,6 +391,8 @@ class Post extends Model
     use HasSeo;
 }
 ```
+
+If you can't edit the model, register the relation at runtime instead. See [Models Without the Trait](Usage-Model-Integration#models-without-the-trait).
 
 ### "Invalid schema type"
 
