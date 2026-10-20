@@ -369,6 +369,7 @@ Hooks are called with helper functions from `artisanpack-ui/hooks`: `applyFilter
 | `ap.seo.schemaGraph` | filter | `SchemaService::generateGraph()` | `(array $graph, ?Model $model)` | `array $graph` |
 | `ap.seo.schemaRendering` | action | `SchemaService::renderGraph()` (before encode) | `(array $graph, ?Model $model)` | — |
 | `ap.seo.schemaRendered` | action | `SchemaService::renderGraph()` (after encode) | `(array $graph, ?Model $model)` | — |
+| `ap.seo.resolveMorphModel` | filter | `SeoMeta::seoable()` and `SitemapEntry::sitemapable()` (lazy and eager loading) | `(?Model $model, string $type)` | `?Model` — a fresh instance to query, or `null` for Eloquent's default |
 
 The package also **subscribes** to `ap.visualEditor.prePublishChecks` (fired by [`artisanpack-ui/visual-editor`](https://github.com/ArtisanPack-UI/visual-editor)) to append SEO checks to the pre-publish workflow.
 

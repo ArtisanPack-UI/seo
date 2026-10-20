@@ -18,6 +18,7 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\SEO\Services;
 
 use ArtisanPackUI\SEO\Models\SeoMeta;
+use ArtisanPackUI\SEO\Support\MorphModelResolver;
 use ArtisanPackUI\SEO\Support\SeoMetaResolver;
 use Illuminate\Database\Eloquent\Model;
 use InvalidArgumentException;
@@ -481,8 +482,8 @@ class HreflangService
 	 */
 	protected function clearCacheForSeoMeta( SeoMeta $seoMeta ): void
 	{
-		// Check if seoable_type class exists before trying to load it
-		if ( ! class_exists( $seoMeta->seoable_type ) ) {
+		// Skip types that can't be loaded rather than throwing on the lookup
+		if ( ! MorphModelResolver::canResolve( $seoMeta->seoable_type ) ) {
 			return;
 		}
 

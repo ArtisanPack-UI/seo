@@ -62,6 +62,29 @@ SeoMetaResolver::hasRelation($page); // true for HasSeo or resolveRelationUsing(
 SeoMetaResolver::resolve($page);     // SeoMeta|null
 ```
 
+### Custom Morph Types
+
+`SeoMeta::seoable` and `SitemapEntry::sitemapable` normally instantiate the stored `seoable_type` / `sitemapable_type` as a class (or a morph-map alias). If one model is shared by several tables and its `getMorphClass()` encodes the table, such as `App\Models\Record:products`, that string isn't a class and the lookup throws.
+
+Since **1.8.0**, you can resolve such types with the `ap.seo.resolveMorphModel` filter. Return a fresh, unsaved instance configured for the stored type, or pass the incoming value through for types you don't own:
+
+```php
+use App\Models\Record;
+use Illuminate\Database\Eloquent\Model;
+
+addFilter('ap.seo.resolveMorphModel', function (?Model $model, string $type): ?Model {
+    $prefix = Record::class . ':';
+
+    if (null !== $model || ! str_starts_with($type, $prefix)) {
+        return $model;
+    }
+
+    return (new Record())->setTable(substr($type, strlen($prefix)));
+});
+```
+
+The filter covers lazy loading (`$seoMeta->seoable`) and eager loading (`SeoMeta::with('seoable')`), so the llms.txt and news sitemap generators, hreflang, and the `getEffectiveTitle()` / `getEffectiveDescription()` / `getEffectiveOgImage()` fallbacks all work for these models. Use `MorphModelResolver::canResolve($type)` to check whether a stored type can be loaded.
+
 ## Core Methods
 
 ### getOrCreateSeoMeta()
