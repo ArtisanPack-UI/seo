@@ -18,6 +18,7 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\SEO\Models;
 
 use ArtisanPackUI\SEO\Services\MediaLibraryIntegration;
+use ArtisanPackUI\SEO\Traits\ResolvesMorphModels;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasOne;
@@ -73,6 +74,8 @@ use InvalidArgumentException;
  */
 class SeoMeta extends Model
 {
+	use ResolvesMorphModels;
+
 	/**
 	 * The table associated with the model.
 	 *

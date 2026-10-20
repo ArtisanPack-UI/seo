@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`ap.seo.resolveMorphModel` filter for morph types that aren't class
+  names.** A model whose `getMorphClass()` returns something like
+  `App\Models\Record:products` (one model shared by several tables)
+  stored a `seoable_type` / `sitemapable_type` that Eloquent tried to
+  instantiate as a class, so `SeoMeta::seoable` and
+  `SitemapEntry::sitemapable` threw `Class "…" not found`. Both relations
+  now ask the filter for a configured model instance first, for lazy
+  loading and for `with( 'seoable' )` / `with( 'sitemapable' )`, through
+  the new `ResolvesMorphModels` trait and `ResolvableMorphTo` relation.
+  `ArtisanPackUI\SEO\Support\MorphModelResolver` wraps the filter.
+  Types the filter doesn't resolve behave as before.
+
+### Fixed
+
+- **`HreflangService` cache clearing works for morph-map aliases and
+  resolver-backed types.** It used to skip any `seoable_type` that wasn't
+  a class name. It now checks `MorphModelResolver::canResolve()`.
+
 ## [1.7.1] - 2026-10-19
 
 ### Fixed
