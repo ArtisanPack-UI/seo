@@ -154,6 +154,15 @@ describe( 'CacheService Cache Keys', function (): void {
 			->and( $key )->toContain( ':456' );
 	} );
 
+	it( 'keys records of one class in different tables apart', function (): void {
+		$service  = new CacheService();
+		$products = ( new class extends Model {} )->setTable( 'products' )->forceFill( [ 'id' => 3 ] );
+		$events   = $products->replicate()->setTable( 'events' )->forceFill( [ 'id' => 3 ] );
+
+		expect( $service->getMetaCacheKey( $products ) )->not->toBe( $service->getMetaCacheKey( $events ) )
+			->and( $service->getAnalysisCacheKey( $products ) )->not->toBe( $service->getAnalysisCacheKey( $events ) );
+	} );
+
 } );
 
 describe( 'CacheService Cache Clearing', function (): void {

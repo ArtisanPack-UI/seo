@@ -26,6 +26,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **`HreflangService` cache clearing works for morph-map aliases and
   resolver-backed types.** It used to skip any `seoable_type` that wasn't
   a class name. It now checks `MorphModelResolver::canResolve()`.
+- **Meta and analysis cache keys include the model's table.** Keys were
+  `meta:<class>:<id>`, so records of one model class stored in several
+  tables shared a cache entry and could serve each other's SEO data. They
+  are now `meta:<class>:<table>:<id>` (and the same for `analysis:`).
+  Existing entries simply miss once and are rebuilt.
 
 ## [1.7.1] - 2026-10-19
 
