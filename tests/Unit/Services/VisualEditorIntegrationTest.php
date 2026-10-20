@@ -39,6 +39,17 @@ class TestModelWithSeoMeta extends Model
 	}
 }
 
+/**
+ * Create a mocked model that has no seoMeta relationship.
+ */
+function mockModelWithoutSeoMeta(): Model
+{
+	$model = Mockery::mock( Model::class );
+	$model->shouldReceive( 'isRelation' )->with( 'seoMeta' )->andReturn( false );
+
+	return $model;
+}
+
 beforeEach( function (): void {
 	$this->analysisService = Mockery::mock( AnalysisService::class );
 	$this->integration     = new VisualEditorIntegration( $this->analysisService );
@@ -65,7 +76,7 @@ describe( 'VisualEditorIntegration Availability', function (): void {
 describe( 'VisualEditorIntegration getSeoChecks', function (): void {
 
 	it( 'returns a collection', function (): void {
-		$page = Mockery::mock( Model::class );
+		$page = mockModelWithoutSeoMeta();
 		$page->shouldReceive( 'seoMeta' )->andReturn( null );
 
 		$result = $this->integration->getSeoChecks( $page );
@@ -74,7 +85,7 @@ describe( 'VisualEditorIntegration getSeoChecks', function (): void {
 	} );
 
 	it( 'returns warning for missing meta title when no SEO meta', function (): void {
-		$page = Mockery::mock( Model::class );
+		$page = mockModelWithoutSeoMeta();
 
 		$result = $this->integration->getSeoChecks( $page );
 
@@ -84,7 +95,7 @@ describe( 'VisualEditorIntegration getSeoChecks', function (): void {
 	} );
 
 	it( 'returns warning for missing meta description when no SEO meta', function (): void {
-		$page = Mockery::mock( Model::class );
+		$page = mockModelWithoutSeoMeta();
 
 		$result = $this->integration->getSeoChecks( $page );
 
@@ -94,7 +105,7 @@ describe( 'VisualEditorIntegration getSeoChecks', function (): void {
 	} );
 
 	it( 'returns suggestion for missing focus keyword when no SEO meta', function (): void {
-		$page = Mockery::mock( Model::class );
+		$page = mockModelWithoutSeoMeta();
 
 		$result = $this->integration->getSeoChecks( $page );
 
@@ -104,7 +115,7 @@ describe( 'VisualEditorIntegration getSeoChecks', function (): void {
 	} );
 
 	it( 'returns suggestion for missing OG image when no SEO meta', function (): void {
-		$page = Mockery::mock( Model::class );
+		$page = mockModelWithoutSeoMeta();
 
 		$result = $this->integration->getSeoChecks( $page );
 
@@ -114,7 +125,7 @@ describe( 'VisualEditorIntegration getSeoChecks', function (): void {
 	} );
 
 	it( 'checks have correct structure', function (): void {
-		$page = Mockery::mock( Model::class );
+		$page = mockModelWithoutSeoMeta();
 
 		$result = $this->integration->getSeoChecks( $page );
 
@@ -128,7 +139,7 @@ describe( 'VisualEditorIntegration getSeoChecks', function (): void {
 	} );
 
 	it( 'includes valid check types', function (): void {
-		$page = Mockery::mock( Model::class );
+		$page = mockModelWithoutSeoMeta();
 
 		$result = $this->integration->getSeoChecks( $page );
 
@@ -210,7 +221,7 @@ describe( 'VisualEditorIntegration analyzeForEditor', function (): void {
 			->once()
 			->andReturn( $analysisResult );
 
-		$page = Mockery::mock( Model::class );
+		$page = mockModelWithoutSeoMeta();
 
 		$result = $this->integration->analyzeForEditor( $page );
 
@@ -248,7 +259,7 @@ describe( 'VisualEditorIntegration analyzeForEditor', function (): void {
 			->once()
 			->andReturn( $analysisResult );
 
-		$page = Mockery::mock( Model::class );
+		$page = mockModelWithoutSeoMeta();
 
 		$result = $this->integration->analyzeForEditor( $page );
 
@@ -280,7 +291,7 @@ describe( 'VisualEditorIntegration analyzeForEditor', function (): void {
 			->once()
 			->andReturn( $analysisResult );
 
-		$page = Mockery::mock( Model::class );
+		$page = mockModelWithoutSeoMeta();
 
 		$result = $this->integration->analyzeForEditor( $page );
 

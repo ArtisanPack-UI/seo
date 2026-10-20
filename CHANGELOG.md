@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`SeoMeta` lookups now recognize relations bound with
+  `Model::resolveRelationUsing()`** (#104). Every lookup was gated on
+  `method_exists( $model, 'seoMeta' )`, which misses dynamic relations
+  served by `Model::__call()`. Models that couldn't take the `HasSeo`
+  trait were treated as having no SEO meta. Content analysis reported
+  "Meta description is missing." on every record, skipped the persisted
+  `focus_keyword`, and never cached results. A new
+  `ArtisanPackUI\SEO\Support\SeoMetaResolver` checks both declared
+  methods and `Model::isRelation()`. All call sites now use it, including
+  `AnalysisService`, `SeoService`, `HreflangService`,
+  `VisualEditorIntegration`, `AnalysisApiController`, `SeoObserver`, the
+  `MetaTags`/`OpenGraph`/`TwitterCard` components and the `seoMeta()`
+  helper.
+
 ## [1.7.0] - 2026-09-20
 
 ### Added

@@ -22,6 +22,7 @@ use ArtisanPackUI\SEO\Contracts\SeoAnalyzableContent;
 use ArtisanPackUI\SEO\DTOs\AnalysisResultDTO;
 use ArtisanPackUI\SEO\Models\SeoAnalysisCache;
 use ArtisanPackUI\SEO\Models\SeoMeta;
+use ArtisanPackUI\SEO\Support\SeoMetaResolver;
 use Illuminate\Database\Eloquent\Model;
 use InvalidArgumentException;
 use function applyFilters;
@@ -389,11 +390,7 @@ class AnalysisService
 	 */
 	protected function getSeoMeta( Model $model ): ?SeoMeta
 	{
-		if ( method_exists( $model, 'seoMeta' ) ) {
-			return $model->seoMeta;
-		}
-
-		return null;
+		return SeoMetaResolver::resolve( $model );
 	}
 
 	/**

@@ -18,6 +18,7 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\SEO\Observers;
 
 use ArtisanPackUI\SEO\Services\CacheService;
+use ArtisanPackUI\SEO\Support\SeoMetaResolver;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -118,8 +119,6 @@ class SeoObserver
 	 */
 	protected function deleteSeoMeta( Model $model ): void
 	{
-		if ( method_exists( $model, 'seoMeta' ) && null !== $model->seoMeta ) {
-			$model->seoMeta->delete();
-		}
+		SeoMetaResolver::resolve( $model )?->delete();
 	}
 }

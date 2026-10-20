@@ -19,6 +19,7 @@ use ArtisanPackUI\SEO\Schema\Builders\AbstractSchema;
 use ArtisanPackUI\SEO\Services\RedirectService;
 use ArtisanPackUI\SEO\Services\SeoService;
 use ArtisanPackUI\SEO\Support\SchemaCollector;
+use ArtisanPackUI\SEO\Support\SeoMetaResolver;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
@@ -51,11 +52,7 @@ if ( ! function_exists( 'seoMeta' ) ) {
 	 */
 	function seoMeta( Model $model ): ?SeoMeta
 	{
-		if ( method_exists( $model, 'seoMeta' ) ) {
-			return $model->seoMeta;
-		}
-
-		return null;
+		return SeoMetaResolver::resolve( $model );
 	}
 }
 
