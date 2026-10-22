@@ -246,7 +246,7 @@ describe( 'LlmsTxtGenerator', function (): void {
 			'type'             => 'page',
 		] );
 
-		// Same generation counter — cache still serves the pre-change snapshot.
+		// Same generation — cache still serves the pre-change snapshot.
 		expect( $service->generateLlmsTxt() )->not->toContain( 'https://example.com/second' );
 
 		$service->clearCache();

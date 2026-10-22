@@ -7,6 +7,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.8.1] - 2026-10-22
+
+### Fixed
+
+- **Redirect lookups no longer take a global cache lock.** Every
+  uncached path sent through `RedirectService::findMatch()` (and so the
+  `HandleRedirects` middleware) blocked for up to 5s on one shared lock
+  to add itself to a tracked-paths array. With a database cache store,
+  crawlers hitting unique URLs queued PHP workers behind that lock, and a
+  `LockTimeoutException` turned the page view into a 500. The array also
+  grew without limit, and `clearCache()` forgot each tracked key one by
+  one. Match cache keys now include a unique generation token, and
+  `clearCache()` replaces it in a single write; old entries expire
+  through their TTL. A token is never reused, so overlapping clears or an
+  evicted token can't bring back stale lookups. The old
+  `seo:redirects:cached_paths` key is forgotten on the next clear (#111).
+- **Sitemap cache clears can no longer bring back stale sitemaps.**
+  `SitemapService::clearCache()` read the generation counter and wrote
+  it back plus one, so overlapping clears (`SitemapObserver` clears on
+  every tracked save, force delete, and restore) could write an older
+  generation and serve stale `sitemap.xml`, `sitemap-*-N.xml`, and
+  `llms.txt` until the TTL expired. A missing counter also fell back to
+  `1`, reusing an old namespace if the store evicted the key. The
+  generation is now a unique token that `clearCache()` replaces, and a
+  missing token starts a fresh one. The protected
+  `SitemapService::getCacheGeneration()` now returns `string` instead of
+  `int` (#113).
+
 ## [1.8.0] - 2026-10-20
 
 ### Added

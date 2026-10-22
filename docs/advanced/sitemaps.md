@@ -23,7 +23,7 @@ XML sitemaps help search engines discover and index your content. The package su
 'sitemap' => [
     'enabled' => true,
     'max_urls' => 10000,
-    'cache' => true,
+    'cache_enabled' => true,
     'cache_ttl' => 3600,
     'default_priority' => 0.5,
     'default_changefreq' => 'weekly',
@@ -43,7 +43,7 @@ XML sitemaps help search engines discover and index your content. The package su
 | Option | Description |
 |--------|-------------|
 | `max_urls` | Maximum URLs per sitemap file |
-| `cache` | Enable sitemap caching |
+| `cache_enabled` | Enable sitemap caching |
 | `cache_ttl` | Cache time-to-live in seconds |
 | `default_priority` | Default URL priority (0.0-1.0) |
 | `default_changefreq` | Default change frequency |
@@ -389,12 +389,18 @@ command also flushes the cache before regenerating so the cached copy is
 primed with the current content.
 
 ```php
+use ArtisanPackUI\SEO\Services\SitemapService;
+
 // Manually clear the sitemap cache (e.g. after a bulk import that bypasses model events)
-seoSitemap()->clearCache();
+app(SitemapService::class)->clearCache();
 
 // Regenerate with fresh cache
-seoSitemap()->generate();
+app(SitemapService::class)->generate();
 ```
+
+Clearing writes a new generation token instead of deleting keys one by one,
+so it is a single cache write. Pages for deleted content stop being served
+too. See [Caching](Caching) for the key format.
 
 ## Events
 
