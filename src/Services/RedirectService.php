@@ -43,11 +43,25 @@ class RedirectService
 	protected const CACHE_PREFIX = 'seo:redirects:';
 
 	/**
-	 * Cache key for tracking cached match paths.
+	 * Cache key holding the current match cache generation.
+	 *
+	 * @since 1.8.1
 	 *
 	 * @var string
 	 */
-	protected const CACHE_PATHS_KEY = 'seo:redirects:cached_paths';
+	protected const CACHE_GENERATION_KEY = 'seo:redirects:generation';
+
+	/**
+	 * Cache key that tracked cached match paths before 1.8.1.
+	 *
+	 * Only forgotten by {@see clearCache()} so upgraded sites drop the
+	 * old, unbounded array.
+	 *
+	 * @since 1.8.1
+	 *
+	 * @var string
+	 */
+	protected const LEGACY_CACHE_PATHS_KEY = 'seo:redirects:cached_paths';
 
 	/**
 	 * Find a matching redirect for the given path.
@@ -62,9 +76,10 @@ class RedirectService
 	{
 		$path = $this->normalizePath( $path );
 
-		if ( $this->isCacheEnabled() ) {
-			$cacheKey = $this->getMatchCacheKey( $path );
-			$cached   = Cache::get( $cacheKey );
+		$cacheKey = $this->isCacheEnabled() ? $this->getMatchCacheKey( $path ) : null;
+
+		if ( null !== $cacheKey ) {
+			$cached = Cache::get( $cacheKey );
 
 			if ( null !== $cached ) {
 				if ( false === $cached ) {
@@ -89,14 +104,8 @@ class RedirectService
 		}
 
 		// Cache the result
-		if ( $this->isCacheEnabled() ) {
-			$cacheKey = $this->getMatchCacheKey( $path );
-			$ttl      = config( 'seo.redirects.cache_ttl', 86400 );
-
-			Cache::put( $cacheKey, $redirect?->id ?? false, $ttl );
-
-			// Track the cached path for later invalidation
-			$this->trackCachedPath( $cacheKey );
+		if ( null !== $cacheKey ) {
+			Cache::put( $cacheKey, $redirect?->id ?? false, config( 'seo.redirects.cache_ttl', 86400 ) );
 		}
 
 		return $redirect;
@@ -380,6 +389,10 @@ class RedirectService
 	/**
 	 * Clear the redirect cache.
 	 *
+	 * Bumps a generation counter that is baked into every match cache key,
+	 * so a single write orphans every cached lookup. Orphaned entries expire
+	 * naturally via their TTL.
+	 *
 	 * @since 1.0.0
 	 *
 	 * @return void
@@ -388,16 +401,8 @@ class RedirectService
 	{
 		if ( $this->isCacheEnabled() ) {
 			Cache::forget( self::CACHE_PREFIX . 'all' );
-
-			// Clear all tracked match caches
-			$cachedPaths = Cache::get( self::CACHE_PATHS_KEY, [] );
-
-			foreach ( $cachedPaths as $cacheKey ) {
-				Cache::forget( $cacheKey );
-			}
-
-			// Clear the tracking key itself
-			Cache::forget( self::CACHE_PATHS_KEY );
+			Cache::forget( self::LEGACY_CACHE_PATHS_KEY );
+			Cache::forever( self::CACHE_GENERATION_KEY, $this->getCacheGeneration() + 1 );
 		}
 	}
 
@@ -663,6 +668,9 @@ class RedirectService
 	/**
 	 * Get the cache key for a path match.
 	 *
+	 * Keys include the current cache generation so {@see clearCache()} can
+	 * invalidate every cached lookup with a single write.
+	 *
 	 * @since 1.0.0
 	 *
 	 * @param  string  $path  The path.
@@ -671,27 +679,20 @@ class RedirectService
 	 */
 	protected function getMatchCacheKey( string $path ): string
 	{
-		return self::CACHE_PREFIX . 'match:' . md5( $path );
+		return self::CACHE_PREFIX . 'g' . $this->getCacheGeneration() . ':match:' . md5( $path );
 	}
 
 	/**
-	 * Track a cached path for later invalidation.
+	 * Get the current match cache generation.
 	 *
-	 * @since 1.0.0
+	 * Defaults to `1` if the counter has never been written.
 	 *
-	 * @param  string  $cacheKey  The cache key to track.
+	 * @since 1.8.1
 	 *
-	 * @return void
+	 * @return int
 	 */
-	protected function trackCachedPath( string $cacheKey ): void
+	protected function getCacheGeneration(): int
 	{
-		Cache::lock( self::CACHE_PATHS_KEY . ':lock', 5 )->block( 5, function () use ( $cacheKey ): void {
-			$cachedPaths = Cache::get( self::CACHE_PATHS_KEY, [] );
-
-			if ( ! in_array( $cacheKey, $cachedPaths, true ) ) {
-				$cachedPaths[] = $cacheKey;
-				Cache::put( self::CACHE_PATHS_KEY, $cachedPaths );
-			}
-		} );
+		return (int) Cache::get( self::CACHE_GENERATION_KEY, 1 );
 	}
 }

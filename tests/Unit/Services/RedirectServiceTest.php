@@ -16,6 +16,7 @@ declare( strict_types=1 );
 use ArtisanPackUI\SEO\Models\Redirect;
 use ArtisanPackUI\SEO\Services\RedirectService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 
 uses( RefreshDatabase::class );
 
@@ -487,6 +488,101 @@ describe( 'RedirectService Queries', function (): void {
 		$active = $this->service->getActiveRedirects();
 
 		expect( $active )->toHaveCount( 3 );
+	} );
+
+} );
+
+describe( 'RedirectService Match Caching', function (): void {
+
+	beforeEach( function (): void {
+		config( [ 'seo.redirects.cache_enabled' => true ] );
+	} );
+
+	it( 'serves a cached miss until the cache is cleared', function (): void {
+		expect( $this->service->findMatch( '/cached-miss' ) )->toBeNull();
+
+		// Written directly so the service doesn't clear the cache.
+		Redirect::create( [
+			'from_path'   => '/cached-miss',
+			'to_path'     => '/target',
+			'status_code' => 301,
+			'match_type'  => 'exact',
+			'is_active'   => true,
+		] );
+
+		expect( $this->service->findMatch( '/cached-miss' ) )->toBeNull();
+
+		$this->service->clearCache();
+
+		expect( $this->service->findMatch( '/cached-miss' )?->to_path )->toBe( '/target' );
+	} );
+
+	it( 'invalidates cached lookups when a redirect is created, updated, or deleted', function (): void {
+		expect( $this->service->findMatch( '/changing' ) )->toBeNull();
+
+		$redirect = $this->service->create( [
+			'from_path'   => '/changing',
+			'to_path'     => '/first',
+			'status_code' => 301,
+			'match_type'  => 'exact',
+		] );
+
+		expect( $this->service->findMatch( '/changing' )?->to_path )->toBe( '/first' );
+
+		$this->service->update( $redirect, [ 'to_path' => '/second' ] );
+
+		expect( $this->service->findMatch( '/changing' )?->to_path )->toBe( '/second' );
+
+		$this->service->delete( $redirect );
+
+		expect( $this->service->findMatch( '/changing' ) )->toBeNull();
+	} );
+
+	it( 'bumps the cache generation on clear', function (): void {
+		expect( Cache::get( 'seo:redirects:generation', 1 ) )->toBe( 1 );
+
+		$this->service->clearCache();
+		$this->service->clearCache();
+
+		expect( Cache::get( 'seo:redirects:generation' ) )->toBe( 3 );
+	} );
+
+	it( 'does not wait on the legacy path-tracking lock', function (): void {
+		$lock = Cache::lock( 'seo:redirects:cached_paths:lock', 10 );
+		$lock->get();
+
+		$started = microtime( true );
+
+		expect( $this->service->findMatch( '/while-locked' ) )->toBeNull()
+			->and( microtime( true ) - $started )->toBeLessThan( 1.0 );
+
+		$lock->release();
+	} );
+
+	it( 'does not track cached paths', function (): void {
+		foreach ( range( 1, 5 ) as $index ) {
+			$this->service->findMatch( '/unique-' . $index );
+		}
+
+		expect( Cache::has( 'seo:redirects:cached_paths' ) )->toBeFalse();
+	} );
+
+	it( 'forgets the legacy tracked-paths key on clear', function (): void {
+		Cache::forever( 'seo:redirects:cached_paths', [ 'seo:redirects:match:abc' ] );
+
+		$this->service->clearCache();
+
+		expect( Cache::has( 'seo:redirects:cached_paths' ) )->toBeFalse();
+	} );
+
+	it( 'skips the cache entirely when caching is disabled', function (): void {
+		config( [ 'seo.redirects.cache_enabled' => false ] );
+
+		$this->service->findMatch( '/no-cache' );
+		$this->service->clearCache();
+
+		expect( Cache::has( 'seo:redirects:g1:match:' . md5( '/no-cache' ) ) )->toBeFalse()
+			->and( Cache::has( 'seo:redirects:generation' ) )->toBeFalse();
 	} );
 
 } );
