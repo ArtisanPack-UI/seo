@@ -20,8 +20,8 @@ Redirects are essential for:
 // In config/seo.php
 'redirects' => [
     'enabled' => true,
-    'cache' => true,
-    'cache_ttl' => 3600,
+    'cache_enabled' => true,
+    'cache_ttl' => 86400,
     'track_hits' => true,
     'max_chain_depth' => 5,
 ],
@@ -30,7 +30,7 @@ Redirects are essential for:
 | Option | Description |
 |--------|-------------|
 | `enabled` | Enable/disable redirect handling |
-| `cache` | Cache redirect lookups |
+| `cache_enabled` | Cache redirect lookups |
 | `cache_ttl` | Cache time-to-live in seconds |
 | `track_hits` | Track redirect hit statistics |
 | `max_chain_depth` | Maximum redirect chain depth |
@@ -268,6 +268,25 @@ $recentlyHit = Redirect::recentlyHit()->get();
 
 $unused = Redirect::where('hits', 0)->get();
 ```
+
+## Caching
+
+When `cache_enabled` is on, each looked-up path's result is cached for
+`cache_ttl` seconds. This includes "no redirect" results, so most page views
+skip the database. Lookups never take a cache lock, so crawlers hitting many
+unique URLs don't make requests wait on each other.
+
+`RedirectService` clears the cache whenever it creates, updates, deletes,
+imports, or bulk-updates redirects. It does this by writing a new generation
+token, a single cache write however many paths are cached. Older entries
+expire through their TTL. If you change redirects directly on the `Redirect`
+model, clear the cache afterwards:
+
+```php
+seoRedirect()->clearCache();
+```
+
+See [Caching](Caching) for the cache key format.
 
 ## Bulk Operations
 

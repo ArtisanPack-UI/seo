@@ -92,9 +92,16 @@ The package uses structured cache keys:
 |------|-------------|---------|
 | Meta | `seo_meta_{id}` | `seo_meta_42` |
 | Analysis | `seo_analysis_{id}` | `seo_analysis_42` |
-| Redirect | `seo_redirect_{path}` | `seo_redirect_/old-page` |
-| Sitemap | `seo_sitemap_{type}` | `seo_sitemap_standard` |
+| Redirect | `seo:redirects:g{generation}:match:{md5(path)}` | `seo:redirects:g01K…:match:5d41…` |
+| Sitemap | `{prefix}:sitemap:g{generation}:{variant}[:{type}][:page:{n}]` | `seo:sitemap:g01K…:standard:page` |
 | Robots | `seo_robots` | `seo_robots` |
+
+Redirect and sitemap keys include a generation token: a ULID stored under
+`seo:redirects:generation` and `{prefix}:sitemap:generation`. Clearing either
+cache writes a new token in a single write, so every older key stops being
+read and expires through its TTL. A token is never reused, so overlapping
+clears or an evicted token key can't bring back stale entries. If the token
+key is missing, the next lookup starts a new one.
 
 ## Automatic Cache Invalidation
 
@@ -116,20 +123,31 @@ $post->delete();
 // → Clears all related caches
 ```
 
-### Redirect Events
+### Redirect Changes
+
+`RedirectService` clears the redirect lookup cache whenever it creates,
+updates, deletes, imports, or bulk-updates redirects. This covers the admin
+interface, the API, and the `seoCreateRedirect()` / `seoDeleteRedirect()`
+helpers. Writes made directly on the `Redirect` model skip the service, so
+clear the cache yourself afterwards:
 
 ```php
-// When redirect is created/updated/deleted
-Redirect::create([...]);
-// → Clears: seo_redirect_*
+Redirect::where('status_code', 302)->update(['status_code' => 301]);
+
+seoRedirect()->clearCache();
 ```
 
-### Sitemap Regeneration
+### Sitemap Changes
+
+Cached sitemap XML and `llms.txt` are cleared whenever a model tracked by
+`HasSeo` is saved, force deleted, or restored. `seo:generate-sitemap --output`
+also clears the cache before regenerating. After changes that skip model
+events, such as a bulk import, clear it yourself:
 
 ```php
-// When sitemap is regenerated
-app('seo.sitemap')->generate();
-// → Clears: seo_sitemap_*
+use ArtisanPackUI\SEO\Services\SitemapService;
+
+app(SitemapService::class)->clearCache();
 ```
 
 ## Manual Cache Clearing
@@ -204,13 +222,15 @@ If using a driver that supports tags (Redis, Memcached):
 // The package uses these tags internally
 'seo:meta'
 'seo:analysis'
-'seo:redirects'
-'seo:sitemaps'
 
 // Clear by tag
 Cache::tags('seo:meta')->flush();
 Cache::tags('seo:analysis')->flush();
 ```
+
+Redirect and sitemap caches don't use tags. They use generation tokens, which
+work on every cache store, so clear them with their services instead (see
+[Automatic Cache Invalidation](#automatic-cache-invalidation)).
 
 ## Warming the Cache
 
@@ -333,11 +353,11 @@ Post::chunk(100, function ($posts) {
 });
 ```
 
-### 4. Use Cache Tags for Selective Clearing
+### 4. Clear Only What Changed
 
 ```php
-// Clear only redirect cache after bulk redirect import
-Cache::tags('seo:redirects')->flush();
+// Clear only the redirect cache after a bulk change that skips RedirectService
+seoRedirect()->clearCache();
 ```
 
 ## Monitoring Cache
