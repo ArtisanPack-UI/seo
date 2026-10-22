@@ -30,6 +30,7 @@ use ArtisanPackUI\SEO\Sitemap\Generators\VideoSitemapGenerator;
 use ArtisanPackUI\SEO\Sitemap\SitemapSubmitter;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 use InvalidArgumentException;
 
 /**
@@ -117,10 +118,8 @@ class SitemapService
 	 */
 	public function generate( ?string $type = null, int $page = 1 ): string
 	{
-		$cacheKey = $this->getCacheKey( 'standard', $type, $page );
-
 		if ( $this->cacheEnabled ) {
-			return Cache::remember( $cacheKey, $this->cacheTtl, function () use ( $type, $page ) {
+			return Cache::remember( $this->getCacheKey( 'standard', $type, $page ), $this->cacheTtl, function () use ( $type, $page ) {
 				return $this->generateFresh( $type, $page );
 			} );
 		}
@@ -137,10 +136,8 @@ class SitemapService
 	 */
 	public function generateIndex(): string
 	{
-		$cacheKey = $this->getCacheKey( 'index' );
-
 		if ( $this->cacheEnabled ) {
-			return Cache::remember( $cacheKey, $this->cacheTtl, function () {
+			return Cache::remember( $this->getCacheKey( 'index' ), $this->cacheTtl, function () {
 				return $this->generateIndexFresh();
 			} );
 		}
@@ -159,10 +156,8 @@ class SitemapService
 	 */
 	public function generateImages( int $page = 1 ): string
 	{
-		$cacheKey = $this->getCacheKey( 'images', null, $page );
-
 		if ( $this->cacheEnabled ) {
-			return Cache::remember( $cacheKey, $this->cacheTtl, function () use ( $page ) {
+			return Cache::remember( $this->getCacheKey( 'images', null, $page ), $this->cacheTtl, function () use ( $page ) {
 				$generator = new ImageSitemapGenerator( $this->maxUrls );
 
 				return $generator->generate( $page );
@@ -185,10 +180,8 @@ class SitemapService
 	 */
 	public function generateVideos( int $page = 1 ): string
 	{
-		$cacheKey = $this->getCacheKey( 'videos', null, $page );
-
 		if ( $this->cacheEnabled ) {
-			return Cache::remember( $cacheKey, $this->cacheTtl, function () use ( $page ) {
+			return Cache::remember( $this->getCacheKey( 'videos', null, $page ), $this->cacheTtl, function () use ( $page ) {
 				$generator = new VideoSitemapGenerator( $this->maxUrls );
 
 				return $generator->generate( $page );
@@ -212,11 +205,10 @@ class SitemapService
 	public function generateNews( int $page = 1 ): string
 	{
 		// News sitemaps have a shorter cache time since they only show recent content
-		$cacheKey = $this->getCacheKey( 'news', null, $page );
-		$newsTtl  = min( $this->cacheTtl, 900 ); // Max 15 minutes for news
+		$newsTtl = min( $this->cacheTtl, 900 ); // Max 15 minutes for news
 
 		if ( $this->cacheEnabled ) {
-			return Cache::remember( $cacheKey, $newsTtl, function () use ( $page ) {
+			return Cache::remember( $this->getCacheKey( 'news', null, $page ), $newsTtl, function () use ( $page ) {
 				$generator = new NewsSitemapGenerator();
 
 				return $generator->generate( $page );
@@ -241,10 +233,8 @@ class SitemapService
 	 */
 	public function generateLlmsTxt(): string
 	{
-		$cacheKey = $this->getCacheKey( 'llms_txt' );
-
 		if ( $this->cacheEnabled ) {
-			return Cache::remember( $cacheKey, $this->cacheTtl, function () {
+			return Cache::remember( $this->getCacheKey( 'llms_txt' ), $this->cacheTtl, function () {
 				return $this->generateLlmsTxtFresh();
 			} );
 		}
@@ -427,10 +417,10 @@ class SitemapService
 	/**
 	 * Clear all sitemap caches.
 	 *
-	 * Bumps a generation counter that is baked into every sitemap cache key,
-	 * so a single write orphans every cached variant/type/page — including
-	 * trailing pages that no longer exist because content was deleted.
-	 * Orphaned entries expire naturally via their TTL.
+	 * Replaces the generation token that is baked into every sitemap cache
+	 * key, so a single write orphans every cached variant/type/page —
+	 * including trailing pages that no longer exist because content was
+	 * deleted. Orphaned entries expire naturally via their TTL.
 	 *
 	 * @since 1.0.0
 	 *
@@ -438,7 +428,7 @@ class SitemapService
 	 */
 	public function clearCache(): void
 	{
-		Cache::forever( $this->getGenerationKey(), $this->getCacheGeneration() + 1 );
+		Cache::forever( $this->getGenerationKey(), $this->newCacheGeneration() );
 	}
 
 	/**
@@ -666,7 +656,7 @@ class SitemapService
 	}
 
 	/**
-	 * Get the cache key that holds the current generation counter.
+	 * Get the cache key that holds the current generation token.
 	 *
 	 * @since 1.4.0
 	 *
@@ -678,18 +668,34 @@ class SitemapService
 	}
 
 	/**
-	 * Get the current cache generation counter.
+	 * Get the current cache generation token.
 	 *
-	 * Defaults to `1` if the counter has never been written; each call to
-	 * {@see clearCache()} bumps it so all previously cached keys become
-	 * orphans that expire naturally via their TTL.
+	 * Starts a new generation when the token is missing (never written, or
+	 * evicted by the store) so an old namespace is never reused; each call
+	 * to {@see clearCache()} replaces it so all previously cached keys
+	 * become orphans that expire naturally via their TTL.
 	 *
 	 * @since 1.4.0
 	 *
-	 * @return int
+	 * @return string
 	 */
-	protected function getCacheGeneration(): int
+	protected function getCacheGeneration(): string
 	{
-		return (int) Cache::get( $this->getGenerationKey(), 1 );
+		return (string) Cache::rememberForever( $this->getGenerationKey(), fn (): string => $this->newCacheGeneration() );
+	}
+
+	/**
+	 * Create a generation token that has never been used before.
+	 *
+	 * A unique token instead of a counter means overlapping writes can't
+	 * restore an older generation, whichever lands last.
+	 *
+	 * @since 1.8.1
+	 *
+	 * @return string
+	 */
+	protected function newCacheGeneration(): string
+	{
+		return (string) Str::ulid();
 	}
 }

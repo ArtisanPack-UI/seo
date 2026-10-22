@@ -120,7 +120,7 @@ it( 'leaves the cache untouched when --no-cache is set', function (): void {
 	$service->setCacheEnabled( true );
 
 	// The primed snapshot should still be served because the command did
-	// not bump the cache generation.
+	// not replace the cache generation.
 	$afterRun = $service->generate( 'page' );
 	expect( $afterRun )
 		->toContain( 'https://example.com/kept' )
@@ -142,7 +142,7 @@ it( 'does not clear the cache on the statistics-only path', function (): void {
 
 	// Add a fresh entry outside the observer so the cache is intentionally
 	// stale — a stats-only run wipes a warm cache with no priming to
-	// follow, so it must leave the generation counter alone.
+	// follow, so it must leave the cache generation alone.
 	SitemapEntry::create( [
 		'sitemapable_type' => 'App\\Models\\Page',
 		'sitemapable_id'   => 2,

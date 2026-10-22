@@ -193,6 +193,61 @@ describe( 'SitemapService', function (): void {
 		expect( $xml2 )->toContain( 'page-2' );
 	} );
 
+	it( 'writes a new, never reused generation on every clear', function (): void {
+		$service = new SitemapService();
+		$service->setCacheEnabled( true );
+		$service->generate();
+
+		$generations = [ Cache::get( 'seo:sitemap:generation' ) ];
+
+		foreach ( range( 1, 3 ) as $ignored ) {
+			$service->clearCache();
+			$generations[] = Cache::get( 'seo:sitemap:generation' );
+		}
+
+		expect( $generations )->each->toBeString()->not->toBeEmpty()
+			->and( array_unique( $generations ) )->toHaveCount( 4 );
+	} );
+
+	it( 'does not reuse cached sitemaps when the generation key is evicted', function (): void {
+		SitemapEntry::create( [
+			'sitemapable_type' => 'App\\Models\\Page',
+			'sitemapable_id'   => 1,
+			'url'              => 'https://example.com/page-1',
+			'type'             => 'page',
+		] );
+
+		$service = new SitemapService();
+		$service->setCacheEnabled( true );
+
+		expect( $service->generate() )->not->toContain( 'page-2' );
+
+		// Written directly so the observer doesn't clear the cache.
+		SitemapEntry::create( [
+			'sitemapable_type' => 'App\\Models\\Page',
+			'sitemapable_id'   => 2,
+			'url'              => 'https://example.com/page-2',
+			'type'             => 'page',
+		] );
+
+		expect( $service->generate() )->not->toContain( 'page-2' );
+
+		Cache::forget( 'seo:sitemap:generation' );
+
+		expect( $service->generate() )->toContain( 'page-2' );
+	} );
+
+	it( 'does not touch the generation when caching is disabled', function (): void {
+		$service = new SitemapService();
+		$service->setCacheEnabled( false );
+
+		$service->generate();
+		$service->generateIndex();
+		$service->generateLlmsTxt();
+
+		expect( Cache::has( 'seo:sitemap:generation' ) )->toBeFalse();
+	} );
+
 	it( 'registers custom provider', function (): void {
 		$provider = Mockery::mock( SitemapProviderContract::class );
 		$provider->shouldReceive( 'getUrls' )->andReturn( collect( [
