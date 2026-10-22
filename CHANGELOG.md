@@ -16,10 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   crawlers hitting unique URLs queued PHP workers behind that lock, and a
   `LockTimeoutException` turned the page view into a 500. The array also
   grew without limit, and `clearCache()` forgot each tracked key one by
-  one. Match cache keys now include a generation counter, and
-  `clearCache()` bumps it in a single write; old entries expire through
-  their TTL. The old `seo:redirects:cached_paths` key is forgotten on the
-  next clear (#111).
+  one. Match cache keys now include a unique generation token, and
+  `clearCache()` replaces it in a single write; old entries expire
+  through their TTL. A token is never reused, so overlapping clears or an
+  evicted token can't bring back stale lookups. The old
+  `seo:redirects:cached_paths` key is forgotten on the next clear (#111).
 
 ## [1.8.0] - 2026-10-20
 

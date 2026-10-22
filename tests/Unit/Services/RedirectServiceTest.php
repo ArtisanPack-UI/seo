@@ -538,13 +538,34 @@ describe( 'RedirectService Match Caching', function (): void {
 		expect( $this->service->findMatch( '/changing' ) )->toBeNull();
 	} );
 
-	it( 'bumps the cache generation on clear', function (): void {
-		expect( Cache::get( 'seo:redirects:generation', 1 ) )->toBe( 1 );
+	it( 'writes a new, never reused generation on every clear', function (): void {
+		$this->service->findMatch( '/start' );
 
-		$this->service->clearCache();
-		$this->service->clearCache();
+		$generations = [ Cache::get( 'seo:redirects:generation' ) ];
 
-		expect( Cache::get( 'seo:redirects:generation' ) )->toBe( 3 );
+		foreach ( range( 1, 3 ) as $ignored ) {
+			$this->service->clearCache();
+			$generations[] = Cache::get( 'seo:redirects:generation' );
+		}
+
+		expect( $generations )->each->toBeString()->not->toBeEmpty()
+			->and( array_unique( $generations ) )->toHaveCount( 4 );
+	} );
+
+	it( 'does not reuse cached lookups when the generation key is evicted', function (): void {
+		expect( $this->service->findMatch( '/evicted' ) )->toBeNull();
+
+		Redirect::create( [
+			'from_path'   => '/evicted',
+			'to_path'     => '/target',
+			'status_code' => 301,
+			'match_type'  => 'exact',
+			'is_active'   => true,
+		] );
+
+		Cache::forget( 'seo:redirects:generation' );
+
+		expect( $this->service->findMatch( '/evicted' )?->to_path )->toBe( '/target' );
 	} );
 
 	it( 'does not wait on the legacy path-tracking lock', function (): void {
@@ -581,8 +602,7 @@ describe( 'RedirectService Match Caching', function (): void {
 		$this->service->findMatch( '/no-cache' );
 		$this->service->clearCache();
 
-		expect( Cache::has( 'seo:redirects:g1:match:' . md5( '/no-cache' ) ) )->toBeFalse()
-			->and( Cache::has( 'seo:redirects:generation' ) )->toBeFalse();
+		expect( Cache::has( 'seo:redirects:generation' ) )->toBeFalse();
 	} );
 
 } );

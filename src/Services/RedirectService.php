@@ -20,6 +20,7 @@ namespace ArtisanPackUI\SEO\Services;
 use ArtisanPackUI\SEO\Models\Redirect;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Str;
 use InvalidArgumentException;
 use Throwable;
 
@@ -389,9 +390,9 @@ class RedirectService
 	/**
 	 * Clear the redirect cache.
 	 *
-	 * Bumps a generation counter that is baked into every match cache key,
-	 * so a single write orphans every cached lookup. Orphaned entries expire
-	 * naturally via their TTL.
+	 * Replaces the generation token that is baked into every match cache
+	 * key, so a single write orphans every cached lookup. Orphaned entries
+	 * expire naturally via their TTL.
 	 *
 	 * @since 1.0.0
 	 *
@@ -402,7 +403,7 @@ class RedirectService
 		if ( $this->isCacheEnabled() ) {
 			Cache::forget( self::CACHE_PREFIX . 'all' );
 			Cache::forget( self::LEGACY_CACHE_PATHS_KEY );
-			Cache::forever( self::CACHE_GENERATION_KEY, $this->getCacheGeneration() + 1 );
+			Cache::forever( self::CACHE_GENERATION_KEY, $this->newCacheGeneration() );
 		}
 	}
 
@@ -685,14 +686,30 @@ class RedirectService
 	/**
 	 * Get the current match cache generation.
 	 *
-	 * Defaults to `1` if the counter has never been written.
+	 * Starts a new generation when the token is missing (never written, or
+	 * evicted by the store) so an old namespace is never reused.
 	 *
 	 * @since 1.8.1
 	 *
-	 * @return int
+	 * @return string
 	 */
-	protected function getCacheGeneration(): int
+	protected function getCacheGeneration(): string
 	{
-		return (int) Cache::get( self::CACHE_GENERATION_KEY, 1 );
+		return (string) Cache::rememberForever( self::CACHE_GENERATION_KEY, fn (): string => $this->newCacheGeneration() );
+	}
+
+	/**
+	 * Create a generation token that has never been used before.
+	 *
+	 * A unique token instead of a counter means overlapping writes can't
+	 * restore an older generation, whichever lands last.
+	 *
+	 * @since 1.8.1
+	 *
+	 * @return string
+	 */
+	protected function newCacheGeneration(): string
+	{
+		return (string) Str::ulid();
 	}
 }
