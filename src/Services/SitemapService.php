@@ -623,6 +623,7 @@ class SitemapService
 	protected function generateLlmsTxtFresh(): string
 	{
 		$generator = new LlmsTxtGenerator();
+		$generator->setProviders( $this->providers );
 
 		return $generator->generate();
 	}

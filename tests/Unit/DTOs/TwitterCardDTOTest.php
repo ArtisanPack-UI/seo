@@ -75,6 +75,7 @@ describe( 'TwitterCardDTO', function (): void {
 			'twitter:title'       => 'Card Title',
 			'twitter:description' => 'Card Description',
 			'twitter:image'       => 'https://example.com/card.jpg',
+			'twitter:image:alt'   => null,
 			'twitter:site'        => '@TestSite',
 			'twitter:creator'     => '@TestCreator',
 		] );

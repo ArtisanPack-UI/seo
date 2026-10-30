@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Http;
 beforeEach( function (): void {
 	config( [ 'app.url' => 'https://example.com' ] );
 	config( [ 'seo.sitemap.route_path' => 'sitemap.xml' ] );
+	config( [ 'seo.sitemap.search_engines' => [ 'bing' => 'https://www.bing.com/ping?sitemap=%s' ] ] );
 } );
 
 describe( 'SitemapSubmitter', function (): void {
@@ -35,14 +36,28 @@ describe( 'SitemapSubmitter', function (): void {
 		expect( $submitter->getSitemapUrl() )->toBe( 'https://custom.com/custom-sitemap.xml' );
 	} );
 
-	it( 'has default search engines', function (): void {
-		$submitter = new SitemapSubmitter();
-		$engines   = $submitter->getSearchEngines();
+	it( 'has no default search engines', function (): void {
+		config( [ 'seo.sitemap.search_engines' => [] ] );
 
-		// Note: Google's ping URL was deprecated in 2023 and is no longer included by default.
-		// Users should submit to Google via Search Console or robots.txt instead.
-		expect( $engines )->toHaveKey( 'bing' )
-			->and( $engines )->not->toHaveKey( 'google' );
+		$submitter = new SitemapSubmitter();
+
+		// Google's ping URL was retired in 2023 and Bing's returns 410 Gone.
+		expect( $submitter->getSearchEngines() )->toBe( [] );
+	} );
+
+	it( 'sends no requests when no search engines are configured', function (): void {
+		config( [ 'seo.sitemap.search_engines' => [] ] );
+		Http::fake();
+
+		expect( ( new SitemapSubmitter() )->submit() )->toBeEmpty();
+
+		Http::assertNothingSent();
+	} );
+
+	it( 'uses configured search engines', function (): void {
+		$submitter = new SitemapSubmitter();
+
+		expect( $submitter->getSearchEngines() )->toHaveKey( 'bing' );
 	} );
 
 	it( 'allows adding custom search engine', function (): void {

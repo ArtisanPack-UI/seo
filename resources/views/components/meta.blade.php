@@ -29,6 +29,15 @@
     @if($openGraph['image'])
         <meta property="og:image" content="{{ $openGraph['image'] }}">
     @endif
+    @if($openGraph['imageWidth'])
+        <meta property="og:image:width" content="{{ $openGraph['imageWidth'] }}">
+    @endif
+    @if($openGraph['imageHeight'])
+        <meta property="og:image:height" content="{{ $openGraph['imageHeight'] }}">
+    @endif
+    @if($openGraph['imageAlt'])
+        <meta property="og:image:alt" content="{{ $openGraph['imageAlt'] }}">
+    @endif
     @if($openGraph['url'])
         <meta property="og:url" content="{{ $openGraph['url'] }}">
     @endif
@@ -38,6 +47,12 @@
     @endif
     @if($openGraph['locale'])
         <meta property="og:locale" content="{{ $openGraph['locale'] }}">
+    @endif
+    @if($openGraph['publishedTime'])
+        <meta property="article:published_time" content="{{ $openGraph['publishedTime'] }}">
+    @endif
+    @if($openGraph['modifiedTime'])
+        <meta property="article:modified_time" content="{{ $openGraph['modifiedTime'] }}">
     @endif
 @endif
 
@@ -52,6 +67,9 @@
     @endif
     @if($twitterCard['image'])
         <meta name="twitter:image" content="{{ $twitterCard['image'] }}">
+    @endif
+    @if($twitterCard['imageAlt'])
+        <meta name="twitter:image:alt" content="{{ $twitterCard['imageAlt'] }}">
     @endif
     @if($twitterCard['site'])
         <meta name="twitter:site" content="{{ $twitterCard['site'] }}">

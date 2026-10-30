@@ -285,10 +285,11 @@ describe( 'SitemapService', function (): void {
 			'*' => Http::response( '', 200 ),
 		] );
 
+		config( [ 'seo.sitemap.search_engines' => [ 'custom' => 'https://custom.example/ping?sitemap=%s' ] ] );
+
 		$service = new SitemapService();
 		$results = $service->submit();
 
-		// Only Bing is included by default (Google's ping URL was deprecated in 2023)
 		expect( $results )->toHaveCount( 1 );
 	} );
 

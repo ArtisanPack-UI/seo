@@ -521,13 +521,15 @@
 							:hint="__( 'Do not include this page in the XML sitemap' )"
 						/>
 
-						<x-artisanpack-range
+						<x-artisanpack-input
 							wire:model="sitemapPriority"
+							type="number"
 							:label="__( 'Sitemap Priority' )"
 							min="0"
 							max="1"
 							step="0.1"
-							:hint="__( 'Priority: ' ) . $sitemapPriority"
+							:hint="__( 'From 0 to 1. Leave blank to use the site default, if there is one' )"
+							:error="$errors->first( 'sitemapPriority' )"
 						/>
 
 						<x-artisanpack-select
@@ -536,7 +538,7 @@
 							:options="$changefreqOptions"
 							option-value="value"
 							option-label="label"
-							:hint="__( 'How frequently the page is likely to change' )"
+							:hint="__( 'How frequently the page is likely to change. Not specified uses the site default, if there is one' )"
 							:error="$errors->first( 'sitemapChangefreq' )"
 						/>
 					</div>

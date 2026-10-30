@@ -221,9 +221,33 @@ php artisan seo:generate-sitemap
 # Submit sitemap to search engines
 php artisan seo:submit-sitemap
 
+# Sync public/robots.txt with the seo.robots settings
+php artisan seo:write-robots
+
 # Clear SEO cache
 php artisan seo:clear-cache
 ```
+
+### Serving robots.txt on Forge and stock Laravel Nginx templates
+
+The dynamic `robots.txt` route returns a 404 status on Nginx templates that
+contain `location = /robots.txt { log_not_found off; }` and
+`error_page 404 /index.php;`. A missing physical file reaches PHP but keeps
+the 404, and crawlers treat a 4xx robots file as having no rules, so your
+`Sitemap:` line is never read. The response body looks correct, so check the
+status with `curl -I https://your-site.test/robots.txt`.
+
+There are two fixes. Either change the Nginx location:
+
+```nginx
+location = /robots.txt { access_log off; log_not_found off; try_files $uri /index.php?$query_string; }
+```
+
+Or write a physical file. Delete any existing `public/robots.txt`, set
+`SEO_ROBOTS_WRITE_STATIC=true`, and run `php artisan seo:write-robots`, or
+`php artisan optimize` during your deploy. Run the command again after changing
+the rules. Setting it back to `false` and running it removes the file. The
+command never replaces a `robots.txt` it didn't write unless you pass `--force`.
 
 ## Requirements
 

@@ -138,22 +138,28 @@ describe( 'SocialMetaService Open Graph Generation', function (): void {
 		expect( $dto->title )->toBe( 'Model Title' );
 	} );
 
-	it( 'truncates og description to 200 characters', function (): void {
+	it( 'keeps generated og descriptions within 200 characters', function (): void {
 		$service = new SocialMetaService();
 
-		$longDescription = str_repeat( 'This is a very long description. ', 20 );
-
 		$model = createSocialTestModel( [
-			'slug' => 'slug',
+			'excerpt' => str_repeat( 'This is a very long description. ', 20 ),
 		] );
 
-		$seoMeta = new SeoMeta( [
+		$dto = $service->generateOpenGraph( $model );
+
+		expect( mb_strlen( $dto->description ) )->toBeLessThanOrEqual( 200 );
+	} );
+
+	it( 'keeps saved og descriptions at their full length', function (): void {
+		$service = new SocialMetaService();
+
+		$longDescription = str_repeat( 'a', 300 );
+
+		$dto = $service->generateOpenGraph( createSocialTestModel(), new SeoMeta( [
 			'og_description' => $longDescription,
-		] );
+		] ) );
 
-		$dto = $service->generateOpenGraph( $model, $seoMeta );
-
-		expect( strlen( $dto->description ) )->toBeLessThanOrEqual( 203 ); // 200 + "..."
+		expect( $dto->description )->toBe( $longDescription );
 	} );
 
 	it( 'uses default og image from config when none specified', function (): void {

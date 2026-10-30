@@ -280,6 +280,41 @@ describe( 'SeoMetaEditor Saving', function (): void {
 		expect( $seoMeta->twitter_title )->toBe( 'Twitter Title' );
 	} );
 
+	it( 'leaves sitemap hints unset by default', function (): void {
+		$post = TestPost::create( [ 'title' => 'Test Post' ] );
+
+		Livewire::test( TestSeoMetaEditor::class, [ 'model' => $post ] )->call( 'save' );
+
+		$seoMeta = SeoMeta::where( 'seoable_id', $post->id )->first();
+
+		expect( $seoMeta->sitemap_priority )->toBeNull();
+		expect( $seoMeta->sitemap_changefreq )->toBeNull();
+	} );
+
+	it( 'clears sitemap hints when the fields are blanked', function (): void {
+		$post = TestPost::create( [ 'title' => 'Test Post' ] );
+
+		SeoMeta::create( [
+			'seoable_type'       => TestPost::class,
+			'seoable_id'         => $post->id,
+			'sitemap_priority'   => 0.8,
+			'sitemap_changefreq' => 'daily',
+		] );
+
+		Livewire::test( TestSeoMetaEditor::class, [ 'model' => $post->fresh() ] )
+			->assertSet( 'sitemapPriority', 0.8 )
+			->assertSet( 'sitemapChangefreq', 'daily' )
+			->set( 'sitemapPriority', '' )
+			->set( 'sitemapChangefreq', '' )
+			->call( 'save' )
+			->assertHasNoErrors();
+
+		$seoMeta = SeoMeta::where( 'seoable_id', $post->id )->first();
+
+		expect( $seoMeta->sitemap_priority )->toBeNull();
+		expect( $seoMeta->sitemap_changefreq )->toBeNull();
+	} );
+
 	it( 'saves sitemap settings', function (): void {
 		$post = TestPost::create( [ 'title' => 'Test Post' ] );
 

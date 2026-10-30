@@ -83,6 +83,7 @@ class SeoMetaEditor extends Component
 	 * @var array<int, array{value: string, label: string}>
 	 */
 	public const CHANGEFREQ_OPTIONS = [
+		[ 'value' => '', 'label' => 'Not specified' ],
 		[ 'value' => 'always', 'label' => 'Always' ],
 		[ 'value' => 'hourly', 'label' => 'Hourly' ],
 		[ 'value' => 'daily', 'label' => 'Daily' ],
@@ -205,9 +206,9 @@ class SeoMetaEditor extends Component
 	public string $schemaMarkup = '';
 
 	// Sitemap fields
-	public float $sitemapPriority = 0.5;
+	public ?float $sitemapPriority = null;
 
-	public string $sitemapChangefreq = 'weekly';
+	public string $sitemapChangefreq = '';
 
 	public bool $excludeFromSitemap = false;
 
@@ -913,8 +914,8 @@ class SeoMetaEditor extends Component
 		$this->slackImageId         = $this->seoMeta->slack_image_id;
 		$this->schemaType           = $this->seoMeta->schema_type ?? '';
 		$this->schemaMarkup         = $this->safeJsonEncode( $this->seoMeta->schema_markup );
-		$this->sitemapPriority      = (float) ( $this->seoMeta->sitemap_priority ?? 0.5 );
-		$this->sitemapChangefreq    = $this->seoMeta->sitemap_changefreq ?? 'weekly';
+		$this->sitemapPriority      = null === $this->seoMeta->sitemap_priority ? null : (float) $this->seoMeta->sitemap_priority;
+		$this->sitemapChangefreq    = $this->seoMeta->sitemap_changefreq ?? '';
 		$this->excludeFromSitemap   = (bool) $this->seoMeta->exclude_from_sitemap;
 		$this->hreflang             = $this->safeJsonEncode( $this->seoMeta->hreflang );
 	}
@@ -947,8 +948,9 @@ class SeoMetaEditor extends Component
 		$this->ogType            = config( 'seo.defaults.og_type', '' );
 		$this->twitterCard       = config( 'seo.defaults.twitter_card', 'summary_large_image' );
 		$this->twitterSite       = config( 'seo.defaults.twitter_site', '' );
-		$this->sitemapPriority   = (float) config( 'seo.defaults.sitemap_priority', 0.5 );
-		$this->sitemapChangefreq = config( 'seo.defaults.sitemap_changefreq', 'weekly' );
+		$sitemapPriority         = config( 'seo.defaults.sitemap_priority' );
+		$this->sitemapPriority   = null === $sitemapPriority ? null : (float) $sitemapPriority;
+		$this->sitemapChangefreq = (string) config( 'seo.defaults.sitemap_changefreq', '' );
 	}
 
 	/**
@@ -1016,7 +1018,7 @@ class SeoMetaEditor extends Component
 			'schema_type'           => $this->schemaType ?: null,
 			'schema_markup'         => $schemaMarkup,
 			'sitemap_priority'      => $this->sitemapPriority,
-			'sitemap_changefreq'    => $this->sitemapChangefreq,
+			'sitemap_changefreq'    => $this->sitemapChangefreq ?: null,
 			'exclude_from_sitemap'  => $this->excludeFromSitemap,
 			'hreflang'              => $hreflang,
 		];

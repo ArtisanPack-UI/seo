@@ -308,38 +308,42 @@ class SitemapObserver
 	 * Get the priority for a model.
 	 *
 	 * @since 1.0.0
+	 * @since 1.9.0 Returns null when no priority is set.
 	 *
 	 * @param  Model  $model  The model to get priority for.
 	 *
-	 * @return float
+	 * @return float|null
 	 */
-	protected function getModelPriority( Model $model ): float
+	protected function getModelPriority( Model $model ): ?float
 	{
 		// Check if model has getSitemapPriority method (from HasSeo trait)
 		if ( method_exists( $model, 'getSitemapPriority' ) ) {
 			return $model->getSitemapPriority();
 		}
 
-		return (float) config( 'seo.sitemap.default_priority', 0.5 );
+		$priority = config( 'seo.sitemap.default_priority' );
+
+		return null === $priority ? null : (float) $priority;
 	}
 
 	/**
 	 * Get the change frequency for a model.
 	 *
 	 * @since 1.0.0
+	 * @since 1.9.0 Returns null when no change frequency is set.
 	 *
 	 * @param  Model  $model  The model to get changefreq for.
 	 *
-	 * @return string
+	 * @return string|null
 	 */
-	protected function getModelChangefreq( Model $model ): string
+	protected function getModelChangefreq( Model $model ): ?string
 	{
 		// Check if model has getSitemapChangefreq method (from HasSeo trait)
 		if ( method_exists( $model, 'getSitemapChangefreq' ) ) {
 			return $model->getSitemapChangefreq();
 		}
 
-		return config( 'seo.sitemap.default_frequency', 'weekly' );
+		return config( 'seo.sitemap.default_frequency' );
 	}
 
 	/**
@@ -406,7 +410,7 @@ class SitemapObserver
 
 		if ( method_exists( $model, 'getSeoImage' ) ) {
 			$seoImage = $model->getSeoImage();
-			if ( null !== $seoImage && '' !== $seoImage ) {
+			if ( null !== $seoImage && '' !== $seoImage && $seoImage !== config( 'seo.open_graph.default_image' ) ) {
 				$images[] = [ 'loc' => $seoImage ];
 			}
 		} elseif ( isset( $model->featured_image ) && null !== $model->featured_image ) {

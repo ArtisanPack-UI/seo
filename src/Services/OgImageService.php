@@ -99,7 +99,11 @@ class OgImageService
 	/**
 	 * Return the deterministic relative path for the given inputs.
 	 *
+	 * The name ends in the image's size so its dimensions can be read back
+	 * from the URL by {@see dimensionsForUrl()}.
+	 *
 	 * @since 1.4.0
+	 * @since 1.9.0 The file name includes the image's size.
 	 *
 	 * @param  string               $title    The primary title.
 	 * @param  string|null          $subtitle Optional subtitle.
@@ -113,7 +117,40 @@ class OgImageService
 		$hash     = $this->hashFor( $title, $subtitle, $template );
 		$dir      = trim( (string) config( 'seo.og_image.path', 'og-images' ), '/' );
 
-		return ( '' === $dir ? '' : $dir . '/' ) . $hash . '.png';
+		return ( '' === $dir ? '' : $dir . '/' ) . "{$hash}-{$template->width}x{$template->height}.png";
+	}
+
+	/**
+	 * Get the dimensions of a generated image from its public URL.
+	 *
+	 * Reads the size from the file name, so images rendered before 1.9.0
+	 * report no dimensions.
+	 *
+	 * @since 1.9.0
+	 *
+	 * @param  string  $url  The image URL.
+	 *
+	 * @return array{width: int, height: int}|null Null when the URL isn't a generated image.
+	 */
+	public function dimensionsForUrl( string $url ): ?array
+	{
+		$dir = trim( (string) config( 'seo.og_image.path', 'og-images' ), '/' );
+
+		if ( '' === $dir || ! config( 'seo.og_image.enabled', true ) ) {
+			return null;
+		}
+
+		try {
+			$prefix = $this->disk()->url( $dir . '/' );
+		} catch ( Throwable $e ) {
+			return null;
+		}
+
+		if ( ! str_starts_with( $url, $prefix ) || 1 !== preg_match( '/-(\d+)x(\d+)\.png$/', $url, $matches ) ) {
+			return null;
+		}
+
+		return [ 'width' => (int) $matches[1], 'height' => (int) $matches[2] ];
 	}
 
 	/**

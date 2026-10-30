@@ -34,10 +34,15 @@ export interface OpenGraph {
     title: string;
     description: string | null;
     image: string | null;
+    image_width: number | null;
+    image_height: number | null;
+    image_alt: string | null;
     url: string;
     type: OpenGraphType;
     site_name: string;
     locale: string;
+    published_time: string | null;
+    modified_time: string | null;
 }
 
 /**
@@ -47,8 +52,13 @@ export interface OpenGraphResponse {
     title: string;
     description: string | null;
     image: string | null;
+    image_width: number | null;
+    image_height: number | null;
+    image_alt: string | null;
     url: string;
     type: OpenGraphType;
     site_name: string;
     locale: string;
+    published_time: string | null;
+    modified_time: string | null;
 }

@@ -14,10 +14,12 @@
 declare( strict_types=1 );
 
 use ArtisanPackUI\Hooks\Facades\Filter;
+use ArtisanPackUI\SEO\Contracts\SitemapProviderContract;
 use ArtisanPackUI\SEO\Models\SitemapEntry;
 use ArtisanPackUI\SEO\Services\SitemapService;
 use ArtisanPackUI\SEO\Sitemap\Generators\LlmsTxtGenerator;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 
 uses( RefreshDatabase::class );
@@ -44,6 +46,199 @@ beforeEach( function (): void {
 
 afterEach( function (): void {
 	Filter::removeAll( 'ap.seo.llmsTxtEntries' );
+} );
+
+/**
+ * Build a sitemap provider serving the given URLs.
+ *
+ * @param  array<int, array<string, mixed>>  $urls  The provider's URLs.
+ * @param  string                            $type  The provider's type.
+ */
+function llmsTestProvider( array $urls, string $type = 'archive' ): SitemapProviderContract
+{
+	return new class( $urls, $type ) implements SitemapProviderContract {
+		public function __construct( private array $urls, private string $type )
+		{
+		}
+
+		public function getUrls(): Collection
+		{
+			return collect( $this->urls );
+		}
+
+		public function getChangeFrequency(): ?string
+		{
+			return null;
+		}
+
+		public function getPriority(): ?float
+		{
+			return null;
+		}
+
+		public function getType(): string
+		{
+			return $this->type;
+		}
+	};
+}
+
+describe( 'LlmsTxtGenerator providers and summary', function (): void {
+
+	it( 'lists provider URLs under their type', function (): void {
+		$generator = ( new LlmsTxtGenerator() )->setProviders( collect( [
+			'archive' => llmsTestProvider( [
+				[ 'loc' => 'https://example.com/blog', 'title' => 'Blog', 'description' => 'All posts.' ],
+				[ 'url' => 'https://example.com/news/latest-news' ],
+			] ),
+		] ) );
+
+		$output = $generator->generate();
+
+		expect( $output )->toContain( '## Archives' )
+			->and( $output )->toContain( '- [Blog](https://example.com/blog): All posts.' )
+			->and( $output )->toContain( '- [Latest News](https://example.com/news/latest-news)' );
+	} );
+
+	it( 'merges provider URLs into a matching stored type', function (): void {
+		SitemapEntry::create( [
+			'sitemapable_type' => 'App\\Models\\Page',
+			'sitemapable_id'   => 1,
+			'url'              => 'https://example.com/about',
+			'type'             => 'page',
+		] );
+
+		$output = ( new LlmsTxtGenerator() )->setProviders( collect( [
+			'page' => llmsTestProvider( [ [ 'loc' => 'https://example.com/team' ] ], 'page' ),
+		] ) )->generate();
+
+		expect( substr_count( $output, '## Pages' ) )->toBe( 1 )
+			->and( $output )->toContain( 'https://example.com/about' )
+			->and( $output )->toContain( 'https://example.com/team' );
+	} );
+
+	it( 'skips provider URLs with a stored entry, including non-indexable ones', function (): void {
+		SitemapEntry::create( [
+			'sitemapable_type' => 'App\\Models\\Page',
+			'sitemapable_id'   => 1,
+			'url'              => 'https://example.com/about',
+			'type'             => 'page',
+		] );
+		SitemapEntry::create( [
+			'sitemapable_type' => 'App\\Models\\Page',
+			'sitemapable_id'   => 2,
+			'url'              => 'https://example.com/hidden',
+			'type'             => 'page',
+			'is_indexable'     => false,
+		] );
+
+		$output = ( new LlmsTxtGenerator() )->setProviders( collect( [
+			'archive' => llmsTestProvider( [
+				[ 'loc' => 'https://example.com/about' ],
+				[ 'loc' => 'https://example.com/hidden' ],
+				[ 'loc' => 'https://example.com/blog' ],
+				[ 'loc' => 'https://example.com/blog' ],
+				[ 'loc' => '' ],
+			] ),
+		] ) )->generate();
+
+		expect( substr_count( $output, 'https://example.com/about' ) )->toBe( 1 )
+			->and( $output )->not->toContain( 'https://example.com/hidden' )
+			->and( substr_count( $output, 'https://example.com/blog' ) )->toBe( 1 )
+			->and( $output )->not->toContain( '()' );
+	} );
+
+	it( 'applies type rules to providers', function (): void {
+		$providers = collect( [
+			'archive' => llmsTestProvider( [ [ 'loc' => 'https://example.com/blog' ] ] ),
+			'tag'     => llmsTestProvider( [ [ 'loc' => 'https://example.com/tags' ] ], 'tag' ),
+		] );
+
+		config( [ 'seo.llms_txt.exclude_types' => [ 'tag' ] ] );
+		$excluded = ( new LlmsTxtGenerator() )->setProviders( $providers )->generate();
+
+		config( [ 'seo.llms_txt.exclude_types' => [], 'seo.llms_txt.include_types' => [ 'tag' ] ] );
+		$included = ( new LlmsTxtGenerator() )->setProviders( $providers )->generate();
+
+		expect( $excluded )->toContain( 'https://example.com/blog' )
+			->and( $excluded )->not->toContain( 'https://example.com/tags' )
+			->and( $included )->toContain( 'https://example.com/tags' )
+			->and( $included )->not->toContain( 'https://example.com/blog' );
+	} );
+
+	it( 'counts provider URLs toward the entry cap', function (): void {
+		$output = ( new LlmsTxtGenerator( 1 ) )->setProviders( collect( [
+			'archive' => llmsTestProvider( [
+				[ 'loc' => 'https://example.com/one' ],
+				[ 'loc' => 'https://example.com/two' ],
+			] ),
+		] ) )->generate();
+
+		expect( $output )->toContain( 'https://example.com/one' )
+			->and( $output )->not->toContain( 'https://example.com/two' );
+	} );
+
+	it( 'passes provider URLs to the entries filter', function (): void {
+		$seen = null;
+
+		Filter::add( 'ap.seo.llmsTxtEntries', function ( array $entries ) use ( &$seen ): array {
+			$seen = $entries;
+
+			return $entries;
+		} );
+
+		( new LlmsTxtGenerator() )->setProviders( collect( [
+			'archive' => llmsTestProvider( [ [ 'loc' => 'https://example.com/blog' ] ] ),
+		] ) )->generate();
+
+		expect( $seen[0]['url'] )->toBe( 'https://example.com/blog' );
+	} );
+
+	it( 'includes registered providers through the service', function (): void {
+		$service = new SitemapService();
+		$service->setCacheEnabled( false );
+		$service->registerProvider( 'archive', llmsTestProvider( [ [ 'loc' => 'https://example.com/blog' ] ] ) );
+
+		expect( $service->generateLlmsTxt() )->toContain( 'https://example.com/blog' );
+	} );
+
+	it( 'falls back to the homepage description for the summary', function (): void {
+		config( [ 'seo.site.description' => '', 'app.url' => 'https://example.com' ] );
+
+		$home = SitemapEntry::create( [
+			'sitemapable_type' => 'App\\Models\\Page',
+			'sitemapable_id'   => 1,
+			'url'              => 'https://example.com/',
+			'type'             => 'page',
+		] );
+
+		$generator = new class( $home ) extends LlmsTxtGenerator {
+			public function __construct( private SitemapEntry $home )
+			{
+				parent::__construct();
+			}
+
+			protected function resolveDescription( SitemapEntry|array $entry ): ?string
+			{
+				return $entry instanceof SitemapEntry && $entry->is( $this->home ) ? 'What this site is about.' : null;
+			}
+		};
+
+		expect( $generator->generate() )->toContain( "> What this site is about.\n" );
+	} );
+
+	it( 'omits the blockquote when nothing describes the site', function (): void {
+		config( [ 'seo.site.description' => '', 'app.url' => 'https://example.com' ] );
+
+		expect( ( new LlmsTxtGenerator() )->generate() )->not->toContain( '> ' );
+	} );
+
+	it( 'keeps a multi-line summary inside the blockquote', function (): void {
+		config( [ 'seo.llms_txt.summary' => "First line.\nSecond line." ] );
+
+		expect( ( new LlmsTxtGenerator() )->generate() )->toContain( '> First line. Second line.' );
+	} );
+
 } );
 
 describe( 'LlmsTxtGenerator', function (): void {

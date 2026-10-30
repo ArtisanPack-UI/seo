@@ -21,8 +21,9 @@ use ArtisanPackUI\SEO\DTOs\OpenGraphDTO;
 use ArtisanPackUI\SEO\DTOs\TwitterCardDTO;
 use ArtisanPackUI\SEO\Models\SeoMeta;
 use ArtisanPackUI\SEO\Support\PublicUrlResolver;
+use DateTimeInterface;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Str;
+use Illuminate\Support\Carbon;
 
 /**
  * SocialMetaService class.
@@ -48,14 +49,25 @@ class SocialMetaService
 	 */
 	public function generateOpenGraph( Model $model, ?SeoMeta $seoMeta = null ): OpenGraphDTO
 	{
+		$title   = $this->resolveOgTitle( $model, $seoMeta );
+		$image   = $this->resolveOgImage( $model, $seoMeta );
+		$type    = $this->resolveOgType( $model, $seoMeta );
+		$details = $this->resolveImageDetails( $image, $seoMeta?->og_image_id, $title );
+		$times   = 'article' === $type ? $this->resolveArticleTimes( $model ) : [];
+
 		return new OpenGraphDTO(
-			title: $this->resolveOgTitle( $model, $seoMeta ),
+			title: $title,
 			description: $this->resolveOgDescription( $model, $seoMeta ),
-			image: $this->resolveOgImage( $model, $seoMeta ),
+			image: $image,
 			url: $this->resolveCanonical( $model, $seoMeta ),
-			type: $this->resolveOgType( $model, $seoMeta ),
+			type: $type,
 			siteName: $seoMeta?->og_site_name ?? config( 'seo.open_graph.site_name', config( 'app.name', '' ) ),
 			locale: $seoMeta?->og_locale ?? config( 'seo.open_graph.locale', 'en_US' ),
+			imageWidth: $details['width'],
+			imageHeight: $details['height'],
+			imageAlt: $details['alt'],
+			publishedTime: $times['published'] ?? null,
+			modifiedTime: $times['modified'] ?? null,
 		);
 	}
 
@@ -71,14 +83,89 @@ class SocialMetaService
 	 */
 	public function generateTwitterCard( Model $model, ?SeoMeta $seoMeta = null ): TwitterCardDTO
 	{
+		$title = $this->resolveTwitterTitle( $model, $seoMeta );
+		$image = $this->resolveTwitterImage( $model, $seoMeta );
+
 		return new TwitterCardDTO(
 			card: $seoMeta?->twitter_card ?? config( 'seo.twitter.card_type', 'summary_large_image' ),
-			title: $this->resolveTwitterTitle( $model, $seoMeta ),
+			title: $title,
 			description: $this->resolveTwitterDescription( $model, $seoMeta ),
-			image: $this->resolveTwitterImage( $model, $seoMeta ),
+			image: $image,
 			site: $seoMeta?->twitter_site ?? config( 'seo.twitter.site' ),
 			creator: $seoMeta?->twitter_creator ?? config( 'seo.twitter.creator' ),
+			imageAlt: $this->resolveTwitterImageAlt( $image, $seoMeta, $title ),
 		);
+	}
+
+	/**
+	 * Resolve the known details of a social image.
+	 *
+	 * Details come from the media library, the configured default image, or
+	 * the OG image generator, whose cards show the title as their text. An
+	 * image from anywhere else has no known details.
+	 *
+	 * @since 1.9.0
+	 *
+	 * @param  string|null  $image    The image URL.
+	 * @param  int|null     $mediaId  The media library ID behind the image, if any.
+	 * @param  string|null  $title    The page title, used as a generated card's alt text.
+	 *
+	 * @return array{width: int|null, height: int|null, alt: string|null}
+	 */
+	public function resolveImageDetails( ?string $image, ?int $mediaId = null, ?string $title = null ): array
+	{
+		if ( null === $image || '' === $image ) {
+			return [ 'width' => null, 'height' => null, 'alt' => null ];
+		}
+
+		$integration = app( MediaLibraryIntegration::class );
+
+		if ( null !== $mediaId && $image === $integration->getSocialImageUrl( $mediaId ) ) {
+			return $integration->getSocialImageDetails( $mediaId, $image );
+		}
+
+		if ( $image === config( 'seo.open_graph.default_image' ) ) {
+			$width  = config( 'seo.open_graph.default_image_width' );
+			$height = config( 'seo.open_graph.default_image_height' );
+
+			return [
+				'width'  => null === $width ? null : (int) $width,
+				'height' => null === $height ? null : (int) $height,
+				'alt'    => config( 'seo.open_graph.default_image_alt' ),
+			];
+		}
+
+		$dimensions = app( OgImageService::class )->dimensionsForUrl( $image );
+
+		return [
+			'width'  => $dimensions['width'] ?? null,
+			'height' => $dimensions['height'] ?? null,
+			'alt'    => null === $dimensions ? null : $title,
+		];
+	}
+
+	/**
+	 * Resolve a model's article times as ISO 8601 strings.
+	 *
+	 * @since 1.9.0
+	 *
+	 * @param  Model  $model  The model.
+	 *
+	 * @return array{published?: string, modified?: string}
+	 */
+	public function resolveArticleTimes( Model $model ): array
+	{
+		$times = [];
+
+		if ( ( $model->published_at ?? null ) instanceof DateTimeInterface ) {
+			$times['published'] = Carbon::instance( $model->published_at )->toIso8601String();
+		}
+
+		if ( ( $model->updated_at ?? null ) instanceof DateTimeInterface ) {
+			$times['modified'] = Carbon::instance( $model->updated_at )->toIso8601String();
+		}
+
+		return $times;
 	}
 
 	/**
@@ -140,7 +227,11 @@ class SocialMetaService
 	/**
 	 * Resolve the Open Graph description.
 	 *
+	 * A saved description is left at its full length. Text taken from the
+	 * model's excerpt or description is shortened to 200 characters.
+	 *
 	 * @since 1.0.0
+	 * @since 1.9.0 Saved descriptions are no longer shortened.
 	 *
 	 * @param  Model          $model    The model.
 	 * @param  SeoMeta|null   $seoMeta  The SeoMeta instance.
@@ -155,9 +246,11 @@ class SocialMetaService
 			$description = $seoMeta?->meta_description ?? null;
 		}
 
-		if ( null === $description || '' === $description ) {
-			$description = $model->excerpt ?? null;
+		if ( null !== $description && '' !== $description ) {
+			return strip_tags( $description );
 		}
+
+		$description = $model->excerpt ?? null;
 
 		if ( null === $description || '' === $description ) {
 			$description = $model->description ?? null;
@@ -165,7 +258,7 @@ class SocialMetaService
 
 		if ( null !== $description && '' !== $description ) {
 			// OG descriptions can be slightly longer than meta descriptions
-			return Str::limit( strip_tags( $description ), 200 );
+			return seoDescription( strip_tags( $description ), 200 );
 		}
 
 		return null;
@@ -276,6 +369,26 @@ class SocialMetaService
 
 		// Fall back to OG image
 		return $this->resolveOgImage( $model, $seoMeta ) ?? config( 'seo.twitter.default_image' );
+	}
+
+	/**
+	 * Resolve the Twitter image alt text.
+	 *
+	 * @since 1.9.0
+	 *
+	 * @param  string|null   $image    The resolved Twitter image URL.
+	 * @param  SeoMeta|null  $seoMeta  The SeoMeta instance.
+	 * @param  string        $title    The Twitter title.
+	 *
+	 * @return string|null
+	 */
+	protected function resolveTwitterImageAlt( ?string $image, ?SeoMeta $seoMeta, string $title ): ?string
+	{
+		if ( null !== $seoMeta?->twitter_image_id && '' === (string) $seoMeta->twitter_image ) {
+			return app( MediaLibraryIntegration::class )->getSocialImageDetails( $seoMeta->twitter_image_id )['alt'];
+		}
+
+		return $this->resolveImageDetails( $image, $seoMeta?->og_image_id, $title )['alt'];
 	}
 
 	/**

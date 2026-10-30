@@ -76,13 +76,18 @@ describe( 'OpenGraphDTO', function (): void {
 		$array = $dto->toArray();
 
 		expect( $array )->toBe( [
-			'og:title'       => 'OG Title',
-			'og:description' => 'OG Description',
-			'og:image'       => 'https://example.com/image.jpg',
-			'og:url'         => 'https://example.com',
-			'og:type'        => 'article',
-			'og:site_name'   => 'Test Site',
-			'og:locale'      => 'en_GB',
+			'og:title'               => 'OG Title',
+			'og:description'         => 'OG Description',
+			'og:image'               => 'https://example.com/image.jpg',
+			'og:image:width'         => null,
+			'og:image:height'        => null,
+			'og:image:alt'           => null,
+			'og:url'                 => 'https://example.com',
+			'og:type'                => 'article',
+			'og:site_name'           => 'Test Site',
+			'og:locale'              => 'en_GB',
+			'article:published_time' => null,
+			'article:modified_time'  => null,
 		] );
 	} );
 

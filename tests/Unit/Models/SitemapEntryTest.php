@@ -48,8 +48,8 @@ describe( 'SitemapEntry Model', function (): void {
 		$entry->refresh();
 
 		expect( $entry->type )->toBe( 'page' )
-			->and( (string) $entry->priority )->toBe( '0.5' )
-			->and( $entry->changefreq )->toBe( 'weekly' )
+			->and( $entry->priority )->toBeNull()
+			->and( $entry->changefreq )->toBeNull()
 			->and( $entry->is_indexable )->toBeTrue();
 	} );
 

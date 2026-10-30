@@ -124,6 +124,39 @@ class MediaLibraryIntegration
 	}
 
 	/**
+	 * Get the known details of a media item's social image.
+	 *
+	 * The media library returns the original file when the social size
+	 * hasn't been generated, so the dimensions depend on which URL came back.
+	 *
+	 * @since 1.9.0
+	 *
+	 * @param  int|null    $mediaId The media ID.
+	 * @param  string|null $url     The social image URL, if already resolved.
+	 *
+	 * @return array{width: int|null, height: int|null, alt: string|null}
+	 */
+	public function getSocialImageDetails( ?int $mediaId, ?string $url = null ): array
+	{
+		$media = null === $mediaId ? null : $this->getMedia( $mediaId );
+
+		if ( null === $media ) {
+			return [ 'width' => null, 'height' => null, 'alt' => null ];
+		}
+
+		$url        = (string) ( $url ?? $this->getSocialImageUrl( $mediaId ) );
+		$alt        = $media->alt_text ?? null;
+		$isOriginal = $url === ( method_exists( $media, 'url' ) ? $media->url() : ( $media->url ?? null ) );
+		$isSocial   = ! $isOriginal && str_contains( $url, '-' . self::SOCIAL_IMAGE_SIZE . '.' );
+
+		return [
+			'width'  => $isSocial ? self::SOCIAL_IMAGE_WIDTH : ( $isOriginal ? ( $media->width ?? null ) : null ),
+			'height' => $isSocial ? self::SOCIAL_IMAGE_HEIGHT : ( $isOriginal ? ( $media->height ?? null ) : null ),
+			'alt'    => is_string( $alt ) && '' !== $alt ? $alt : null,
+		];
+	}
+
+	/**
 	 * Get the media model by ID.
 	 *
 	 * @since 1.0.0
