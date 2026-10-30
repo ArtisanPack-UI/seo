@@ -158,3 +158,26 @@ it( 'does not clear the cache on the statistics-only path', function (): void {
 		->toContain( 'https://example.com/primed' )
 		->not->toContain( 'https://example.com/uncached-stats' );
 } );
+
+it( 'writes a file for every child the index lists', function (): void {
+	$outputDir = tempSitemapOutputDir( $this );
+
+	foreach ( [ 'page', 'blog_post' ] as $id => $type ) {
+		SitemapEntry::create( [
+			'sitemapable_type' => 'App\\Models\\' . $type,
+			'sitemapable_id'   => $id,
+			'url'              => "https://example.com/{$type}",
+			'type'             => $type,
+		] );
+	}
+
+	$this->artisan( 'seo:generate-sitemap', [ '--output' => $outputDir ] )->assertSuccessful();
+
+	$index = simplexml_load_file( "{$outputDir}/sitemap.xml" );
+
+	expect( $index->sitemap )->toHaveCount( 2 );
+
+	foreach ( $index->sitemap as $sitemap ) {
+		expect( "{$outputDir}/" . basename( (string) $sitemap->loc ) )->toBeFile();
+	}
+} );

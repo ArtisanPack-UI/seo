@@ -41,7 +41,7 @@ use InvalidArgumentException;
  * @property string|null $og_description
  * @property string|null $og_image
  * @property int|null    $og_image_id
- * @property string      $og_type
+ * @property string|null $og_type
  * @property string|null $og_locale
  * @property string|null $og_site_name
  * @property string      $twitter_card

@@ -18,6 +18,7 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\SEO\Livewire;
 
 use ArtisanPackUI\SEO\Models\SeoMeta;
+use ArtisanPackUI\SEO\Support\PublicUrlResolver;
 use Exception;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;
@@ -48,6 +49,7 @@ class SeoMetaEditor extends Component
 	 * @var array<int, array{value: string, label: string}>
 	 */
 	public const OG_TYPES = [
+		[ 'value' => '', 'label' => 'Automatic' ],
 		[ 'value' => 'website', 'label' => 'Website' ],
 		[ 'value' => 'article', 'label' => 'Article' ],
 		[ 'value' => 'book', 'label' => 'Book' ],
@@ -107,6 +109,8 @@ class SeoMetaEditor extends Component
 		[ 'value' => 'Organization', 'label' => 'Organization' ],
 		[ 'value' => 'Event', 'label' => 'Event' ],
 		[ 'value' => 'FAQPage', 'label' => 'FAQ Page' ],
+		[ 'value' => 'SoftwareApplication', 'label' => 'Software Application' ],
+		[ 'value' => 'SoftwareSourceCode', 'label' => 'Software Source Code' ],
 		[ 'value' => 'WebPage', 'label' => 'Web Page' ],
 	];
 
@@ -158,7 +162,7 @@ class SeoMetaEditor extends Component
 
 	public ?int $ogImageId = null;
 
-	public string $ogType = 'website';
+	public string $ogType = '';
 
 	public string $ogLocale = '';
 
@@ -418,11 +422,7 @@ class SeoMetaEditor extends Component
 			return $this->canonicalUrl;
 		}
 
-		if ( method_exists( $this->model, 'getUrl' ) ) {
-			return $this->model->getUrl();
-		}
-
-		return url()->current();
+		return PublicUrlResolver::resolveModelUrl( $this->model ) ?? url()->current();
 	}
 
 	/**
@@ -894,7 +894,7 @@ class SeoMetaEditor extends Component
 		$this->ogDescription        = $this->seoMeta->og_description ?? '';
 		$this->ogImage              = $this->seoMeta->og_image ?? '';
 		$this->ogImageId            = $this->seoMeta->og_image_id;
-		$this->ogType               = $this->seoMeta->og_type ?? 'website';
+		$this->ogType               = $this->seoMeta->og_type ?? '';
 		$this->ogLocale             = $this->seoMeta->og_locale ?? '';
 		$this->ogSiteName           = $this->seoMeta->og_site_name ?? '';
 		$this->twitterCard          = $this->seoMeta->twitter_card ?? 'summary_large_image';
@@ -944,7 +944,7 @@ class SeoMetaEditor extends Component
 
 		// Set defaults from config
 		$this->ogSiteName        = config( 'seo.defaults.og_site_name', config( 'app.name', '' ) );
-		$this->ogType            = config( 'seo.defaults.og_type', 'website' );
+		$this->ogType            = config( 'seo.defaults.og_type', '' );
 		$this->twitterCard       = config( 'seo.defaults.twitter_card', 'summary_large_image' );
 		$this->twitterSite       = config( 'seo.defaults.twitter_site', '' );
 		$this->sitemapPriority   = (float) config( 'seo.defaults.sitemap_priority', 0.5 );
@@ -996,7 +996,7 @@ class SeoMetaEditor extends Component
 			'og_description'        => $this->ogDescription ?: null,
 			'og_image'              => $this->ogImage ?: null,
 			'og_image_id'           => $this->ogImageId,
-			'og_type'               => $this->ogType ?: 'website',
+			'og_type'               => $this->ogType ?: null,
 			'og_locale'             => $this->ogLocale ?: null,
 			'og_site_name'          => $this->ogSiteName ?: null,
 			'twitter_card'          => $this->twitterCard ?: 'summary_large_image',

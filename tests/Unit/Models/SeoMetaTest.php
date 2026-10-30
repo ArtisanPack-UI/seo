@@ -85,7 +85,7 @@ describe( 'SeoMeta Model', function (): void {
 		expect( $seoMeta->no_index )->toBeFalse()
 			->and( $seoMeta->no_follow )->toBeFalse()
 			->and( $seoMeta->exclude_from_sitemap )->toBeFalse()
-			->and( $seoMeta->og_type )->toBe( 'website' )
+			->and( $seoMeta->og_type )->toBeNull()
 			->and( $seoMeta->twitter_card )->toBe( 'summary_large_image' )
 			->and( (string) $seoMeta->sitemap_priority )->toBe( '0.5' )
 			->and( $seoMeta->sitemap_changefreq )->toBe( 'weekly' );

@@ -41,9 +41,11 @@ if ( true === config( 'seo.sitemap.route_enabled', true ) ) {
 		->where( 'page', '[1-9][0-9]*' )
 		->name( 'seo.sitemap.page' );
 
-	// Type-specific sitemaps with pagination
+	// Type-specific sitemaps with pagination. Registered before the specialized
+	// routes so a stored type named `news` keeps its child, and show() passes
+	// anything without stored entries on to the specialized sitemaps.
 	Route::get( 'sitemap-{type}-{page}.xml', [ SitemapController::class, 'show' ] )
-		->where( 'type', '[a-z0-9\-]+' )
+		->where( 'type', '[A-Za-z0-9_.\-]+' )
 		->where( 'page', '[1-9][0-9]*' )
 		->name( 'seo.sitemap.type' );
 

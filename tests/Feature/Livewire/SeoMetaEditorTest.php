@@ -13,6 +13,7 @@
 
 declare( strict_types=1 );
 
+use ArtisanPackUI\SEO\Contracts\HasPublicUrl;
 use ArtisanPackUI\SEO\Livewire\SeoMetaEditor;
 use ArtisanPackUI\SEO\Models\SeoMeta;
 use Illuminate\Database\Eloquent\Model;
@@ -598,6 +599,60 @@ describe( 'SeoMetaEditor Schema Handling', function (): void {
 			->first();
 
 		expect( $seoMeta->schema_markup )->toBeNull();
+	} );
+
+} );
+
+describe( 'SeoMetaEditor Open Graph Type', function (): void {
+
+	it( 'leaves the type unset so it can be inferred', function (): void {
+		$post = TestPost::create( [ 'title' => 'Test Post' ] );
+
+		Livewire::test( TestSeoMetaEditor::class, [ 'model' => $post ] )
+			->assertSet( 'ogType', '' )
+			->set( 'metaTitle', 'A Title' )
+			->call( 'save' );
+
+		expect( SeoMeta::where( 'seoable_id', $post->id )->first()->og_type )->toBeNull();
+	} );
+
+	it( 'keeps a type someone chose, including website', function (): void {
+		$post = TestPost::create( [ 'title' => 'Test Post' ] );
+
+		Livewire::test( TestSeoMetaEditor::class, [ 'model' => $post ] )
+			->set( 'ogType', 'website' )
+			->call( 'save' );
+
+		expect( SeoMeta::where( 'seoable_id', $post->id )->first()->og_type )->toBe( 'website' );
+	} );
+
+	it( 'loads an unset type as automatic and offers that option', function (): void {
+		$post = TestPost::create( [ 'title' => 'Test Post' ] );
+
+		SeoMeta::create( [ 'seoable_type' => TestPost::class, 'seoable_id' => $post->id ] );
+
+		Livewire::test( TestSeoMetaEditor::class, [ 'model' => $post ] )->assertSet( 'ogType', '' );
+
+		expect( SeoMetaEditor::OG_TYPES[0] )->toBe( [ 'value' => '', 'label' => 'Automatic' ] );
+	} );
+
+} );
+
+describe( 'SeoMetaEditor Preview URL', function (): void {
+
+	it( 'uses the URL the model declares', function (): void {
+		$post = new class extends TestPost implements HasPublicUrl {
+			public function getPublicUrl(): string
+			{
+				return 'https://example.com/packages/seo';
+			}
+		};
+
+		$post->title = 'Test Post';
+		$post->save();
+
+		expect( Livewire::test( TestSeoMetaEditor::class, [ 'model' => $post ] )->instance()->previewUrl() )
+			->toBe( 'https://example.com/packages/seo' );
 	} );
 
 } );

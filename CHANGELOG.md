@@ -7,6 +7,86 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`HasPublicUrl` contract and `PublicUrlResolver`.** Models can declare
+  their public URL with `getPublicUrl()`. Canonical tags, `og:url`,
+  schema and sitemap entries now share one resolver, which runs in this
+  order: saved `canonical_url`, `HasPublicUrl`, `getUrl()`, then a
+  `permalink` attribute. Canonical tags and `og:url` fall back to the
+  current request URL, schema leaves `url` out, and sitemaps try a
+  `{model}.show` route. A relative `permalink` is built from `app.url`
+  (#117).
+- **`SoftwareSourceCode` and `SoftwareApplication` schema types.** Both are
+  registered with `SchemaFactory`, offered in the SEO editor, admin schema
+  tabs and AI schema suggestions, and included in the TypeScript types.
+  `SoftwareApplication`
+  emits `version` as `softwareVersion` and leaves out `codeRepository`,
+  `programmingLanguage` and `runtimePlatform`, which Schema.org only
+  defines for `SoftwareSourceCode` (#119).
+
+### Changed
+
+- **Breaking: URLs are no longer guessed from a model's slug.** The
+  `url( $model->slug )` fallback produced wrong canonicals for anything
+  outside the site root. A model that relied on it now gets the request
+  URL for its canonical and `og:url`, no schema `url`, and no new sitemap
+  entry unless it has a `{model}.show` route. Existing entries keep their
+  URL. To keep these models in the sitemap, implement `HasPublicUrl` or
+  `getUrl()`, or add a `permalink` attribute. A custom
+  `getCanonicalUrlAttribute()` accessor no longer feeds the sitemap for the
+  same reason, and `getOrCreateSitemapEntry()` and `updateSitemapEntry()`
+  throw `InvalidArgumentException` for a model with no URL (#117).
+- **Breaking: the sitemap index only lists per-type children.** An
+  `ap.seo.sitemapEntries` callback that checks for the all-types `''` value
+  now only affects `sitemap-{page}.xml`, which the index no longer links,
+  so move that logic to the per-type values. A sitemap type must also
+  match `[A-Za-z0-9_.-]+`, or its child can't be reached (#116).
+- `SitemapObserver` and `getOrCreateSitemapEntry()` no longer use the
+  request URL, so saving a model from an admin screen can't put that
+  screen's URL in the sitemap (#117).
+- `og_type` is now nullable with no default, and null means "infer it".
+  The SEO editor and admin tabs have an "Automatic" option, and the editor
+  no longer writes `website` on every save (#118).
+- Provider sitemaps now paginate. `SitemapGenerator::generateFromProvider()`
+  lists stored entries of the provider's type followed by provider URLs it
+  doesn't already store, keeps each page within `max_urls_per_file`, and
+  takes optional `$page` and `$type` arguments. The new
+  `getProviderTotalPages()` counts the pages, and the index lists each one.
+  `SitemapService::getTotalPages()` includes provider URLs for a provider's
+  type (#116).
+- `SchemaService::generate()` loads the model's `SeoMeta` when none is
+  passed, so the schema `url` honors a saved canonical (#117).
+- `SchemaGenerationAgent` always sets `jsonld['@type']` to the validated
+  `suggested_type` (#119).
+- `seo:generate-sitemap` always writes `sitemap-{type}-{page}.xml`, matching
+  the URLs in the sitemap index. It used to write `sitemap-{type}.xml` for
+  page 1 (#116).
+
+### Fixed
+
+- **`og:type` inference now runs for models with a `seo_meta` row.** The
+  column's `website` default meant every post reported `website`. A new
+  migration clears the default and nulls existing `website` rows, because
+  they can't be told apart from a deliberate choice. If you want
+  `website` on a post, reselect it after migrating. `getSeoData()` now
+  reports the same type as the Open Graph tags (#118).
+- **The sitemap index no longer lists every URL twice.** It stopped adding
+  the all-types `sitemap-{page}.xml` child when per-type children exist.
+  That route still responds for URLs already submitted to search consoles.
+  The per-type route now accepts underscores, capitals and dots, so
+  `blog_post` children resolve instead of returning 404 (#116).
+- **Empty sitemap children return 404.** `sitemap-{type}-{page}.xml` used
+  to return an empty `<urlset/>` for any type or page with no entries. The
+  check runs after `ap.seo.sitemapEntries`, so entries a callback adds or
+  removes count. A type served by a registered provider can still return
+  an empty page 1 (#116).
+- `sitemap-images-{page}.xml`, `sitemap-videos-{page}.xml` and
+  `sitemap-news-{page}.xml` now serve their own sitemaps unless stored
+  entries use that type name (#116).
+- A provider now appears in the index when every stored row of its type is
+  non-indexable (#116).
+
 ## [1.8.1] - 2026-10-22
 
 ### Fixed

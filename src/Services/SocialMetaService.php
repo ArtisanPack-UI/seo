@@ -20,6 +20,7 @@ namespace ArtisanPackUI\SEO\Services;
 use ArtisanPackUI\SEO\DTOs\OpenGraphDTO;
 use ArtisanPackUI\SEO\DTOs\TwitterCardDTO;
 use ArtisanPackUI\SEO\Models\SeoMeta;
+use ArtisanPackUI\SEO\Support\PublicUrlResolver;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
@@ -52,7 +53,7 @@ class SocialMetaService
 			description: $this->resolveOgDescription( $model, $seoMeta ),
 			image: $this->resolveOgImage( $model, $seoMeta ),
 			url: $this->resolveCanonical( $model, $seoMeta ),
-			type: $seoMeta?->og_type ?? $this->inferOgType( $model ),
+			type: $this->resolveOgType( $model, $seoMeta ),
 			siteName: $seoMeta?->og_site_name ?? config( 'seo.open_graph.site_name', config( 'app.name', '' ) ),
 			locale: $seoMeta?->og_locale ?? config( 'seo.open_graph.locale', 'en_US' ),
 		);
@@ -78,6 +79,29 @@ class SocialMetaService
 			site: $seoMeta?->twitter_site ?? config( 'seo.twitter.site' ),
 			creator: $seoMeta?->twitter_creator ?? config( 'seo.twitter.creator' ),
 		);
+	}
+
+	/**
+	 * Resolve the Open Graph type.
+	 *
+	 * A saved type wins. Otherwise the type is inferred from the model.
+	 *
+	 * @since 1.9.0
+	 *
+	 * @param  Model         $model    The model.
+	 * @param  SeoMeta|null  $seoMeta  The SeoMeta instance.
+	 *
+	 * @return string
+	 */
+	public function resolveOgType( Model $model, ?SeoMeta $seoMeta = null ): string
+	{
+		$type = $seoMeta?->og_type;
+
+		if ( null !== $type && '' !== $type ) {
+			return $type;
+		}
+
+		return $this->inferOgType( $model );
 	}
 
 	/**
@@ -258,6 +282,7 @@ class SocialMetaService
 	 * Resolve the canonical URL.
 	 *
 	 * @since 1.0.0
+	 * @since 1.9.0 No longer guesses the URL from the model's slug.
 	 *
 	 * @param  Model          $model    The model.
 	 * @param  SeoMeta|null   $seoMeta  The SeoMeta instance.
@@ -266,24 +291,7 @@ class SocialMetaService
 	 */
 	protected function resolveCanonical( Model $model, ?SeoMeta $seoMeta ): string
 	{
-		if ( null !== $seoMeta?->canonical_url && '' !== $seoMeta->canonical_url ) {
-			return $seoMeta->canonical_url;
-		}
-
-		if ( method_exists( $model, 'getUrl' ) ) {
-			return $model->getUrl();
-		}
-
-		if ( isset( $model->slug ) && null !== $model->slug ) {
-			return url( $model->slug );
-		}
-
-		// Avoid calling url()->current() outside HTTP context
-		if ( app()->runningInConsole() || null === request() ) {
-			return '';
-		}
-
-		return url()->current();
+		return PublicUrlResolver::resolve( $model, $seoMeta );
 	}
 
 	/**

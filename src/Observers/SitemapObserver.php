@@ -19,8 +19,9 @@ namespace ArtisanPackUI\SEO\Observers;
 
 use ArtisanPackUI\SEO\Models\SitemapEntry;
 use ArtisanPackUI\SEO\Services\SitemapService;
+use ArtisanPackUI\SEO\Support\PublicUrlResolver;
+use ArtisanPackUI\SEO\Support\SeoMetaResolver;
 use DateTimeInterface;
-use Exception;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -272,6 +273,7 @@ class SitemapObserver
 	 * the sitemap entry should not be created.
 	 *
 	 * @since 1.0.0
+	 * @since 1.9.0 No longer guesses the URL from the model's slug.
 	 *
 	 * @param  Model  $model  The model to get URL for.
 	 *
@@ -279,34 +281,7 @@ class SitemapObserver
 	 */
 	protected function getModelUrl( Model $model ): ?string
 	{
-		// Try canonical_url from SEO meta first
-		if ( method_exists( $model, 'getCanonicalUrlAttribute' ) ) {
-			$canonicalUrl = $model->canonical_url;
-			if ( null !== $canonicalUrl && '' !== $canonicalUrl ) {
-				return $canonicalUrl;
-			}
-		}
-
-		// Try getUrl method
-		if ( method_exists( $model, 'getUrl' ) ) {
-			return $model->getUrl();
-		}
-
-		// Try slug property
-		if ( isset( $model->slug ) && null !== $model->slug ) {
-			return url( $model->slug );
-		}
-
-		// Fall back to route guess based on model name
-		$routeName = Str::snake( class_basename( $model ) );
-
-		try {
-			return route( "{$routeName}.show", $model );
-		} catch ( Exception $e ) {
-			// Return null if route doesn't exist to prevent multiple models
-			// from collapsing to the same URL
-			return null;
-		}
+		return PublicUrlResolver::resolveSitemapUrl( $model, SeoMetaResolver::resolve( $model ) );
 	}
 
 	/**

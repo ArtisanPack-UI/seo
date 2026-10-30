@@ -19,6 +19,7 @@ namespace ArtisanPackUI\SEO\Services;
 
 use ArtisanPackUI\SEO\DTOs\MetaTagsDTO;
 use ArtisanPackUI\SEO\Models\SeoMeta;
+use ArtisanPackUI\SEO\Support\PublicUrlResolver;
 use DateTimeInterface;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
@@ -211,6 +212,7 @@ class MetaTagService
 	 * Resolve the canonical URL.
 	 *
 	 * @since 1.0.0
+	 * @since 1.9.0 No longer guesses the URL from the model's slug.
 	 *
 	 * @param  Model          $model    The model.
 	 * @param  SeoMeta|null   $seoMeta  The SeoMeta instance.
@@ -219,25 +221,7 @@ class MetaTagService
 	 */
 	protected function resolveCanonical( Model $model, ?SeoMeta $seoMeta ): string
 	{
-		if ( null !== $seoMeta?->canonical_url && '' !== $seoMeta->canonical_url ) {
-			return $seoMeta->canonical_url;
-		}
-
-		// Try to get URL from model
-		if ( method_exists( $model, 'getUrl' ) ) {
-			return $model->getUrl();
-		}
-
-		if ( isset( $model->slug ) && null !== $model->slug ) {
-			return url( $model->slug );
-		}
-
-		// Avoid calling url()->current() outside HTTP context
-		if ( app()->runningInConsole() || null === request() ) {
-			return '';
-		}
-
-		return url()->current();
+		return PublicUrlResolver::resolve( $model, $seoMeta );
 	}
 
 	/**

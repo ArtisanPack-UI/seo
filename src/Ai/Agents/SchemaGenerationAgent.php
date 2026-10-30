@@ -74,6 +74,8 @@ class SchemaGenerationAgent extends ArtisanPackAgent
 		'HowTo',
 		'VideoObject',
 		'WebPage',
+		'SoftwareSourceCode',
+		'SoftwareApplication',
 	];
 
 	/**
@@ -232,12 +234,10 @@ PROMPT;
 	 */
 	protected function validateOutput( array $output ): array
 	{
-		$type        = isset( $output['suggested_type'] ) ? (string) $output['suggested_type'] : '';
-		$typeCoerced = false;
+		$type = isset( $output['suggested_type'] ) ? (string) $output['suggested_type'] : '';
 
 		if ( ! in_array( $type, self::SUPPORTED_TYPES, true ) ) {
-			$type        = 'WebPage';
-			$typeCoerced = true;
+			$type = 'WebPage';
 		}
 
 		$confidence = isset( $output['confidence'] ) ? (float) $output['confidence'] : 0.0;
@@ -249,13 +249,10 @@ PROMPT;
 			$jsonld = [ '@context' => 'https://schema.org' ] + $jsonld;
 		}
 
-		// When we coerced `suggested_type` to `WebPage`, force `jsonld['@type']`
-		// to match — otherwise callers get a payload where the top-level type
-		// disagrees with the JSON-LD type and downstream markup would emit the
-		// invalid type verbatim.
-		if ( $typeCoerced || ! isset( $jsonld['@type'] ) ) {
-			$jsonld['@type'] = $type;
-		}
+		// Force `jsonld['@type']` to match `suggested_type` — otherwise callers
+		// get a payload where the two disagree and downstream markup would
+		// emit the wrong type verbatim.
+		$jsonld['@type'] = $type;
 
 		$missing = [];
 

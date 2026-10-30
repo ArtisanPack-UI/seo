@@ -79,6 +79,8 @@ class SitemapController extends Controller
 	 * Serve a paginated sitemap for a specific type.
 	 *
 	 * @since 1.0.0
+	 * @since 1.9.0 Responds with a 404 when the type or page has no entries, and
+	 *              hands paged image, video and news URLs to their own sitemaps.
 	 *
 	 * @param  string  $type  The sitemap type.
 	 * @param  int     $page  The page number.
@@ -87,9 +89,18 @@ class SitemapController extends Controller
 	 */
 	public function show( string $type, int $page = 1 ): Response
 	{
-		$content = $this->sitemapService->generate( $type, $page );
+		$content = $this->sitemapService->generateTypeSitemap( $type, $page );
 
-		return $this->xmlResponse( $content );
+		if ( null !== $content ) {
+			return $this->xmlResponse( $content );
+		}
+
+		return match ( $type ) {
+			'images' => $this->images( $page ),
+			'videos' => $this->videos( $page ),
+			'news'   => $this->news( $page ),
+			default  => abort( 404 ),
+		};
 	}
 
 	/**

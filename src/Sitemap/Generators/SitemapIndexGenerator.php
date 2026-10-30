@@ -171,19 +171,18 @@ class SitemapIndexGenerator
 		$types     = SitemapEntry::getAvailableTypes();
 		$generator = new SitemapGenerator( $this->maxUrls );
 
-		// Add main sitemap pages for all entries. The page number is always
-		// included so each child URL matches the `seo.sitemap.page` route and
-		// the index never points back at itself.
-		$totalPages = $generator->getTotalPages();
-		for ( $page = 1; $page <= $totalPages; $page++ ) {
-			$sitemaps->push( $this->buildSitemapEntry( null, $page ) );
-		}
-
-		// Add type-specific sitemaps. The page number is always included
-		// (including page 1) because database-driven types are served by
-		// the `sitemap-{type}-{page}.xml` route only — the un-paginated
-		// `sitemap-{type}.xml` form exists only for image, video, and news.
+		// Every entry has a type, so the type-specific sitemaps cover the whole
+		// site and an all-types child would only repeat them. The page number
+		// is always included (including page 1) because database-driven types
+		// are served by the `sitemap-{type}-{page}.xml` route only — the
+		// un-paginated `sitemap-{type}.xml` form exists only for image, video,
+		// and news.
 		foreach ( $types as $type ) {
+			// A provider's child also lists stored entries of its type
+			if ( $this->providers->has( $type ) ) {
+				continue;
+			}
+
 			$typePages = $generator->getTotalPages( $type );
 
 			for ( $page = 1; $page <= $typePages; $page++ ) {
@@ -192,16 +191,15 @@ class SitemapIndexGenerator
 		}
 
 		// Add provider-specific sitemaps
-		foreach ( $this->providers->keys() as $providerType ) {
-			// Skip if type is already in database types (already handled above)
-			if ( in_array( $providerType, $types, true ) ) {
-				continue;
-			}
+		foreach ( $this->providers as $providerType => $provider ) {
+			$providerPages = max( 1, $generator->getProviderTotalPages( $provider, $providerType ) );
 
-			$sitemaps->push( [
-				'loc'     => $this->getSitemapUrl( $providerType, 1 ),
-				'lastmod' => now()->format( 'c' ),
-			] );
+			for ( $page = 1; $page <= $providerPages; $page++ ) {
+				$sitemap            = $this->buildSitemapEntry( $providerType, $page );
+				$sitemap['lastmod'] = $sitemap['lastmod'] ?? now()->format( 'c' );
+
+				$sitemaps->push( $sitemap );
+			}
 		}
 
 		// Add image sitemap if enabled

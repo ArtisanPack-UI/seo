@@ -87,12 +87,12 @@ describe( 'GET /api/seo/schema/types', function (): void {
 			->toContain( 'Organization' );
 	} );
 
-	it( 'returns all 13 schema types', function (): void {
+	it( 'returns all 15 schema types', function (): void {
 		$response = $this->getJson( '/api/seo/schema/types' );
 
 		$types = $response->json( 'data' );
 
-		expect( $types )->toHaveCount( 13 );
+		expect( $types )->toHaveCount( 15 );
 	} );
 
 	it( 'includes field definitions for each type', function (): void {

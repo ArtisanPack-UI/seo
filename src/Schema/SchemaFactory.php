@@ -29,6 +29,8 @@ use ArtisanPackUI\SEO\Schema\Builders\OrganizationSchema;
 use ArtisanPackUI\SEO\Schema\Builders\ProductSchema;
 use ArtisanPackUI\SEO\Schema\Builders\ReviewSchema;
 use ArtisanPackUI\SEO\Schema\Builders\ServiceSchema;
+use ArtisanPackUI\SEO\Schema\Builders\SoftwareApplicationSchema;
+use ArtisanPackUI\SEO\Schema\Builders\SoftwareSourceCodeSchema;
 use ArtisanPackUI\SEO\Schema\Builders\WebPageSchema;
 use ArtisanPackUI\SEO\Schema\Builders\WebsiteSchema;
 use InvalidArgumentException;
@@ -51,19 +53,21 @@ class SchemaFactory
 	 * @var array<string, class-string<SchemaTypeContract>>
 	 */
 	protected array $types = [
-		'Organization'    => OrganizationSchema::class,
-		'LocalBusiness'   => LocalBusinessSchema::class,
-		'WebSite'         => WebsiteSchema::class,
-		'WebPage'         => WebPageSchema::class,
-		'Article'         => ArticleSchema::class,
-		'BlogPosting'     => BlogPostingSchema::class,
-		'Product'         => ProductSchema::class,
-		'Service'         => ServiceSchema::class,
-		'Event'           => EventSchema::class,
-		'FAQPage'         => FAQPageSchema::class,
-		'BreadcrumbList'  => BreadcrumbListSchema::class,
-		'Review'          => ReviewSchema::class,
-		'AggregateRating' => AggregateRatingSchema::class,
+		'Organization'        => OrganizationSchema::class,
+		'LocalBusiness'       => LocalBusinessSchema::class,
+		'WebSite'             => WebsiteSchema::class,
+		'WebPage'             => WebPageSchema::class,
+		'Article'             => ArticleSchema::class,
+		'BlogPosting'         => BlogPostingSchema::class,
+		'Product'             => ProductSchema::class,
+		'Service'             => ServiceSchema::class,
+		'Event'               => EventSchema::class,
+		'FAQPage'             => FAQPageSchema::class,
+		'BreadcrumbList'      => BreadcrumbListSchema::class,
+		'Review'              => ReviewSchema::class,
+		'AggregateRating'     => AggregateRatingSchema::class,
+		'SoftwareSourceCode'  => SoftwareSourceCodeSchema::class,
+		'SoftwareApplication' => SoftwareApplicationSchema::class,
 	];
 
 	/**
