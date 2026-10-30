@@ -631,3 +631,32 @@ describe( 'Empty Sitemap Children', function (): void {
 	} );
 
 } );
+
+describe( 'Image sitemap pages', function (): void {
+
+	it( 'serves image sitemap pages after the first', function (): void {
+		$this->artisan( 'migrate', [ '--path' => realpath( __DIR__ . '/../../../database/migrations' ) ] );
+
+		config( [ 'seo.sitemap.types.image' => true, 'seo.sitemap.max_urls_per_file' => 1, 'seo.sitemap.cache_enabled' => false ] );
+
+		foreach ( [ 1, 2 ] as $id ) {
+			SitemapEntry::create( [
+				'sitemapable_type' => 'App\\Models\\Page',
+				'sitemapable_id'   => $id,
+				'url'              => 'https://example.com/page-' . $id,
+				'type'             => 'page',
+				'images'           => [ [ 'loc' => 'https://example.com/image-' . $id . '.jpg' ] ],
+			] );
+		}
+
+		$this->app->forgetInstance( ArtisanPackUI\SEO\Services\SitemapService::class );
+
+		$first  = $this->get( '/sitemap-images.xml' )->assertOk()->getContent();
+		$second = $this->get( '/sitemap-images-2.xml' )->assertOk()->getContent();
+
+		expect( $first )->toContain( '<image:image>' )
+			->and( $second )->toContain( '<image:image>' )
+			->and( $first )->not->toBe( $second );
+	} );
+
+} );

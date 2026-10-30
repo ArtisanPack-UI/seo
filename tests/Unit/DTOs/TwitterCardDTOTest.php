@@ -75,9 +75,19 @@ describe( 'TwitterCardDTO', function (): void {
 			'twitter:title'       => 'Card Title',
 			'twitter:description' => 'Card Description',
 			'twitter:image'       => 'https://example.com/card.jpg',
+			'twitter:image:alt'   => null,
 			'twitter:site'        => '@TestSite',
 			'twitter:creator'     => '@TestCreator',
 		] );
+	} );
+
+	it( 'round-trips image alt text', function (): void {
+		$dto = new TwitterCardDTO( title: 'Card Title', image: 'https://example.com/card.jpg', imageAlt: 'A mountain' );
+
+		$array = $dto->toArray();
+
+		expect( $array['twitter:image:alt'] )->toBe( 'A mountain' )
+			->and( TwitterCardDTO::fromArray( $array ) )->toEqual( $dto );
 	} );
 
 	it( 'converts to filtered array excluding null and empty values', function (): void {

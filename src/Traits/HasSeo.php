@@ -181,7 +181,7 @@ trait HasSeo
 		$content = $this->excerpt ?? $this->description ?? $this->content ?? null;
 
 		if ( null !== $content && '' !== $content ) {
-			return Str::limit( strip_tags( $content ), 160 );
+			return seoDescription( strip_tags( $content ), (int) config( 'seo.defaults.description_max_length', 160 ) );
 		}
 
 		return config( 'seo.defaults.meta_description', null );
@@ -319,24 +319,28 @@ trait HasSeo
 	 * Get the sitemap priority for this model.
 	 *
 	 * @since 1.0.0
+	 * @since 1.9.0 Returns null when no priority is set.
 	 *
-	 * @return float
+	 * @return float|null
 	 */
-	public function getSitemapPriority(): float
+	public function getSitemapPriority(): ?float
 	{
-		return (float) ( $this->seoMeta?->sitemap_priority ?? config( 'seo.sitemap.default_priority', 0.5 ) );
+		$priority = $this->seoMeta?->sitemap_priority ?? config( 'seo.sitemap.default_priority' );
+
+		return null === $priority ? null : (float) $priority;
 	}
 
 	/**
 	 * Get the sitemap change frequency for this model.
 	 *
 	 * @since 1.0.0
+	 * @since 1.9.0 Returns null when no change frequency is set.
 	 *
-	 * @return string
+	 * @return string|null
 	 */
-	public function getSitemapChangefreq(): string
+	public function getSitemapChangefreq(): ?string
 	{
-		return $this->seoMeta?->sitemap_changefreq ?? config( 'seo.sitemap.default_frequency', 'weekly' );
+		return $this->seoMeta?->sitemap_changefreq ?? config( 'seo.sitemap.default_frequency' );
 	}
 
 	/**
@@ -508,6 +512,8 @@ trait HasSeo
 	 *
 	 * @since 1.0.0
 	 *
+	 * The site-wide default image is left out, since it isn't this page's image.
+	 *
 	 * @return array<int, array<string, string>>|null
 	 */
 	public function getSitemapImages(): ?array
@@ -515,7 +521,7 @@ trait HasSeo
 		$images   = [];
 		$seoImage = $this->getSeoImage();
 
-		if ( null !== $seoImage && '' !== $seoImage ) {
+		if ( null !== $seoImage && '' !== $seoImage && $seoImage !== config( 'seo.open_graph.default_image' ) ) {
 			$images[] = [ 'loc' => $seoImage ];
 		}
 

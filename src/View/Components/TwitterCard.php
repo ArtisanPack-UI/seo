@@ -90,6 +90,15 @@ class TwitterCard extends Component
 	public ?string $creator;
 
 	/**
+	 * The Twitter image alt text.
+	 *
+	 * @since 1.9.0
+	 *
+	 * @var string|null
+	 */
+	public ?string $twitterImageAlt;
+
+	/**
 	 * Create a new component instance.
 	 *
 	 * @since 1.0.0
@@ -124,6 +133,7 @@ class TwitterCard extends Component
 			$this->twitterImage       = $image ?? $dto->image;
 			$this->site               = $site ?? $dto->site;
 			$this->creator            = $creator ?? $dto->creator;
+			$this->twitterImageAlt    = null === $image ? $dto->imageAlt : $socialMetaService->resolveImageDetails( $image, null, $this->twitterTitle )['alt'];
 		} else {
 			$this->card               = $card ?? config( 'seo.twitter.card_type', 'summary_large_image' );
 			$this->twitterTitle       = $title ?? config( 'app.name', 'Laravel' );
@@ -131,6 +141,7 @@ class TwitterCard extends Component
 			$this->twitterImage       = $image ?? config( 'seo.twitter.default_image' );
 			$this->site               = $site ?? config( 'seo.twitter.site' );
 			$this->creator            = $creator ?? config( 'seo.twitter.creator' );
+			$this->twitterImageAlt    = $socialMetaService->resolveImageDetails( $this->twitterImage, null, $this->twitterTitle )['alt'];
 		}
 	}
 

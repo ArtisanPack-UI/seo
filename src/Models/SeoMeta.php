@@ -63,8 +63,8 @@ use InvalidArgumentException;
  * @property string|null $focus_keyword
  * @property array|null  $secondary_keywords
  * @property array|null  $hreflang
- * @property float       $sitemap_priority
- * @property string      $sitemap_changefreq
+ * @property float|null  $sitemap_priority
+ * @property string|null $sitemap_changefreq
  * @property bool        $exclude_from_sitemap
  *
  * @package    ArtisanPack_UI

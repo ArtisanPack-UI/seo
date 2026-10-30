@@ -18,6 +18,7 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\SEO\View\Components;
 
 use ArtisanPackUI\SEO\Services\SeoService;
+use ArtisanPackUI\SEO\Services\SocialMetaService;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\View\Component;
@@ -182,14 +183,23 @@ class Meta extends Component
 			'additionalMeta' => $metaDto->additionalMeta,
 		];
 
+		$imageDetails = null === $image
+			? null
+			: app( SocialMetaService::class )->resolveImageDetails( $image, null, $title ?? $openGraphDto->title );
+
 		$this->openGraph = [
-			'title'       => $title ?? $openGraphDto->title,
-			'description' => $description ?? $openGraphDto->description,
-			'image'       => $image ?? $openGraphDto->image,
-			'url'         => $canonical ?? $openGraphDto->url,
-			'type'        => $openGraphDto->type,
-			'siteName'    => $openGraphDto->siteName,
-			'locale'      => $openGraphDto->locale,
+			'title'         => $title ?? $openGraphDto->title,
+			'description'   => $description ?? $openGraphDto->description,
+			'image'         => $image ?? $openGraphDto->image,
+			'imageWidth'    => null === $imageDetails ? $openGraphDto->imageWidth : $imageDetails['width'],
+			'imageHeight'   => null === $imageDetails ? $openGraphDto->imageHeight : $imageDetails['height'],
+			'imageAlt'      => null === $imageDetails ? $openGraphDto->imageAlt : $imageDetails['alt'],
+			'url'           => $canonical ?? $openGraphDto->url,
+			'type'          => $openGraphDto->type,
+			'siteName'      => $openGraphDto->siteName,
+			'locale'        => $openGraphDto->locale,
+			'publishedTime' => $openGraphDto->publishedTime,
+			'modifiedTime'  => $openGraphDto->modifiedTime,
 		];
 
 		$this->twitterCard = [
@@ -197,6 +207,7 @@ class Meta extends Component
 			'title'       => $title ?? $twitterCardDto->title,
 			'description' => $description ?? $twitterCardDto->description,
 			'image'       => $image ?? $twitterCardDto->image,
+			'imageAlt'    => null === $imageDetails ? $twitterCardDto->imageAlt : $imageDetails['alt'],
 			'site'        => $twitterCardDto->site,
 			'creator'     => $twitterCardDto->creator,
 		];
@@ -240,21 +251,32 @@ class Meta extends Component
 		$siteName     = config( 'seo.open_graph.site_name' ) ?? config( 'app.name', 'Laravel' );
 		$defaultImage = $image ?? config( 'seo.open_graph.default_image' );
 
+		$socialMetaService = app( SocialMetaService::class );
+		$socialTitle       = $title ?? config( 'app.name', 'Laravel' );
+		$imageDetails      = $socialMetaService->resolveImageDetails( $defaultImage, null, $socialTitle );
+		$twitterImage      = $image ?? config( 'seo.twitter.default_image' );
+
 		$this->openGraph = [
-			'title'       => $title ?? config( 'app.name', 'Laravel' ),
-			'description' => $description,
-			'image'       => $defaultImage,
-			'url'         => $canonical ?? $currentUrl,
-			'type'        => config( 'seo.open_graph.type', 'website' ),
-			'siteName'    => $siteName,
-			'locale'      => config( 'seo.open_graph.locale', 'en_US' ),
+			'title'         => $socialTitle,
+			'description'   => $description,
+			'image'         => $defaultImage,
+			'imageWidth'    => $imageDetails['width'],
+			'imageHeight'   => $imageDetails['height'],
+			'imageAlt'      => $imageDetails['alt'],
+			'url'           => $canonical ?? $currentUrl,
+			'type'          => config( 'seo.open_graph.type', 'website' ),
+			'siteName'      => $siteName,
+			'locale'        => config( 'seo.open_graph.locale', 'en_US' ),
+			'publishedTime' => null,
+			'modifiedTime'  => null,
 		];
 
 		$this->twitterCard = [
 			'card'        => config( 'seo.twitter.card_type', 'summary_large_image' ),
-			'title'       => $title ?? config( 'app.name', 'Laravel' ),
+			'title'       => $socialTitle,
 			'description' => $description,
-			'image'       => $image ?? config( 'seo.twitter.default_image' ),
+			'image'       => $twitterImage,
+			'imageAlt'    => $socialMetaService->resolveImageDetails( $twitterImage, null, $socialTitle )['alt'],
 			'site'        => config( 'seo.twitter.site' ),
 			'creator'     => config( 'seo.twitter.creator' ),
 		];

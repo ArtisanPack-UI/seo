@@ -23,6 +23,7 @@ export interface TwitterCard {
     title: string;
     description: string | null;
     image: string | null;
+    image_alt: string | null;
     site: string | null;
     creator: string | null;
 }
@@ -35,6 +36,7 @@ export interface TwitterCardResponse {
     title: string;
     description: string | null;
     image: string | null;
+    image_alt: string | null;
     site: string | null;
     creator: string | null;
 }

@@ -78,9 +78,11 @@ if ( ! function_exists( 'seoDescription' ) ) {
 	 * Format a meta description by limiting its length.
 	 *
 	 * Limits the description to 160 characters, which is the
-	 * recommended maximum length for meta descriptions.
+	 * recommended maximum length for meta descriptions. The limit
+	 * includes the `...` added to shortened text.
 	 *
 	 * @since 1.0.0
+	 * @since 1.9.0 The limit includes the trailing `...`.
 	 *
 	 * @param  string  $description  The description to format.
 	 * @param  int     $limit        Maximum character length (default 160).
@@ -89,7 +91,11 @@ if ( ! function_exists( 'seoDescription' ) ) {
 	 */
 	function seoDescription( string $description, int $limit = 160 ): string
 	{
-		return Str::limit( $description, $limit );
+		if ( mb_strwidth( $description ) <= $limit ) {
+			return $description;
+		}
+
+		return Str::limit( $description, max( 0, $limit - 3 ) );
 	}
 }
 

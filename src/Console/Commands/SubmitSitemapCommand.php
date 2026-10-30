@@ -67,6 +67,12 @@ class SubmitSitemapCommand extends Command
 
 		$submitter = new SitemapSubmitter( $customUrl );
 
+		if ( ! $engine && [] === $submitter->getSearchEngines() ) {
+			$this->warn( __( 'No search engines are configured. List your sitemap in robots.txt and use IndexNow to announce updates.' ) );
+
+			return Command::SUCCESS;
+		}
+
 		$this->info( __( 'Submitting sitemap to search engines...' ) );
 		$this->newLine();
 

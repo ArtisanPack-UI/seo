@@ -140,9 +140,13 @@ class SitemapIndexGenerator
 			return true;
 		}
 
+		// Need index if the image sitemap has something to list
+		if ( true === config( 'seo.sitemap.types.image', false ) && SitemapEntry::indexable()->withImages()->exists() ) {
+			return true;
+		}
+
 		// Need index if specialized sitemaps are enabled
-		if ( true === config( 'seo.sitemap.types.image', false )
-			|| true === config( 'seo.sitemap.types.video', false )
+		if ( true === config( 'seo.sitemap.types.video', false )
 			|| true === config( 'seo.sitemap.types.news', false )
 		) {
 			return true;
@@ -204,14 +208,16 @@ class SitemapIndexGenerator
 
 		// Add image sitemap if enabled
 		if ( true === config( 'seo.sitemap.types.image', false ) ) {
-			$imageCount = SitemapEntry::withImages()->count();
-			if ( $imageCount > 0 ) {
+			$imagePages = ( new ImageSitemapGenerator( $this->maxUrls ) )->getTotalPages();
+			$lastmod    = SitemapEntry::indexable()->withImages()
+				->orderByLastModified()
+				->first()
+				?->getLastModifiedForSitemap();
+
+			for ( $page = 1; $page <= $imagePages; $page++ ) {
 				$sitemaps->push( [
-					'loc'     => $this->getSitemapUrl( 'images' ),
-					'lastmod' => SitemapEntry::withImages()
-						->orderByLastModified()
-						->first()
-						?->getLastModifiedForSitemap(),
+					'loc'     => $this->getSitemapUrl( 'images', 1 === $page ? null : $page ),
+					'lastmod' => $lastmod,
 				] );
 			}
 		}

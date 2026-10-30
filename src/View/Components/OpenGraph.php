@@ -101,6 +101,51 @@ class OpenGraph extends Component
 	public ?string $ogLocale;
 
 	/**
+	 * The OG image width in pixels.
+	 *
+	 * @since 1.9.0
+	 *
+	 * @var int|null
+	 */
+	public ?int $ogImageWidth;
+
+	/**
+	 * The OG image height in pixels.
+	 *
+	 * @since 1.9.0
+	 *
+	 * @var int|null
+	 */
+	public ?int $ogImageHeight;
+
+	/**
+	 * The OG image alt text.
+	 *
+	 * @since 1.9.0
+	 *
+	 * @var string|null
+	 */
+	public ?string $ogImageAlt;
+
+	/**
+	 * The article published time, for the `article` type.
+	 *
+	 * @since 1.9.0
+	 *
+	 * @var string|null
+	 */
+	public ?string $articlePublishedTime = null;
+
+	/**
+	 * The article modified time, for the `article` type.
+	 *
+	 * @since 1.9.0
+	 *
+	 * @var string|null
+	 */
+	public ?string $articleModifiedTime = null;
+
+	/**
 	 * Create a new component instance.
 	 *
 	 * @since 1.0.0
@@ -138,6 +183,19 @@ class OpenGraph extends Component
 			$this->ogType        = $type ?? $dto->type;
 			$this->ogSiteName    = $siteName ?? $dto->siteName;
 			$this->ogLocale      = $locale ?? $dto->locale;
+
+			if ( null === $image ) {
+				$this->ogImageWidth  = $dto->imageWidth;
+				$this->ogImageHeight = $dto->imageHeight;
+				$this->ogImageAlt    = $dto->imageAlt;
+			}
+
+			if ( 'article' === $this->ogType ) {
+				$times = $socialMetaService->resolveArticleTimes( $model );
+
+				$this->articlePublishedTime = $times['published'] ?? null;
+				$this->articleModifiedTime  = $times['modified'] ?? null;
+			}
 		} else {
 			$this->ogTitle       = $title ?? config( 'app.name', 'Laravel' );
 			$this->ogDescription = $description;
@@ -146,6 +204,14 @@ class OpenGraph extends Component
 			$this->ogType        = $type ?? config( 'seo.open_graph.type', 'website' );
 			$this->ogSiteName    = $siteName ?? config( 'seo.open_graph.site_name', config( 'app.name' ) );
 			$this->ogLocale      = $locale ?? config( 'seo.open_graph.locale', 'en_US' );
+		}
+
+		if ( null === $model || null !== $image ) {
+			$details = $socialMetaService->resolveImageDetails( $this->ogImage, null, $this->ogTitle );
+
+			$this->ogImageWidth  = $details['width'];
+			$this->ogImageHeight = $details['height'];
+			$this->ogImageAlt    = $details['alt'];
 		}
 	}
 

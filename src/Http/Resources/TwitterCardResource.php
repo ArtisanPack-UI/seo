@@ -61,6 +61,7 @@ class TwitterCardResource extends JsonResource
 			'title'       => $this->resource->title,
 			'description' => $this->resource->description,
 			'image'       => $this->resource->image,
+			'image_alt'   => $this->resource->imageAlt,
 			'site'        => $this->resource->site,
 			'creator'     => $this->resource->creator,
 		];

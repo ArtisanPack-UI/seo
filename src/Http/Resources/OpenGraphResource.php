@@ -57,13 +57,18 @@ class OpenGraphResource extends JsonResource
 	public function toArray( Request $request ): array
 	{
 		return [
-			'title'       => $this->resource->title,
-			'description' => $this->resource->description,
-			'image'       => $this->resource->image,
-			'url'         => $this->resource->url,
-			'type'        => $this->resource->type,
-			'site_name'   => $this->resource->siteName,
-			'locale'      => $this->resource->locale,
+			'title'          => $this->resource->title,
+			'description'    => $this->resource->description,
+			'image'          => $this->resource->image,
+			'image_width'    => $this->resource->imageWidth,
+			'image_height'   => $this->resource->imageHeight,
+			'image_alt'      => $this->resource->imageAlt,
+			'url'            => $this->resource->url,
+			'type'           => $this->resource->type,
+			'site_name'      => $this->resource->siteName,
+			'locale'         => $this->resource->locale,
+			'published_time' => $this->resource->publishedTime,
+			'modified_time'  => $this->resource->modifiedTime,
 		];
 	}
 }

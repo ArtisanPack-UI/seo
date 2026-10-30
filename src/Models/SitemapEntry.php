@@ -33,8 +33,8 @@ use InvalidArgumentException;
  * @property string             $url
  * @property string             $type
  * @property Carbon|null        $last_modified
- * @property float              $priority
- * @property string             $changefreq
+ * @property float|null         $priority
+ * @property string|null        $changefreq
  * @property bool               $is_indexable
  * @property array<int, array<string, string>>|null $images
  * @property array<int, array<string, mixed>>|null  $videos
@@ -200,9 +200,7 @@ class SitemapEntry extends Model
 	 */
 	public function scopeWithImages( Builder $query ): Builder
 	{
-		return $query->whereNotNull( 'images' )
-			->where( 'images', '!=', '[]' )
-			->where( 'images', '!=', 'null' );
+		return $query->whereNotNull( 'images' )->whereJsonLength( 'images', '>', 0 );
 	}
 
 	/**
@@ -216,9 +214,7 @@ class SitemapEntry extends Model
 	 */
 	public function scopeWithVideos( Builder $query ): Builder
 	{
-		return $query->whereNotNull( 'videos' )
-			->where( 'videos', '!=', '[]' )
-			->where( 'videos', '!=', 'null' );
+		return $query->whereNotNull( 'videos' )->whereJsonLength( 'videos', '>', 0 );
 	}
 
 	/**

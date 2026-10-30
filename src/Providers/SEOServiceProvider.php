@@ -25,6 +25,7 @@ use ArtisanPackUI\SEO\Ai\Agents\SchemaGenerationAgent;
 use ArtisanPackUI\SEO\Console\Commands\GenerateSitemapCommand;
 use ArtisanPackUI\SEO\Console\Commands\InstallFrontend;
 use ArtisanPackUI\SEO\Console\Commands\SubmitSitemapCommand;
+use ArtisanPackUI\SEO\Console\Commands\WriteRobotsCommand;
 use ArtisanPackUI\SEO\Contracts\IndexNowKeyProviderContract;
 use ArtisanPackUI\SEO\Contracts\OgImageRendererContract;
 use ArtisanPackUI\SEO\Feed\Generators\FeedGenerator;
@@ -533,7 +534,12 @@ class SEOServiceProvider extends ServiceProvider
 				GenerateSitemapCommand::class,
 				InstallFrontend::class,
 				SubmitSitemapCommand::class,
+				WriteRobotsCommand::class,
 			] );
+
+			if ( method_exists( $this, 'optimizes' ) ) {
+				$this->optimizes( optimize: 'seo:write-robots' );
+			}
 		}
 	}
 

@@ -87,8 +87,8 @@ describe( 'SeoMeta Model', function (): void {
 			->and( $seoMeta->exclude_from_sitemap )->toBeFalse()
 			->and( $seoMeta->og_type )->toBeNull()
 			->and( $seoMeta->twitter_card )->toBe( 'summary_large_image' )
-			->and( (string) $seoMeta->sitemap_priority )->toBe( '0.5' )
-			->and( $seoMeta->sitemap_changefreq )->toBe( 'weekly' );
+			->and( $seoMeta->sitemap_priority )->toBeNull()
+			->and( $seoMeta->sitemap_changefreq )->toBeNull();
 	} );
 
 } );

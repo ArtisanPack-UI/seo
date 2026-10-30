@@ -238,7 +238,7 @@ describe( 'MetaTagService Generate Method', function (): void {
 		expect( $dto->description )->toBe( 'Description with HTML tags.' );
 	} );
 
-	it( 'includes focus keyword in additional meta', function (): void {
+	it( 'leaves keywords and article dates out of additional meta', function (): void {
 		$service = new MetaTagService();
 
 		$seoMeta = new SeoMeta( [
@@ -247,14 +247,60 @@ describe( 'MetaTagService Generate Method', function (): void {
 			'secondary_keywords' => [ 'secondary1', 'secondary2' ],
 		] );
 
-		$model = createTestModel( [] );
+		$model = createTestModel( [
+			'published_at' => now(),
+			'updated_at'   => now(),
+		] );
 
 		$dto = $service->generate( $model, $seoMeta );
 
-		expect( $dto->additionalMeta )->toHaveKey( 'keywords' )
-			->and( $dto->additionalMeta['keywords'] )->toContain( 'main keyword' )
-			->and( $dto->additionalMeta['keywords'] )->toContain( 'secondary1' )
-			->and( $dto->additionalMeta['keywords'] )->toContain( 'secondary2' );
+		expect( $dto->additionalMeta )->not->toHaveKeys( [ 'keywords', 'article:published_time', 'article:modified_time' ] );
+	} );
+
+	it( 'keeps a saved description at its full length', function (): void {
+		$description = str_repeat( 'a', 200 );
+
+		$dto = ( new MetaTagService() )->generate( createTestModel( [] ), new SeoMeta( [ 'meta_description' => $description ] ) );
+
+		expect( $dto->description )->toBe( $description );
+	} );
+
+	it( 'keeps a generated description within the limit', function (): void {
+		$dto = ( new MetaTagService() )->generate( createTestModel( [ 'excerpt' => str_repeat( 'word ', 100 ) ] ) );
+
+		expect( mb_strlen( $dto->description ) )->toBeLessThanOrEqual( 160 )
+			->and( $dto->description )->toEndWith( '...' );
+	} );
+
+	it( 'leaves a generated description that fits exactly alone', function (): void {
+		$excerpt = str_repeat( 'a', 160 );
+
+		$dto = ( new MetaTagService() )->generate( createTestModel( [ 'excerpt' => $excerpt ] ) );
+
+		expect( $dto->description )->toBe( $excerpt );
+	} );
+
+	it( 'honors a custom description limit', function (): void {
+		config( [ 'seo.defaults.description_max_length' => 100 ] );
+
+		$dto = ( new MetaTagService() )->generate( createTestModel( [ 'excerpt' => str_repeat( 'word ', 100 ) ] ) );
+
+		expect( mb_strlen( $dto->description ) )->toBeLessThanOrEqual( 100 );
+	} );
+
+	it( 'skips the title suffix when it would pass the limit', function (): void {
+		config( [ 'seo.site.name' => 'Test Site', 'seo.site.separator' => ' | ' ] );
+
+		$service = new MetaTagService();
+
+		expect( $service->buildTitle( str_repeat( 'a', 48 ) ) )->toBe( str_repeat( 'a', 48 ) . ' | Test Site' )
+			->and( $service->buildTitle( str_repeat( 'a', 49 ) ) )->toBe( str_repeat( 'a', 49 ) );
+	} );
+
+	it( 'always adds the title suffix when the limit is 0', function (): void {
+		config( [ 'seo.site.name' => 'Test Site', 'seo.site.separator' => ' | ', 'seo.defaults.title_max_length' => 0 ] );
+
+		expect( ( new MetaTagService() )->buildTitle( str_repeat( 'a', 100 ) ) )->toEndWith( ' | Test Site' );
 	} );
 
 } );
