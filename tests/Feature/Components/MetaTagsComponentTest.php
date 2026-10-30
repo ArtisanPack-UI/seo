@@ -189,7 +189,7 @@ describe( 'MetaTags Component with Model', function (): void {
 
 describe( 'MetaTags Component Additional Meta', function (): void {
 
-	it( 'renders additional meta tags', function (): void {
+	it( 'does not publish the focus keywords', function (): void {
 		$seoMeta = new SeoMeta( [
 			'meta_title'         => 'Test Title',
 			'focus_keyword'      => 'keyword',
@@ -205,7 +205,8 @@ describe( 'MetaTags Component Additional Meta', function (): void {
 		$view      = $component->render();
 		$html      = $view->with( $component->data() )->render();
 
-		expect( $html )->toContain( 'keywords' );
+		expect( $html )->not->toContain( 'keywords' )
+			->and( $html )->not->toContain( 'secondary1' );
 	} );
 
 } );

@@ -9,7 +9,7 @@ The Redirect Manager is a Livewire component for creating and managing URL redir
 ## Basic Usage
 
 ```blade
-<livewire:redirect-manager />
+<livewire:seo::redirect-manager />
 ```
 
 ## Features
@@ -35,14 +35,14 @@ The Redirect Manager is a Livewire component for creating and managing URL redir
 ```blade
 <div class="p-6">
     <h1 class="text-2xl font-bold mb-6">URL Redirects</h1>
-    <livewire:redirect-manager />
+    <livewire:seo::redirect-manager />
 </div>
 ```
 
 ### With Custom Pagination
 
 ```blade
-<livewire:redirect-manager :per-page="50" />
+<livewire:seo::redirect-manager :per-page="50" />
 ```
 
 ## Interface Elements
@@ -136,15 +136,15 @@ The component exposes these wire methods:
 ```php
 // Create a redirect
 $this->create([
-    'source' => '/old',
-    'target' => '/new',
-    'type' => 'exact',
+    'from_path' => '/old',
+    'to_path' => '/new',
+    'match_type' => 'exact',
     'status_code' => 301,
 ]);
 
 // Update a redirect
 $this->update($id, [
-    'target' => '/updated-url',
+    'to_path' => '/updated-url',
 ]);
 
 // Delete a redirect
@@ -202,7 +202,7 @@ php artisan vendor:publish --tag=seo-views
 ```php
 namespace App\Livewire;
 
-use ArtisanPackUI\Seo\Livewire\RedirectManager as BaseRedirectManager;
+use ArtisanPackUI\SEO\Livewire\RedirectManager as BaseRedirectManager;
 
 class CustomRedirectManager extends BaseRedirectManager
 {
@@ -231,7 +231,7 @@ Gate::define('manage-redirects', function ($user) {
 ### Importing Redirects
 
 ```blade
-<livewire:redirect-manager>
+<livewire:seo::redirect-manager>
     <x-slot:actions>
         <button wire:click="showImport">Import CSV</button>
     </x-slot:actions>

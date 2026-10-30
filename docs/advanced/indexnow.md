@@ -7,7 +7,8 @@ title: IndexNow
 [IndexNow](https://www.indexnow.org/) is a protocol that lets you push
 URL-change notifications to Bing, Yandex, Seznam, Naver, and other
 participating engines. The package ships a submitter that batches and
-posts URLs on your behalf.
+posts URLs on your behalf. It replaces sitemap pings, which Google and
+Bing no longer accept.
 
 ## Configuration
 
@@ -59,3 +60,13 @@ the submitter parses the response body and marks the result as
 `success=false` with a `warning` string when either a `code` or a
 `warnings` array is present. Callers reading `$result['success']` no
 longer treat quiet failures as indexed.
+
+## Notifying on publish
+
+`SitemapService::notifyOnPublish()` submits URLs to IndexNow when
+`seo.indexnow.enabled` is on, and pings any configured search engines
+when `seo.sitemap.submit_enabled` is on:
+
+```php
+app( SitemapService::class )->notifyOnPublish( $post->canonical_url );
+```

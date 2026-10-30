@@ -18,7 +18,7 @@ Composer installs `artisanpack-ui/core` as the only required dependency. To unlo
 composer require artisanpack-ui/ai
 ```
 
-`artisanpack-ui/ai` requires PHP 8.3+ and Laravel 12+. If you're on PHP 8.2 or Laravel 10/11, the rest of the SEO package still works — the AI Livewire components, AI API endpoints (`/api/seo/ai/*`), and AI feature registry entries simply are not registered.
+`artisanpack-ui/ai` requires PHP 8.3+ and Laravel 12+. If you're on PHP 8.2 or Laravel 11, the rest of the SEO package still works — the AI Livewire components, AI API endpoints (`/api/seo/ai/*`), and AI feature registry entries simply are not registered.
 
 ## Run Migrations
 
@@ -110,33 +110,23 @@ The package auto-discovers its service provider. If you have disabled auto-disco
 ```php
 'providers' => [
     // ...
-    ArtisanPackUI\Seo\SeoServiceProvider::class,
+    ArtisanPackUI\SEO\Providers\SEOServiceProvider::class,
 ],
 ```
 
 ## Facade (Optional)
 
-The package provides a `Seo` facade for convenient access:
+The package provides an `SEO` facade for registering analyzers, schema types, and sitemap providers:
 
 ```php
-use ArtisanPackUI\Seo\Facades\Seo;
+use ArtisanPackUI\SEO\Facades\SEO;
 
-$meta = Seo::getMetaForModel($post);
+SEO::registerSchemaType('Recipe', RecipeSchema::class);
 ```
 
-## Middleware Setup
+## Middleware
 
-To enable automatic URL redirect handling, add the redirect middleware to your `bootstrap/app.php`:
-
-```php
-->withMiddleware(function (Middleware $middleware) {
-    $middleware->web(append: [
-        \ArtisanPackUI\Seo\Http\Middleware\HandleRedirects::class,
-    ]);
-})
-```
-
-Or add it to specific route groups as needed.
+URL redirects work with no setup. `HandleRedirects` is added to the `web` middleware group when `seo.redirects.enabled` and `seo.redirects.middleware_enabled` are true. Set `middleware_enabled` to `false` to add it to specific route groups yourself.
 
 ## Verify Installation
 
@@ -144,7 +134,6 @@ To verify the installation is working:
 
 ```php
 // In tinker or a controller
-use ArtisanPackUI\Seo\Facades\Seo;
 
 // Should return the SeoService instance
 $seo = seo();

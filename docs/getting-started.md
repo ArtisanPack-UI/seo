@@ -37,7 +37,7 @@ Add the `HasSeo` trait to any Eloquent model that needs SEO capabilities:
 
 namespace App\Models;
 
-use ArtisanPackUI\Seo\Traits\HasSeo;
+use ArtisanPackUI\SEO\Traits\HasSeo;
 use Illuminate\Database\Eloquent\Model;
 
 class Post extends Model
@@ -57,8 +57,9 @@ Add the SEO meta component to your layout's `<head>` section:
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    {{-- Render all SEO tags --}}
-    <x-seo-meta :model="$model ?? null" />
+    {{-- Render SEO tags --}}
+    <x-seo:meta :model="$model ?? null" />
+    <x-seo:schema :model="$model ?? null" />
 
     {{-- Your other head content --}}
 </head>
@@ -87,7 +88,7 @@ $post->updateSeoMeta([
 Or use the Livewire SEO Meta Editor component in your admin panel:
 
 ```blade
-<livewire:seo-meta-editor :model="$post" />
+<livewire:seo::seo-meta-editor :model="$post" />
 ```
 
 ## What's Next?
@@ -112,8 +113,8 @@ $seo = seo();
 // Get SEO meta for a model
 $meta = seoMeta($post);
 
-// Format a page title with separator
-$title = seoTitle('My Page', ' | My Site');
+// Format a page title with the site name
+$title = seoTitle('My Page');
 
 // Truncate description to SEO-friendly length
 $desc = seoDescription($longText, 160);
@@ -127,15 +128,15 @@ if (seoIsEnabled('sitemap')) {
 ### Blade Components
 
 ```blade
-{{-- All-in-one SEO output --}}
-<x-seo-meta :model="$post" />
+{{-- Meta, social, and hreflang tags --}}
+<x-seo:meta :model="$post" />
 
 {{-- Individual components --}}
-<x-seo-meta-tags :model="$post" />
-<x-seo-open-graph :model="$post" />
-<x-seo-twitter-card :model="$post" />
-<x-seo-schema :model="$post" />
-<x-seo-hreflang :model="$post" />
+<x-seo:meta-tags :model="$post" />
+<x-seo:open-graph :model="$post" />
+<x-seo:twitter-card :model="$post" />
+<x-seo:schema :model="$post" />
+<x-seo:hreflang :model="$post" />
 ```
 
 ### Model Methods

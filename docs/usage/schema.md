@@ -8,7 +8,7 @@ Structured data helps search engines understand your content and can enable rich
 
 ## Overview
 
-The package provides 14 built-in schema types with customizable JSON-LD generation. Schema markup is stored with your SEO metadata and rendered automatically.
+The package provides 15 built-in schema types with customizable JSON-LD generation. Schema markup is stored with your SEO metadata and rendered automatically.
 
 ## Setting Schema Type
 
@@ -25,7 +25,7 @@ $post->updateSeoMeta([
 ```php
 $post->updateSeoMeta([
     'schema_type' => 'Article',
-    'schema_data' => [
+    'schema_markup' => [
         'author' => [
             '@type' => 'Person',
             'name' => 'John Doe',
@@ -54,7 +54,7 @@ For blog posts and news articles:
 ```php
 $post->updateSeoMeta([
     'schema_type' => 'Article',
-    'schema_data' => [
+    'schema_markup' => [
         'headline' => 'Article Headline',
         'author' => ['@type' => 'Person', 'name' => 'Author Name'],
         'datePublished' => '2024-01-15T10:00:00Z',
@@ -73,7 +73,7 @@ Specifically for blog posts:
 ```php
 $post->updateSeoMeta([
     'schema_type' => 'BlogPosting',
-    'schema_data' => [
+    'schema_markup' => [
         'headline' => 'My Blog Post Title',
         'author' => ['@type' => 'Person', 'name' => 'Blogger Name'],
         'datePublished' => '2024-01-15',
@@ -89,7 +89,7 @@ For e-commerce products:
 ```php
 $product->updateSeoMeta([
     'schema_type' => 'Product',
-    'schema_data' => [
+    'schema_markup' => [
         'name' => 'Amazing Product',
         'description' => 'Product description here.',
         'image' => 'https://example.com/product.jpg',
@@ -118,7 +118,7 @@ For events and happenings:
 ```php
 $event->updateSeoMeta([
     'schema_type' => 'Event',
-    'schema_data' => [
+    'schema_markup' => [
         'name' => 'Tech Conference 2024',
         'startDate' => '2024-06-15T09:00:00-05:00',
         'endDate' => '2024-06-17T18:00:00-05:00',
@@ -156,7 +156,7 @@ For company/organization pages:
 ```php
 $page->updateSeoMeta([
     'schema_type' => 'Organization',
-    'schema_data' => [
+    'schema_markup' => [
         'name' => 'My Company',
         'url' => 'https://example.com',
         'logo' => 'https://example.com/logo.png',
@@ -181,7 +181,7 @@ For local businesses:
 ```php
 $business->updateSeoMeta([
     'schema_type' => 'LocalBusiness',
-    'schema_data' => [
+    'schema_markup' => [
         'name' => 'My Local Shop',
         'image' => 'https://example.com/shop.jpg',
         'telephone' => '+1-555-123-4567',
@@ -218,7 +218,7 @@ For the main website (usually homepage):
 ```php
 $homepage->updateSeoMeta([
     'schema_type' => 'WebSite',
-    'schema_data' => [
+    'schema_markup' => [
         'name' => 'My Website',
         'url' => 'https://example.com',
         'potentialAction' => [
@@ -237,7 +237,7 @@ For general web pages:
 ```php
 $page->updateSeoMeta([
     'schema_type' => 'WebPage',
-    'schema_data' => [
+    'schema_markup' => [
         'name' => 'About Us',
         'description' => 'Learn about our company.',
         'isPartOf' => ['@type' => 'WebSite', 'name' => 'My Website'],
@@ -252,7 +252,7 @@ For service offerings:
 ```php
 $service->updateSeoMeta([
     'schema_type' => 'Service',
-    'schema_data' => [
+    'schema_markup' => [
         'name' => 'Web Development',
         'description' => 'Professional web development services.',
         'provider' => [
@@ -272,7 +272,7 @@ For FAQ sections:
 ```php
 $faqPage->updateSeoMeta([
     'schema_type' => 'FAQPage',
-    'schema_data' => [
+    'schema_markup' => [
         'mainEntity' => [
             [
                 '@type' => 'Question',
@@ -302,7 +302,7 @@ For breadcrumb navigation:
 ```php
 $page->updateSeoMeta([
     'schema_type' => 'BreadcrumbList',
-    'schema_data' => [
+    'schema_markup' => [
         'itemListElement' => [
             ['@type' => 'ListItem', 'position' => 1, 'name' => 'Home', 'item' => 'https://example.com'],
             ['@type' => 'ListItem', 'position' => 2, 'name' => 'Products', 'item' => 'https://example.com/products'],
@@ -319,7 +319,7 @@ For review content:
 ```php
 $review->updateSeoMeta([
     'schema_type' => 'Review',
-    'schema_data' => [
+    'schema_markup' => [
         'itemReviewed' => ['@type' => 'Product', 'name' => 'Product Name'],
         'reviewRating' => ['@type' => 'Rating', 'ratingValue' => '4', 'bestRating' => '5'],
         'author' => ['@type' => 'Person', 'name' => 'Reviewer Name'],
@@ -335,7 +335,7 @@ For aggregate ratings:
 ```php
 $product->updateSeoMeta([
     'schema_type' => 'AggregateRating',
-    'schema_data' => [
+    'schema_markup' => [
         'itemReviewed' => ['@type' => 'Product', 'name' => 'Product Name'],
         'ratingValue' => '4.5',
         'bestRating' => '5',
@@ -343,6 +343,40 @@ $product->updateSeoMeta([
     ],
 ]);
 ```
+
+### SoftwareSourceCode
+
+For code libraries and packages:
+
+```php
+$package->updateSeoMeta([
+    'schema_type' => 'SoftwareSourceCode',
+    'schema_markup' => [
+        'name' => 'My Package',
+        'version' => '1.9.0',
+        'codeRepository' => 'https://github.com/example/my-package',
+        'programmingLanguage' => 'PHP',
+        'runtimePlatform' => 'PHP 8.2',
+    ],
+]);
+```
+
+### SoftwareApplication
+
+For applications and tools:
+
+```php
+$app->updateSeoMeta([
+    'schema_type' => 'SoftwareApplication',
+    'schema_markup' => [
+        'name' => 'My App',
+        'version' => '2.0.0',
+        'applicationCategory' => 'DeveloperApplication',
+    ],
+]);
+```
+
+`version` is emitted as `softwareVersion`. `codeRepository`, `programmingLanguage`, and `runtimePlatform` are left out, because Schema.org only defines them for `SoftwareSourceCode`.
 
 ## Schema Type Definitions API
 
@@ -473,7 +507,7 @@ $factory->register('Recipe', RecipeSchema::class);
 ### Using Blade Component
 
 ```blade
-<x-seo-schema :model="$post" />
+<x-seo:schema :model="$post" />
 ```
 
 ### Generated Output
@@ -499,7 +533,7 @@ $factory->register('Recipe', RecipeSchema::class);
 For programmatic schema generation:
 
 ```php
-use ArtisanPackUI\Seo\Services\SchemaService;
+use ArtisanPackUI\SEO\Services\SchemaService;
 
 $schemaService = app(SchemaService::class);
 

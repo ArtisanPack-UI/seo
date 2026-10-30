@@ -225,16 +225,20 @@ class SitemapService
 	 *
 	 * Cached alongside XML sitemaps so {@see clearCache()} — invoked by the
 	 * sitemap observer whenever a tracked entry changes — invalidates this
-	 * output too.
+	 * output too. The key includes the registered provider types, because
+	 * they change the output.
 	 *
 	 * @since 1.4.0
+	 * @since 1.9.0 The cache key includes the provider types.
 	 *
 	 * @return string The generated llms.txt content.
 	 */
 	public function generateLlmsTxt(): string
 	{
 		if ( $this->cacheEnabled ) {
-			return Cache::remember( $this->getCacheKey( 'llms_txt' ), $this->cacheTtl, function () {
+			$providerTypes = $this->providers->keys()->sort()->implode( ',' );
+
+			return Cache::remember( $this->getCacheKey( 'llms_txt', '' === $providerTypes ? null : $providerTypes ), $this->cacheTtl, function () {
 				return $this->generateLlmsTxtFresh();
 			} );
 		}
@@ -411,7 +415,43 @@ class SitemapService
 	{
 		$generator = new SitemapGenerator( $this->maxUrls );
 
+		if ( null !== $type && $this->providers->has( $type ) ) {
+			return $generator->getProviderTotalPages( $this->providers->get( $type ), $type );
+		}
+
 		return $generator->getTotalPages( $type );
+	}
+
+	/**
+	 * Generate a type-specific sitemap, unless it has nothing to list.
+	 *
+	 * Checks the rendered XML rather than counting rows, so entries added or
+	 * removed by `ap.seo.sitemapEntries` callbacks count. Empty results aren't
+	 * cached, so requests for made-up types can't fill the cache. A registered
+	 * provider always serves page 1 of its type, even with no URLs to list.
+	 *
+	 * @since 1.9.0
+	 *
+	 * @param  string  $type  The sitemap type.
+	 * @param  int     $page  The page number.
+	 *
+	 * @return string|null The generated XML sitemap, or null if there's nothing to serve.
+	 */
+	public function generateTypeSitemap( string $type, int $page = 1 ): ?string
+	{
+		$cacheKey = $this->getCacheKey( 'standard', $type, $page );
+		$cached   = $this->cacheEnabled ? Cache::get( $cacheKey ) : null;
+		$xml      = $cached ?? $this->generateFresh( $type, $page );
+
+		if ( ! str_contains( $xml, '<url>' ) && ! ( 1 === $page && $this->providers->has( $type ) ) ) {
+			return null;
+		}
+
+		if ( $this->cacheEnabled && null === $cached ) {
+			Cache::put( $cacheKey, $xml, $this->cacheTtl );
+		}
+
+		return $xml;
 	}
 
 	/**
@@ -569,7 +609,7 @@ class SitemapService
 		if ( null !== $type && $this->providers->has( $type ) ) {
 			$generator = new SitemapGenerator( $this->maxUrls );
 
-			return $generator->generateFromProvider( $this->providers->get( $type ) );
+			return $generator->generateFromProvider( $this->providers->get( $type ), $page, $type );
 		}
 
 		$generator = new SitemapGenerator( $this->maxUrls );
@@ -587,6 +627,7 @@ class SitemapService
 	protected function generateLlmsTxtFresh(): string
 	{
 		$generator = new LlmsTxtGenerator();
+		$generator->setProviders( $this->providers );
 
 		return $generator->generate();
 	}

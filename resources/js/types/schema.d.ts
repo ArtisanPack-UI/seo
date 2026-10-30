@@ -11,7 +11,7 @@
  */
 
 /**
- * Union of the 13 built-in Schema.org type names.
+ * Union of the 15 built-in Schema.org type names.
  */
 export type SchemaType =
     | 'Organization'
@@ -26,7 +26,9 @@ export type SchemaType =
     | 'FAQPage'
     | 'BreadcrumbList'
     | 'Review'
-    | 'AggregateRating';
+    | 'AggregateRating'
+    | 'SoftwareSourceCode'
+    | 'SoftwareApplication';
 
 /**
  * Schema field types for dynamic form rendering.
@@ -225,6 +227,34 @@ export interface AggregateRatingSchemaConfig {
 }
 
 /**
+ * SoftwareSourceCode schema configuration fields.
+ */
+export interface SoftwareSourceCodeSchemaConfig {
+    name: string;
+    description?: string;
+    url?: string;
+    codeRepository?: string;
+    programmingLanguage?: string;
+    runtimePlatform?: string;
+    license?: string;
+    version?: string;
+}
+
+/**
+ * SoftwareApplication schema configuration fields.
+ */
+export interface SoftwareApplicationSchemaConfig {
+    name: string;
+    description?: string;
+    url?: string;
+    applicationCategory?: string;
+    operatingSystem?: string;
+    license?: string;
+    version?: string;
+    softwareVersion?: string;
+}
+
+/**
  * Union of all schema configuration types.
  */
 export type SchemaConfig =
@@ -239,7 +269,9 @@ export type SchemaConfig =
     | WebPageSchemaConfig
     | ServiceSchemaConfig
     | ReviewSchemaConfig
-    | AggregateRatingSchemaConfig;
+    | AggregateRatingSchemaConfig
+    | SoftwareSourceCodeSchemaConfig
+    | SoftwareApplicationSchemaConfig;
 
 /**
  * Schema API response from SchemaResource.

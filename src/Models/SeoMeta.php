@@ -41,7 +41,7 @@ use InvalidArgumentException;
  * @property string|null $og_description
  * @property string|null $og_image
  * @property int|null    $og_image_id
- * @property string      $og_type
+ * @property string|null $og_type
  * @property string|null $og_locale
  * @property string|null $og_site_name
  * @property string      $twitter_card
@@ -63,8 +63,8 @@ use InvalidArgumentException;
  * @property string|null $focus_keyword
  * @property array|null  $secondary_keywords
  * @property array|null  $hreflang
- * @property float       $sitemap_priority
- * @property string      $sitemap_changefreq
+ * @property float|null  $sitemap_priority
+ * @property string|null $sitemap_changefreq
  * @property bool        $exclude_from_sitemap
  *
  * @package    ArtisanPack_UI

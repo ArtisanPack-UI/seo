@@ -43,7 +43,7 @@ Add the redirect middleware to handle redirects automatically:
 // In bootstrap/app.php
 ->withMiddleware(function (Middleware $middleware) {
     $middleware->web(append: [
-        \ArtisanPackUI\Seo\Http\Middleware\HandleRedirects::class,
+        \ArtisanPackUI\SEO\Http\Middleware\HandleRedirects::class,
     ]);
 })
 ```
@@ -55,12 +55,12 @@ Add the redirect middleware to handle redirects automatically:
 Matches the exact source path:
 
 ```php
-use ArtisanPackUI\Seo\Models\Redirect;
+use ArtisanPackUI\SEO\Models\Redirect;
 
 Redirect::create([
-    'source' => '/old-page',
-    'target' => '/new-page',
-    'type' => 'exact',
+    'from_path' => '/old-page',
+    'to_path' => '/new-page',
+    'match_type' => 'exact',
     'status_code' => 301,
 ]);
 
@@ -75,9 +75,9 @@ Uses `*` (any characters) and `?` (single character) wildcards:
 ```php
 // Match any path under /blog/
 Redirect::create([
-    'source' => '/blog/*',
-    'target' => '/articles/$1',
-    'type' => 'wildcard',
+    'from_path' => '/blog/*',
+    'to_path' => '/articles/$1',
+    'match_type' => 'wildcard',
     'status_code' => 301,
 ]);
 
@@ -88,9 +88,9 @@ Redirect::create([
 ```php
 // Match specific pattern
 Redirect::create([
-    'source' => '/product-???',
-    'target' => '/products/$1',
-    'type' => 'wildcard',
+    'from_path' => '/product-???',
+    'to_path' => '/products/$1',
+    'match_type' => 'wildcard',
     'status_code' => 301,
 ]);
 
@@ -104,9 +104,9 @@ Uses full regular expression patterns:
 
 ```php
 Redirect::create([
-    'source' => '^/products/(\d+)$',
-    'target' => '/items/$1',
-    'type' => 'regex',
+    'from_path' => '^/products/(\d+)$',
+    'to_path' => '/items/$1',
+    'match_type' => 'regex',
     'status_code' => 301,
 ]);
 
@@ -117,9 +117,9 @@ Redirect::create([
 ```php
 // Case-insensitive matching
 Redirect::create([
-    'source' => '(?i)^/About$',
-    'target' => '/about-us',
-    'type' => 'regex',
+    'from_path' => '(?i)^/About$',
+    'to_path' => '/about-us',
+    'match_type' => 'regex',
     'status_code' => 301,
 ]);
 
@@ -140,15 +140,15 @@ Redirect::create([
 ```php
 // Permanent redirect (most common)
 Redirect::create([
-    'source' => '/old',
-    'target' => '/new',
+    'from_path' => '/old',
+    'to_path' => '/new',
     'status_code' => 301,
 ]);
 
 // Temporary redirect
 Redirect::create([
-    'source' => '/maintenance',
-    'target' => '/temp-page',
+    'from_path' => '/maintenance',
+    'to_path' => '/temp-page',
     'status_code' => 302,
 ]);
 ```
@@ -158,14 +158,14 @@ Redirect::create([
 ### Creating Redirects
 
 ```php
-use ArtisanPackUI\Seo\Services\RedirectService;
+use ArtisanPackUI\SEO\Services\RedirectService;
 
-$redirectService = app('seo.redirect');
+$redirectService = app(RedirectService::class);
 
 $redirect = $redirectService->create([
-    'source' => '/old-page',
-    'target' => '/new-page',
-    'type' => 'exact',
+    'from_path' => '/old-page',
+    'to_path' => '/new-page',
+    'match_type' => 'exact',
     'status_code' => 301,
     'is_active' => true,
     'notes' => 'Migration from old site',
@@ -194,7 +194,7 @@ seoDeleteRedirect($redirect->id);
 
 ```php
 $redirectService->update($redirect->id, [
-    'target' => '/updated-page',
+    'to_path' => '/updated-page',
     'is_active' => true,
 ]);
 ```
@@ -234,8 +234,8 @@ When creating redirects, the system checks:
 
 try {
     $redirectService->create([
-        'source' => '/c',
-        'target' => '/a',
+        'from_path' => '/c',
+        'to_path' => '/a',
     ]);
 } catch (RedirectLoopException $e) {
     // Handle loop detection
@@ -312,14 +312,14 @@ file_put_contents('redirects.csv', $csv);
 
 ```php
 $redirects = [
-    ['source' => '/page1', 'target' => '/new1'],
-    ['source' => '/page2', 'target' => '/new2'],
-    ['source' => '/page3', 'target' => '/new3'],
+    ['from_path' => '/page1', 'to_path' => '/new1'],
+    ['from_path' => '/page2', 'to_path' => '/new2'],
+    ['from_path' => '/page3', 'to_path' => '/new3'],
 ];
 
 foreach ($redirects as $data) {
     $redirectService->create(array_merge($data, [
-        'type' => 'exact',
+        'match_type' => 'exact',
         'status_code' => 301,
     ]));
 }
@@ -357,7 +357,7 @@ if (Str::startsWith($target, ['http://', 'https://'])) {
 Use the Livewire Redirect Manager component:
 
 ```blade
-<livewire:redirect-manager />
+<livewire:seo::redirect-manager />
 ```
 
 Features:
@@ -369,28 +369,7 @@ Features:
 
 [See Redirect Manager Component →](Components-Redirect-Manager)
 
-## Events
-
-Listen for redirect events:
-
-```php
-use ArtisanPackUI\Seo\Events\RedirectCreated;
-use ArtisanPackUI\Seo\Events\RedirectHit;
-
-Event::listen(RedirectCreated::class, function ($event) {
-    Log::info("Redirect created: {$event->redirect->source}");
-});
-
-Event::listen(RedirectHit::class, function ($event) {
-    Analytics::track('redirect', [
-        'from' => $event->sourcePath,
-        'to' => $event->targetUrl,
-    ]);
-});
-```
-
 ## Next Steps
 
 - [Redirect Manager Component](Components-Redirect-Manager) - Admin UI
-- [XML Sitemaps](Sitemaps) - Sitemap generation
-- [Events](Api-Events) - Event reference
+- [XML Sitemaps](Advanced-Sitemaps) - Sitemap generation

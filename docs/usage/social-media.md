@@ -23,6 +23,8 @@ $post->updateSeoMeta([
 ]);
 ```
 
+If `og_type` is empty, the type is inferred from the model's class name. `Post`, `Article`, and `BlogPost` become `article`, `Product` becomes `product`, `Event` becomes `event`, and `Profile` and `User` become `profile`. Anything else uses `seo.open_graph.type`.
+
 ### Available Open Graph Types
 
 | Type | Use Case |
@@ -51,24 +53,47 @@ $post->updateSeoMeta([
 
 When OG fields aren't set, the package falls back to:
 
-1. `og_title` → `meta_title` → model title → site name
-2. `og_description` → `meta_description` → model description
-3. `og_image` → `og_image_id` media → model image → default from config
+1. `og_title` → `meta_title` → model title → model name → app name
+2. `og_description` → `meta_description` → model excerpt → model description
+3. `og_image_id` media → `og_image` → model featured image → `seo.open_graph.default_image`
+
+Saved descriptions keep their full length. Text from an excerpt or description is shortened to 200 characters.
+
+### Article Tags
+
+When `og:type` is `article`, the Open Graph output includes the model's `published_at` and `updated_at`:
+
+```html
+<meta property="article:published_time" content="2026-10-01T12:00:00+00:00">
+<meta property="article:modified_time" content="2026-10-02T12:00:00+00:00">
+```
+
+### Image Details
+
+`og:image:width`, `og:image:height`, `og:image:alt`, and `twitter:image:alt` are emitted when the details are known:
+
+| Image source | Dimensions | Alt text |
+|--------------|------------|----------|
+| Media library | From the media item | The media item's alt text |
+| [Generated card](Advanced-Og-Image) | From the file name | The page title |
+| `seo.open_graph.default_image` | `default_image_width`, `default_image_height` | `default_image_alt` |
+
+An image from anywhere else, such as a URL typed into `og_image`, gets no detail tags.
 
 ### Rendering Open Graph Tags
 
 ```blade
-<x-seo-open-graph :model="$post" />
+<x-seo:open-graph :model="$post" />
 ```
 
 ### Generated Output
 
 ```html
-<meta property="og:type" content="article">
 <meta property="og:title" content="Amazing Post for Social">
 <meta property="og:description" content="This description appears when shared on Facebook.">
-<meta property="og:url" content="https://example.com/posts/amazing-post">
 <meta property="og:image" content="https://example.com/images/social-share.jpg">
+<meta property="og:url" content="https://example.com/posts/amazing-post">
+<meta property="og:type" content="article">
 <meta property="og:site_name" content="My Site">
 <meta property="og:locale" content="en_US">
 ```
@@ -117,7 +142,7 @@ $post->updateSeoMeta([
 ### Rendering Twitter Cards
 
 ```blade
-<x-seo-twitter-card :model="$post" />
+<x-seo:twitter-card :model="$post" />
 ```
 
 ### Generated Output
@@ -127,6 +152,7 @@ $post->updateSeoMeta([
 <meta name="twitter:title" content="Post Title for Twitter">
 <meta name="twitter:description" content="Description optimized for Twitter.">
 <meta name="twitter:image" content="https://example.com/images/twitter-card.jpg">
+<meta name="twitter:image:alt" content="Describes the image, when known">
 <meta name="twitter:site" content="@mysite">
 <meta name="twitter:creator" content="@author">
 ```
@@ -168,13 +194,14 @@ $post->updateSeoMeta([
 Preview how your content will appear on social platforms:
 
 ```blade
-<livewire:social-preview :model="$post" />
+<livewire:seo::social-preview
+    :title="$title"
+    :description="$description"
+    :image="$image"
+    :url="$url"
+    platform="facebook"
+/>
 ```
-
-This component shows live previews for:
-- Facebook/LinkedIn (Open Graph)
-- Twitter
-- Search engine results
 
 ## Image Recommendations
 
@@ -208,17 +235,16 @@ Twitter Title
     → Open Graph Title
         → Meta Title
             → Model Title
-                → Site Name
+                → App Name
 
 Twitter Description
     → Open Graph Description
         → Meta Description
-            → Model Description/Excerpt
-                → Site Description
+            → Model Excerpt/Description
 
 Twitter Image
     → Open Graph Image
-        → Model Image
+        → Featured Image
             → Default Image
 ```
 
@@ -229,7 +255,7 @@ Use the main component to output all social tags:
 ```blade
 <head>
     {{-- Outputs meta tags, OG, Twitter, and more --}}
-    <x-seo-meta :model="$post" />
+    <x-seo:meta :model="$post" />
 </head>
 ```
 
@@ -237,9 +263,9 @@ Or selectively:
 
 ```blade
 <head>
-    <x-seo-meta-tags :model="$post" />
-    <x-seo-open-graph :model="$post" />
-    <x-seo-twitter-card :model="$post" />
+    <x-seo:meta-tags :model="$post" />
+    <x-seo:open-graph :model="$post" />
+    <x-seo:twitter-card :model="$post" />
 </head>
 ```
 
@@ -254,7 +280,7 @@ Use these tools to validate your social meta tags:
 
 ## Next Steps
 
-- [Schema.org](Schema) - Add structured data
-- [Meta Tags](Meta-Tags) - Basic meta tag management
+- [Schema.org](Usage-Schema) - Add structured data
+- [Meta Tags](Usage-Meta-Tags) - Basic meta tag management
 - [SEO Meta Editor](Components-Seo-Meta-Editor) - Admin component
 - [Configuration](Installation-Configuration) - Default settings

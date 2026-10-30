@@ -50,8 +50,13 @@ Welcome to the documentation for **ArtisanPack UI SEO**, a comprehensive Laravel
   - [Caching](Advanced-Caching)
   - [Artisan Commands](Advanced-Artisan-Commands)
   - [Frontend Scaffolding (React & Vue)](Advanced-Frontend-Scaffolding)
+  - [llms.txt](Advanced-Llms-Txt)
+  - [IndexNow](Advanced-Indexnow)
+  - [RSS and Atom Feeds](Advanced-Feeds)
+  - [OG Image Generator](Advanced-Og-Image)
 
 - **Upgrade Guides**
+  - [Upgrading to 1.9.0](Upgrade-1.9.0)
   - [Upgrading to 1.7.0](Upgrade-1.7.0)
   - [Upgrading to 1.5.0](Upgrade-1.5.0)
   - [Upgrading to 1.4.0](Upgrade-1.4.0)
@@ -66,12 +71,12 @@ Welcome to the documentation for **ArtisanPack UI SEO**, a comprehensive Laravel
 
 - **Meta Tag Management** - Automatically generate or manually customize meta titles and descriptions for any Eloquent model
 - **Social Media Optimization** - Full support for Open Graph (Facebook, LinkedIn), Twitter Cards, Pinterest, and Slack
-- **Schema.org / JSON-LD** - 14 built-in schema types with customizable JSON-LD output and a [Schema Type Definitions API](Usage-Schema#schema-type-definitions-api) for dynamic form rendering
+- **Schema.org / JSON-LD** - 15 built-in schema types with customizable JSON-LD output and a [Schema Type Definitions API](Usage-Schema#schema-type-definitions-api) for dynamic form rendering
 - **URL Redirects** - Manage 301/302/307/308 redirects with exact, regex, and wildcard matching
 - **XML Sitemaps** - Generate standard, image, video, and news sitemaps with automatic sitemap index
-- **Dynamic Robots.txt** - Configure robots.txt with bot-specific rules and automatic sitemap inclusion
+- **Dynamic Robots.txt** - Configure robots.txt with bot-specific rules and automatic sitemap inclusion, or write it to a static file
 - **Multi-language Support** - Hreflang tag management for international SEO
-- **SEO Analysis** - Built-in content analysis with 8 analyzers for SEO scoring
+- **SEO Analysis** - Built-in content analysis with 9 analyzers for SEO scoring
 - **AI Feature Suite** *(v1.2.0)* - Five AI agents for meta title/description generation, content quality scoring, JSON-LD schema suggestion, and hreflang gap analysis — all with Livewire, React, and Vue trigger components. Requires the optional `artisanpack-ui/ai` package (PHP 8.3+, Laravel 12+). See [AI Features](Usage-Ai-Features).
 - **Livewire Components** - Pre-built admin UI components for managing all SEO features
 - **Blade Components** - Simple view components for rendering SEO tags in your templates
@@ -84,7 +89,7 @@ Welcome to the documentation for **ArtisanPack UI SEO**, a comprehensive Laravel
 
 ```php
 // Add SEO capabilities to any model
-use ArtisanPackUI\Seo\Traits\HasSeo;
+use ArtisanPackUI\SEO\Traits\HasSeo;
 
 class Post extends Model
 {
@@ -103,14 +108,14 @@ $post->updateSeoMeta([
 ```blade
 {{-- Render all SEO tags in your layout --}}
 <head>
-    <x-seo-meta :model="$post" />
+    <x-seo:meta :model="$post" />
 </head>
 ```
 
 ## Requirements
 
 - PHP 8.2 or higher
-- Laravel 10, 11, 12, or 13
+- Laravel 11, 12, or 13
 - Livewire 3.x (for admin components)
 
 ## Support

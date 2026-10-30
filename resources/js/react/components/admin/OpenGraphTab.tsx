@@ -18,6 +18,7 @@ import type { SeoMetaResponse } from '../../../types/seo-data';
 
 /** Available Open Graph type options. */
 const OG_TYPE_OPTIONS = [
+	{ value: '', label: 'Automatic' },
 	{ value: 'website', label: 'Website' },
 	{ value: 'article', label: 'Article' },
 	{ value: 'book', label: 'Book' },
@@ -53,7 +54,7 @@ export function OpenGraphTab( { data, onChange, errors = {} }: OpenGraphTabProps
 		<div className="flex flex-col gap-4">
 			<Select
 				label="OG Type"
-				value={ data.og_type ?? 'website' }
+				value={ data.og_type ?? '' }
 				onChange={ ( e ) => onChange( 'og_type', e.target.value ) }
 				options={ OG_TYPE_OPTIONS }
 				optionValue="value"

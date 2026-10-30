@@ -19,11 +19,9 @@ namespace ArtisanPackUI\SEO\Services;
 
 use ArtisanPackUI\SEO\DTOs\MetaTagsDTO;
 use ArtisanPackUI\SEO\Models\SeoMeta;
-use DateTimeInterface;
+use ArtisanPackUI\SEO\Support\PublicUrlResolver;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
-use Illuminate\Support\Str;
 use function applyFilters;
 
 /**
@@ -61,7 +59,7 @@ class MetaTagService
 			'description'     => $this->resolveDescription( $model, $seoMeta ),
 			'canonical'       => $this->resolveCanonical( $model, $seoMeta ),
 			'robots'          => $this->resolveRobots( $seoMeta ),
-			'additionalMeta'  => $this->getAdditionalMeta( $model, $seoMeta ),
+			'additionalMeta'  => $this->getAdditionalMeta( $model ),
 		];
 
 		$request = $request ?? app( 'request' );
@@ -175,7 +173,12 @@ class MetaTagService
 	/**
 	 * Resolve the meta description.
 	 *
+	 * A saved description is left at its full length. Text taken from the
+	 * model's excerpt or description is shortened to fit
+	 * `seo.defaults.description_max_length`.
+	 *
 	 * @since 1.0.0
+	 * @since 1.9.0 Saved descriptions are no longer shortened.
 	 *
 	 * @param  Model          $model    The model.
 	 * @param  SeoMeta|null   $seoMeta  The SeoMeta instance.
@@ -190,18 +193,18 @@ class MetaTagService
 			$description = $model->meta_description ?? null;
 		}
 
-		if ( null === $description || '' === $description ) {
-			$description = $model->excerpt ?? null;
+		if ( null !== $description && '' !== $description ) {
+			return strip_tags( $description );
 		}
+
+		$description = $model->excerpt ?? null;
 
 		if ( null === $description || '' === $description ) {
 			$description = $model->description ?? null;
 		}
 
 		if ( null !== $description && '' !== $description ) {
-			$maxLength = (int) config( 'seo.defaults.description_max_length', 160 );
-
-			return Str::limit( strip_tags( $description ), $maxLength );
+			return seoDescription( strip_tags( $description ), (int) config( 'seo.defaults.description_max_length', 160 ) );
 		}
 
 		return config( 'seo.site.description', null );
@@ -211,6 +214,7 @@ class MetaTagService
 	 * Resolve the canonical URL.
 	 *
 	 * @since 1.0.0
+	 * @since 1.9.0 No longer guesses the URL from the model's slug.
 	 *
 	 * @param  Model          $model    The model.
 	 * @param  SeoMeta|null   $seoMeta  The SeoMeta instance.
@@ -219,25 +223,7 @@ class MetaTagService
 	 */
 	protected function resolveCanonical( Model $model, ?SeoMeta $seoMeta ): string
 	{
-		if ( null !== $seoMeta?->canonical_url && '' !== $seoMeta->canonical_url ) {
-			return $seoMeta->canonical_url;
-		}
-
-		// Try to get URL from model
-		if ( method_exists( $model, 'getUrl' ) ) {
-			return $model->getUrl();
-		}
-
-		if ( isset( $model->slug ) && null !== $model->slug ) {
-			return url( $model->slug );
-		}
-
-		// Avoid calling url()->current() outside HTTP context
-		if ( app()->runningInConsole() || null === request() ) {
-			return '';
-		}
-
-		return url()->current();
+		return PublicUrlResolver::resolve( $model, $seoMeta );
 	}
 
 	/**
@@ -261,7 +247,11 @@ class MetaTagService
 	/**
 	 * Build the full title with suffix.
 	 *
+	 * The suffix is left off when it would push the title past
+	 * `seo.defaults.title_max_length`. A limit of 0 turns the check off.
+	 *
 	 * @since 1.0.0
+	 * @since 1.9.0 Skips the suffix when it would exceed the title limit.
 	 *
 	 * @param  string  $title  The base title.
 	 *
@@ -282,20 +272,27 @@ class MetaTagService
 			return $title;
 		}
 
-		return $title . $separator . $suffix;
+		$fullTitle = $title . $separator . $suffix;
+		$maxLength = (int) config( 'seo.defaults.title_max_length', 60 );
+
+		if ( $maxLength > 0 && mb_strlen( $fullTitle ) > $maxLength ) {
+			return $title;
+		}
+
+		return $fullTitle;
 	}
 
 	/**
 	 * Get additional meta tags.
 	 *
 	 * @since 1.0.0
+	 * @since 1.9.0 Article dates moved to Open Graph and `keywords` was removed.
 	 *
-	 * @param  Model          $model    The model.
-	 * @param  SeoMeta|null   $seoMeta  The SeoMeta instance.
+	 * @param  Model  $model  The model.
 	 *
 	 * @return array<string, string>
 	 */
-	protected function getAdditionalMeta( Model $model, ?SeoMeta $seoMeta ): array
+	protected function getAdditionalMeta( Model $model ): array
 	{
 		$meta = [];
 
@@ -303,31 +300,6 @@ class MetaTagService
 		$author = $model->author?->name ?? null;
 		if ( null !== $author ) {
 			$meta['author'] = $author;
-		}
-
-		// Published/Modified dates for articles
-		if ( isset( $model->published_at ) && null !== $model->published_at ) {
-			$publishedAt = $model->published_at;
-			if ( $publishedAt instanceof DateTimeInterface ) {
-				$meta['article:published_time'] = Carbon::instance( $publishedAt )->toIso8601String();
-			}
-		}
-
-		if ( isset( $model->updated_at ) && null !== $model->updated_at ) {
-			$updatedAt = $model->updated_at;
-			if ( $updatedAt instanceof DateTimeInterface ) {
-				$meta['article:modified_time'] = Carbon::instance( $updatedAt )->toIso8601String();
-			}
-		}
-
-		// Focus keyword
-		if ( null !== $seoMeta?->focus_keyword && '' !== $seoMeta->focus_keyword ) {
-			$meta['keywords'] = $seoMeta->focus_keyword;
-
-			// Add secondary keywords if available
-			if ( is_array( $seoMeta->secondary_keywords ) && ! empty( $seoMeta->secondary_keywords ) ) {
-				$meta['keywords'] .= ', ' . implode( ', ', $seoMeta->secondary_keywords );
-			}
 		}
 
 		return $meta;

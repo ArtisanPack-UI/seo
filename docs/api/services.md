@@ -73,7 +73,7 @@ Handles basic meta tag generation.
 ### Access
 
 ```php
-use ArtisanPackUI\Seo\Services\MetaTagService;
+use ArtisanPackUI\SEO\Services\MetaTagService;
 
 $metaService = app(MetaTagService::class);
 ```
@@ -81,27 +81,27 @@ $metaService = app(MetaTagService::class);
 ### Methods
 
 ```php
-// Generate title tag
-$title = $metaService->generateTitle($post);
+// Generate tags for a model
+$dto = $metaService->generate($post); // MetaTagsDTO
+$dto->title;
+$dto->description;
+$dto->canonical;
+$dto->robots;
+$dto->additionalMeta; // ['author' => '...'], when the model has one
 
-// Generate with suffix
-$title = $metaService->generateTitle($post, ' | My Site');
+// Build a title, with or without the site name
+$title = $metaService->buildTitle('My Post');
+$title = $metaService->buildTitle('My Post', false);
 
-// Generate description
-$description = $metaService->generateDescription($post);
+// Build the robots directive
+$robots = $metaService->buildRobotsDirective($seoMeta);
 
-// Generate robots directive
-$robots = $metaService->generateRobots($post);
-
-// Generate canonical URL
-$canonical = $metaService->generateCanonical($post);
-
-// Get effective title (with fallbacks)
-$title = $metaService->getEffectiveTitle($post);
-
-// Get effective description (with fallbacks)
-$description = $metaService->getEffectiveDescription($post);
+// Title parts
+$suffix = $metaService->getTitleSuffix();
+$separator = $metaService->getTitleSeparator();
 ```
+
+`buildTitle()` leaves the suffix off when it would pass `seo.defaults.title_max_length`. Saved descriptions keep their full length, and generated ones stay within `seo.defaults.description_max_length`.
 
 ---
 
@@ -112,7 +112,7 @@ Handles Open Graph and Twitter Card generation.
 ### Access
 
 ```php
-use ArtisanPackUI\Seo\Services\SocialMetaService;
+use ArtisanPackUI\SEO\Services\SocialMetaService;
 
 $socialService = app(SocialMetaService::class);
 ```
@@ -121,21 +121,29 @@ $socialService = app(SocialMetaService::class);
 
 ```php
 // Generate Open Graph tags
-$og = $socialService->generateOpenGraph($post);
-// Returns: ['og:title' => '...', 'og:description' => '...', ...]
+$og = $socialService->generateOpenGraph($post); // OpenGraphDTO
+$og->image;
+$og->imageWidth;
+$og->imageHeight;
+$og->imageAlt;
+$og->publishedTime; // Only for the article type
+$og->modifiedTime;
+$og->toArray();     // ['og:title' => '...', 'og:image:width' => 1200, ...]
 
 // Generate Twitter Card tags
-$twitter = $socialService->generateTwitterCard($post);
-// Returns: ['twitter:card' => '...', 'twitter:title' => '...', ...]
+$twitter = $socialService->generateTwitterCard($post); // TwitterCardDTO
+$twitter->imageAlt;
 
-// Get effective OG image
-$image = $socialService->getEffectiveOgImage($post);
+// Resolve the OG type, inferring it when none is saved
+$type = $socialService->resolveOgType($post);
 
-// Get OG data array
-$ogData = $socialService->getOpenGraphData($post);
+// Look up the known details of an image
+$details = $socialService->resolveImageDetails($url, $mediaId, $title);
+// Returns: ['width' => 1200, 'height' => 630, 'alt' => '...']
 
-// Get Twitter data array
-$twitterData = $socialService->getTwitterCardData($post);
+// Get a model's article times
+$times = $socialService->resolveArticleTimes($post);
+// Returns: ['published' => '...', 'modified' => '...']
 ```
 
 ---
@@ -147,7 +155,7 @@ Handles Schema.org JSON-LD generation.
 ### Access
 
 ```php
-use ArtisanPackUI\Seo\Services\SchemaService;
+use ArtisanPackUI\SEO\Services\SchemaService;
 
 $schemaService = app(SchemaService::class);
 ```
@@ -159,29 +167,18 @@ $schemaService = app(SchemaService::class);
 $schema = $schemaService->generate($post);
 // Returns complete JSON-LD array
 
-// Build specific schema type
-$article = $schemaService->buildArticle($post, [
-    'author' => ['@type' => 'Person', 'name' => 'Author'],
-]);
-
-$product = $schemaService->buildProduct($product, [
-    'offers' => [...],
-]);
-
-$event = $schemaService->buildEvent($event, [
-    'location' => [...],
-]);
+// Site-wide schemas
+$organization = $schemaService->generateOrganizationSchema();
+$website = $schemaService->generateWebsiteSchema();
+$breadcrumbs = $schemaService->generateBreadcrumbs($items);
 
 // Get JSON-LD string
 $jsonLd = $schemaService->toJsonLd($schema);
-
-// Get available schema types
-$types = $schemaService->getAvailableTypes();
 ```
 
 ### Available Schema Types
 
-The following 13 schema types are available via the SchemaFactory:
+The following 15 schema types are available via the SchemaFactory:
 
 - `Organization` - Company/organization info
 - `LocalBusiness` - Local business details
@@ -196,6 +193,8 @@ The following 13 schema types are available via the SchemaFactory:
 - `BreadcrumbList` - Navigation breadcrumbs
 - `Review` - Reviews and ratings
 - `AggregateRating` - Aggregate rating data
+- `SoftwareSourceCode` - Code libraries and packages
+- `SoftwareApplication` - Applications and tools
 
 Get all supported types programmatically:
 
@@ -233,47 +232,51 @@ Handles XML sitemap generation.
 ### Access
 
 ```php
-use ArtisanPackUI\Seo\Services\SitemapService;
+use ArtisanPackUI\SEO\Services\SitemapService;
 
-$sitemapService = app('seo.sitemap');
+$sitemapService = app(SitemapService::class);
 ```
 
 ### Methods
 
 ```php
-// Generate all sitemaps
-$sitemapService->generate();
+// Generate all types, or one type and page
+$xml = $sitemapService->generate();
+$xml = $sitemapService->generate('post', 2);
 
-// Generate specific type
-$sitemapService->generateStandard();
-$sitemapService->generateImages();
-$sitemapService->generateVideos();
-$sitemapService->generateNews();
+// One type and page, or null when there's nothing to list
+$xml = $sitemapService->generateTypeSitemap('post', 2);
 
-// Generate sitemap index
+// Specialized sitemaps
+$xml = $sitemapService->generateImages();
+$xml = $sitemapService->generateVideos();
+$xml = $sitemapService->generateNews();
+
+// Sitemap index
 $index = $sitemapService->generateIndex();
+$needed = $sitemapService->needsIndex();
 
-// Get sitemap content
-$xml = $sitemapService->getContent('sitemap.xml');
+// llms.txt
+$manifest = $sitemapService->generateLlmsTxt();
 
-// Add entry to sitemap
-$sitemapService->addEntry([
-    'url' => 'https://example.com/page',
-    'lastmod' => now(),
-    'priority' => 0.8,
-    'changefreq' => 'weekly',
-]);
+// Types and pages
+$types = $sitemapService->getTypes();
+$pages = $sitemapService->getTotalPages('post');
 
-// Remove entry
-$sitemapService->removeEntry('https://example.com/page');
+// Register a sitemap provider
+$sitemapService->registerProvider('archive', new ArchiveSitemapProvider());
 
-// Register sitemap provider
-$sitemapService->registerProvider(PostSitemapProvider::class);
+// Ping configured search engines (none by default)
+$results = $sitemapService->submit();
 
-// Submit to search engines
-$sitemapService->submit();
-$sitemapService->submitToGoogle();
-$sitemapService->submitToBing();
+// Submit URLs to IndexNow
+$results = $sitemapService->submitIndexNow($urls);
+
+// IndexNow and pings together, each behind its own setting
+$results = $sitemapService->notifyOnPublish($urls);
+
+// Clear every cached sitemap
+$sitemapService->clearCache();
 ```
 
 ---
@@ -285,9 +288,9 @@ Handles URL redirect management.
 ### Access
 
 ```php
-use ArtisanPackUI\Seo\Services\RedirectService;
+use ArtisanPackUI\SEO\Services\RedirectService;
 
-$redirectService = app('seo.redirect');
+$redirectService = app(RedirectService::class);
 
 // Or via helper
 $redirectService = seoRedirect();
@@ -298,37 +301,32 @@ $redirectService = seoRedirect();
 ```php
 // Create a redirect
 $redirect = $redirectService->create([
-    'source' => '/old',
-    'target' => '/new',
-    'type' => 'exact',
+    'from_path' => '/old',
+    'to_path' => '/new',
+    'match_type' => 'exact',
     'status_code' => 301,
 ]);
 
 // Update a redirect
-$redirect = $redirectService->update($id, [
-    'target' => '/updated',
+$redirect = $redirectService->update($redirect, [
+    'to_path' => '/updated',
 ]);
 
 // Delete a redirect
-$redirectService->delete($id);
+$redirectService->delete($redirect);
 
 // Find matching redirect for path
 $redirect = $redirectService->findMatch('/some/path');
 
-// Get destination URL
-$destination = $redirectService->getDestination('/old-path');
-
-// Check for redirect loops
-$hasLoop = $redirectService->detectLoop('/path');
+// Check whether a redirect is part of a chain
+$hasChain = $redirectService->checkForChains($redirect);
 
 // Get statistics
 $stats = $redirectService->getStatistics();
 
-// Import from CSV
-$redirectService->importFromCsv($filePath);
-
-// Export to CSV
-$csv = $redirectService->exportToCsv();
+// Import and export
+$results = $redirectService->import($rows);
+$rows = $redirectService->export();
 ```
 
 ---
@@ -340,9 +338,9 @@ Handles dynamic robots.txt generation.
 ### Access
 
 ```php
-use ArtisanPackUI\Seo\Services\RobotsService;
+use ArtisanPackUI\SEO\Services\RobotsService;
 
-$robotsService = app('seo.robots');
+$robotsService = app(RobotsService::class);
 ```
 
 ### Methods
@@ -383,7 +381,14 @@ $robotsService->removeUserAgent('GPTBot');
 // Check if enabled
 $enabled = $robotsService->isEnabled();
 $routeEnabled = $robotsService->isRouteEnabled();
+$staticEnabled = $robotsService->isStaticWriteEnabled();
+
+// Bring public/robots.txt in line with the settings
+$status = $robotsService->syncStaticFile();
+// Returns written, unchanged, removed, disabled, or unmanaged
 ```
+
+Call `syncStaticFile()` from a console command or queued job, because the `Sitemap:` line uses the current host. It throws a `RuntimeException` if the file can't be removed. See [Writing a Static File](Advanced-Robots#writing-a-static-file).
 
 ---
 
@@ -394,7 +399,7 @@ Handles multi-language hreflang management.
 ### Access
 
 ```php
-use ArtisanPackUI\Seo\Services\HreflangService;
+use ArtisanPackUI\SEO\Services\HreflangService;
 
 $hreflangService = app(HreflangService::class);
 ```
@@ -500,38 +505,36 @@ Handles SEO-specific caching.
 ### Access
 
 ```php
-use ArtisanPackUI\Seo\Services\CacheService;
+use ArtisanPackUI\SEO\Services\CacheService;
 
-$cacheService = app('seo.cache');
+$cacheService = app(CacheService::class);
 ```
 
 ### Methods
 
 ```php
-// Get cached value
-$value = $cacheService->get('meta', $post->id);
+// Read and write
+$value = $cacheService->get('key');
+$cacheService->put('key', $data, 3600);
+$value = $cacheService->remember('key', fn () => $data);
+$cacheService->forget('key');
 
-// Set cached value
-$cacheService->set('meta', $post->id, $data, 3600);
-
-// Check if cached
-$exists = $cacheService->has('meta', $post->id);
-
-// Clear specific cache
-$cacheService->forget('meta', $post->id);
-
-// Clear all caches for a model
-$cacheService->clearForModel($post);
+// Clear caches for a model
+$cacheService->clearMetaCache($post);
+$cacheService->clearAnalysisCache($post);
+$cacheService->clearAllForModel($post);
 
 // Clear all SEO caches
-$cacheService->flush();
+$cacheService->clearAll();
 
-// Get cache key
-$key = $cacheService->key('meta', $post->id);
+// Settings
+$enabled = $cacheService->isEnabled();
+$ttl = $cacheService->getTtl();
+$prefix = $cacheService->getPrefix();
 ```
 
 ## Next Steps
 
-- [Helper Functions](Helpers) - Helper reference
-- [Events](Events) - Event reference
-- [Models](Models) - Model documentation
+- [Helper Functions](Api-Helpers) - Helper reference
+- [Filter Hooks](Api-Filter-Hooks) - Filter reference
+- [Models](Api-Models) - Model documentation

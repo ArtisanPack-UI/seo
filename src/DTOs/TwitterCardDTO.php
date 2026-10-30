@@ -40,6 +40,7 @@ readonly class TwitterCardDTO
 	 * @param  string|null  $image        The Twitter image URL.
 	 * @param  string|null  $site         The site's Twitter handle (@username).
 	 * @param  string|null  $creator      The creator's Twitter handle (@username).
+	 * @param  string|null  $imageAlt     The Twitter image alt text, when known.
 	 */
 	public function __construct(
 		public string $card = 'summary_large_image',
@@ -48,6 +49,7 @@ readonly class TwitterCardDTO
 		public ?string $image = null,
 		public ?string $site = null,
 		public ?string $creator = null,
+		public ?string $imageAlt = null,
 	) {
 	}
 
@@ -65,6 +67,7 @@ readonly class TwitterCardDTO
 			'twitter:title'       => $this->title,
 			'twitter:description' => $this->description,
 			'twitter:image'       => $this->image,
+			'twitter:image:alt'   => $this->imageAlt,
 			'twitter:site'        => $this->site,
 			'twitter:creator'     => $this->creator,
 		];
@@ -100,6 +103,7 @@ readonly class TwitterCardDTO
 			image: $data['twitter:image'] ?? $data['image'] ?? null,
 			site: $data['twitter:site'] ?? $data['site'] ?? null,
 			creator: $data['twitter:creator'] ?? $data['creator'] ?? null,
+			imageAlt: $data['twitter:image:alt'] ?? $data['image_alt'] ?? null,
 		);
 	}
 }

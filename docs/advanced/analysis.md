@@ -60,35 +60,22 @@ The analysis system evaluates content against SEO best practices and provides:
 
 ## Running Analysis
 
-### Using the Model
+Analysis runs through `AnalysisService`.
 
 ```php
-// Get analysis results
-$results = $post->getSeoAnalysis();
+use ArtisanPackUI\SEO\Services\AnalysisService;
 
-// Force refresh
-$results = $post->refreshSeoAnalysis();
-```
+$analysisService = app(AnalysisService::class);
 
-### Using Helper
+// Full analysis, using the saved focus keyword and the cache
+$result = $analysisService->analyze($post);
 
-```php
-$results = seoAnalyze($post);
-$score = seoScore($post);
-```
+// Override the focus keyword and skip the cache
+$result = $analysisService->analyze($post, 'laravel seo', useCache: false);
 
-### Using the Service
-
-```php
-use ArtisanPackUI\Seo\Services\AnalysisService;
-
-$analysisService = app('seo.analysis');
-
-// Full analysis
-$results = $analysisService->analyze($post);
-
-// Single analyzer
-$readability = $analysisService->runAnalyzer('readability', $post);
+$result->overallScore;
+$result->getGrade();
+$result->issues;
 ```
 
 ## Result Structure
@@ -240,42 +227,50 @@ Checks minimum word count.
 ```php
 namespace App\Seo\Analyzers;
 
-use ArtisanPackUI\Seo\Contracts\AnalyzerInterface;
+use ArtisanPackUI\SEO\Contracts\AnalyzerContract;
+use ArtisanPackUI\SEO\Models\SeoMeta;
+use Illuminate\Database\Eloquent\Model;
 
-class CustomAnalyzer implements AnalyzerInterface
+class CustomAnalyzer implements AnalyzerContract
 {
-    protected array $config;
-
-    public function __construct(array $config = [])
+    public function analyze(Model $model, string $content, ?string $focusKeyword, ?SeoMeta $seoMeta): array
     {
-        $this->config = array_merge([
-            'threshold' => 5,
-        ], $config);
-    }
-
-    public function analyze($model): array
-    {
-        $content = $model->content ?? '';
         $value = $this->calculateValue($content);
-        $threshold = $this->config['threshold'];
 
-        if ($value >= $threshold) {
+        if ($value >= 5) {
             return [
-                'status' => 'pass',
-                'title' => 'Custom Check',
-                'message' => "Value is {$value} (threshold: {$threshold})",
                 'score' => 100,
-                'data' => ['value' => $value],
+                'issues' => [],
+                'suggestions' => [],
+                'passed' => ["Value is {$value}."],
+                'details' => ['value' => $value],
             ];
         }
 
         return [
-            'status' => 'fail',
-            'title' => 'Custom Check',
-            'message' => "Value is {$value}, should be at least {$threshold}",
-            'score' => ($value / $threshold) * 100,
-            'data' => ['value' => $value],
+            'score' => $value * 20,
+            'issues' => [
+                ['type' => 'warning', 'message' => "Value is {$value}, should be at least 5."],
+            ],
+            'suggestions' => [],
+            'passed' => [],
+            'details' => ['value' => $value],
         ];
+    }
+
+    public function getName(): string
+    {
+        return 'custom';
+    }
+
+    public function getCategory(): string
+    {
+        return 'content'; // readability, keyword, meta, or content
+    }
+
+    public function getWeight(): int
+    {
+        return 25;
     }
 
     protected function calculateValue(string $content): int
@@ -337,7 +332,7 @@ Analysis results are fingerprinted by an xxh128 hash of the resolved-and-filtere
 
 ```php
 // In a service provider
-use ArtisanPackUI\Seo\Services\AnalysisService;
+use ArtisanPackUI\SEO\Services\AnalysisService;
 use App\Seo\Analyzers\CustomAnalyzer;
 
 public function boot(): void
@@ -368,7 +363,7 @@ public function boot(): void
 Display analysis results with the Livewire component:
 
 ```blade
-<livewire:seo-analysis-panel :model="$post" />
+<livewire:seo::seo-analysis-panel :model="$post" />
 ```
 
 [See Analysis Panel Component →](Components-Analysis-Panel)
@@ -397,30 +392,13 @@ $analysisService->clearCache($post);
 $analysisService->clearAllCaches();
 ```
 
-## Events
-
-```php
-use ArtisanPackUI\Seo\Events\SeoAnalysisCompleted;
-
-Event::listen(SeoAnalysisCompleted::class, function ($event) {
-    Log::info("Analysis completed", [
-        'model' => get_class($event->model),
-        'score' => $event->score,
-    ]);
-
-    if ($event->score < 50) {
-        // Notify content editor of poor SEO
-    }
-});
-```
-
 ## Bulk Analysis
 
 ```php
 // Analyze all posts
 Post::chunk(100, function ($posts) {
     foreach ($posts as $post) {
-        seoAnalyze($post);
+        app(AnalysisService::class)->analyze($post);
     }
 });
 ```

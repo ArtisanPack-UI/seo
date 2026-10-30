@@ -10,7 +10,7 @@ Common questions about ArtisanPack UI SEO.
 
 ### What Laravel versions are supported?
 
-ArtisanPack UI SEO supports Laravel 10, 11, 12, and 13. See the [Requirements](Installation-Requirements) page for full details.
+ArtisanPack UI SEO supports Laravel 11, 12, and 13. See the [Requirements](Installation-Requirements) page for full details.
 
 ### Do I need Livewire to use this package?
 
@@ -21,7 +21,7 @@ No. Livewire is only required for the admin components (SEO Meta Editor, Redirec
 Yes. Simply add the `HasSeo` trait to any model:
 
 ```php
-use ArtisanPackUI\Seo\Traits\HasSeo;
+use ArtisanPackUI\SEO\Traits\HasSeo;
 
 class Product extends Model
 {
@@ -52,31 +52,33 @@ $post->updateSeoMeta([
 ### What happens if I don't set meta tags?
 
 The package automatically generates fallback values from your model's attributes:
-- Title: Uses `title`, `name`, or model class name
-- Description: Uses `description`, `excerpt`, or truncated `content`
-- Image: Uses `image`, `featured_image`, or config default
+- Title: Uses `title`, `name`, or the app name
+- Description: Uses `excerpt`, `description`, or `content`, shortened to fit
+- Image: Uses `featured_image` or the config default
 
 ### How do I remove the site name suffix from titles?
 
-Set an empty separator in your config:
+Set `seo.site.name` to an empty string, or skip it for one title:
 
 ```php
-'site' => [
-    'separator' => '',
-],
+$title = seoTitle('My Page', false);
 ```
 
-Or per-page:
+The suffix is also skipped when it would push a title past `seo.defaults.title_max_length`.
 
-```php
-$title = seoTitle('My Page', '');
-```
+### Why are my long descriptions no longer shortened?
+
+Saved descriptions keep their full length, because you wrote them on purpose. Only text taken from an excerpt or description is shortened.
+
+### Why is there no keywords meta tag?
+
+Search engines ignore it and it publishes your focus keywords. Focus keywords are only used for analysis. To add the tag yourself, see [Focus Keywords](Usage-Meta-Tags#focus-keywords).
 
 ### How do I set noindex for draft posts?
 
 ```php
 $post->updateSeoMeta([
-    'noindex' => true,
+    'no_index' => true,
 ]);
 ```
 
@@ -137,17 +139,14 @@ $post->updateSeoMeta([
 
 ### How do I add multiple schemas to one page?
 
-Store multiple schemas in the schema_data:
+Pass extra schemas to the component, or add them from anywhere during the request:
+
+```blade
+<x-seo:schema :model="$post" :breadcrumbs="$breadcrumbs" />
+```
 
 ```php
-$post->updateSeoMeta([
-    'schema_data' => [
-        '@graph' => [
-            ['@type' => 'Article', ...],
-            ['@type' => 'BreadcrumbList', ...],
-        ],
-    ],
-]);
+apSeoAddSchema(['@type' => 'FAQPage', 'mainEntity' => $questions]);
 ```
 
 ### How do I validate my schema markup?
@@ -164,19 +163,14 @@ Use [Google's Rich Results Test](https://search.google.com/test/rich-results) or
 ### How do I create a redirect programmatically?
 
 ```php
-seoCreateRedirect(
-    source: '/old-page',
-    target: '/new-page',
-    type: 'exact',
-    statusCode: 301
-);
+seoCreateRedirect('/old-page', '/new-page', 301, 'exact');
 ```
 
 ### Why isn't my regex redirect working?
 
 1. Ensure the pattern is valid regex (no delimiters needed)
 2. Check capture groups match the target placeholders
-3. Test with `php artisan seo:test-redirect /your/path`
+3. Test with `seoFindRedirect('/your/path')`
 
 ### How do I redirect entire sections?
 
@@ -184,9 +178,9 @@ Use wildcard redirects:
 
 ```php
 Redirect::create([
-    'source' => '/blog/*',
-    'target' => '/articles/$1',
-    'type' => 'wildcard',
+    'from_path' => '/blog/*',
+    'to_path' => '/articles/$1',
+    'match_type' => 'wildcard',
 ]);
 ```
 
@@ -205,25 +199,18 @@ For news sites, consider more frequent updates.
 ### Why aren't all my pages in the sitemap?
 
 Pages are excluded if:
-- `noindex` is true
+- `no_index` is true
 - `exclude_from_sitemap` is true
 - Model's `shouldBeInSitemap()` returns false
+- The model has no public URL. See [Public URLs](Usage-Model-Integration#public-urls)
 
 ### How do I add custom URLs to the sitemap?
 
-Create a custom sitemap provider:
+Create a [sitemap provider](Advanced-Sitemaps#sitemap-providers).
 
-```php
-class CustomSitemapProvider implements SitemapProviderInterface
-{
-    public function getEntries(): Collection
-    {
-        return collect([
-            ['url' => '/custom-page', 'priority' => 0.8],
-        ]);
-    }
-}
-```
+### Why are there no priority or changefreq tags in my sitemap?
+
+They're left out unless set for a URL, because identical values tell crawlers nothing. Set `sitemap_priority` or `sitemap_changefreq` on a page, or `seo.sitemap.default_priority` and `default_frequency` for the whole site.
 
 ### How do I exclude certain pages from the sitemap?
 
@@ -240,21 +227,17 @@ $page->updateSeoMeta([
 1. **Enable caching** - Use Redis in production
 2. **Queue analysis** - Run analysis in background
 3. **Cache sitemaps** - Set longer TTL for sitemaps
-4. **Warm caches** - Pre-populate after deployments
 
 See [Caching](Advanced-Caching) for details.
 
 ### How do I clear the cache?
 
-```bash
-php artisan seo:clear-cache
-```
-
-Or programmatically:
-
 ```php
-seoClearCache($post);  // Single model
-seoClearCache();       // All SEO caches
+use ArtisanPackUI\SEO\Services\SitemapService;
+
+seo()->clearCache($post);  // Single model
+seo()->clearAllCaches();   // All SEO caches
+app(SitemapService::class)->clearCache(); // Sitemaps and llms.txt
 ```
 
 ## Livewire Components

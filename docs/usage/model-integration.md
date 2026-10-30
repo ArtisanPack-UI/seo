@@ -13,7 +13,7 @@ The `HasSeo` trait is the foundation of ArtisanPack UI SEO. This guide covers al
 
 namespace App\Models;
 
-use ArtisanPackUI\Seo\Traits\HasSeo;
+use ArtisanPackUI\SEO\Traits\HasSeo;
 use Illuminate\Database\Eloquent\Model;
 
 class Post extends Model
@@ -107,7 +107,7 @@ $post->updateSeoMeta([
     'meta_title' => 'Custom Title',
     'meta_description' => 'Custom description.',
     'og_title' => 'Social Title',
-    'noindex' => false,
+    'no_index' => false,
 ]);
 
 // Only updates provided fields
@@ -116,23 +116,23 @@ $post->updateSeoMeta([
 
 ### getSeoData()
 
-Get all SEO data as an array (with fallbacks applied):
+Get all SEO data as an array, with fallbacks applied:
 
 ```php
 $data = $post->getSeoData();
 
-// Returns array with all SEO fields:
+// Returns:
 // [
-//     'title' => 'Effective Title',
-//     'description' => 'Effective Description',
-//     'image' => 'https://...',
-//     'og_title' => '...',
-//     'og_description' => '...',
-//     'twitter_card' => '...',
-//     'schema_type' => '...',
-//     'noindex' => false,
-//     'nofollow' => false,
-//     ...
+//     'title' => '...',
+//     'description' => '...',
+//     'canonical_url' => '...',
+//     'robots' => 'index, follow',
+//     'focus_keyword' => '...',
+//     'open_graph' => ['title' => '...', 'description' => '...', 'image' => '...', 'type' => '...', 'locale' => '...', 'site_name' => '...'],
+//     'twitter' => ['card' => '...', 'title' => '...', 'description' => '...', 'image' => '...', 'site' => '...', 'creator' => '...'],
+//     'schema' => ['type' => '...', 'markup' => [...]],
+//     'hreflang' => [...],
+//     'sitemap' => ['include' => true, 'priority' => null, 'changefreq' => null],
 // ]
 ```
 
@@ -149,32 +149,10 @@ $title = $post->getSeoTitle();
 // 1. meta_title from SEO meta
 // 2. Model's 'title' attribute
 // 3. Model's 'name' attribute
-// 4. Model class name
+// 4. The app name
 ```
 
-### getSeoTitleAttribute()
-
-Override this method to customize title resolution:
-
-```php
-protected function getSeoTitleAttribute(): ?string
-{
-    return $this->headline ?? $this->title;
-}
-```
-
-### getSeoTitleWithSuffix()
-
-Get title with site name appended:
-
-```php
-$fullTitle = $post->getSeoTitleWithSuffix();
-// Result: "Post Title | My Site"
-
-// Custom suffix
-$fullTitle = $post->getSeoTitleWithSuffix(' - Custom Site');
-// Result: "Post Title - Custom Site"
-```
+This is the base title. Use `seoTitle($title)` to add the site name.
 
 ## Description Methods
 
@@ -186,22 +164,10 @@ Get the effective SEO description with fallbacks:
 $description = $post->getSeoDescription();
 
 // Fallback order:
-// 1. meta_description from SEO meta
-// 2. Model's 'description' attribute
-// 3. Model's 'excerpt' attribute
-// 4. Truncated 'content' attribute
-// 5. Site default from config
-```
-
-### getSeoDescriptionAttribute()
-
-Override this method to customize description resolution:
-
-```php
-protected function getSeoDescriptionAttribute(): ?string
-{
-    return $this->summary ?? $this->excerpt ?? $this->description;
-}
+// 1. meta_description from SEO meta, at its full length
+// 2. Model's 'excerpt', 'description', or 'content' attribute, shortened
+//    to seo.defaults.description_max_length
+// 3. seo.defaults.meta_description from config
 ```
 
 ## Image Methods
@@ -214,47 +180,47 @@ Get the effective SEO image URL:
 $image = $post->getSeoImage();
 
 // Fallback order:
-// 1. og_image from SEO meta
-// 2. Image from og_image_id (Media Library)
-// 3. Model's 'image' attribute
-// 4. Model's 'featured_image' attribute
-// 5. Default image from config
+// 1. og_image_id (Media Library), then og_image from SEO meta
+// 2. Model's 'featured_image' attribute
+// 3. seo.open_graph.default_image from config
 ```
 
-### getSeoImageAttribute()
+## Public URLs
 
-Override this method to customize image resolution:
+Canonical tags, `og:url`, schema, and sitemap entries share one resolver, so they can't disagree. It tries these in order:
+
+1. A saved `canonical_url`
+2. `getPublicUrl()` from the `HasPublicUrl` contract
+3. `getUrl()` on the model
+4. A `permalink` attribute
+
+After that, canonical tags and `og:url` use the current request URL, schema leaves `url` out, and sitemaps try a `{model}.show` route. A model with no URL gets no sitemap entry. URLs are never guessed from a model's slug. A relative URL is built from `app.url`.
+
+Implement `HasPublicUrl` to declare a model's URL:
 
 ```php
-protected function getSeoImageAttribute(): ?string
+use ArtisanPackUI\SEO\Contracts\HasPublicUrl;
+use ArtisanPackUI\SEO\Traits\HasSeo;
+
+class Post extends Model implements HasPublicUrl
 {
-    return $this->cover_image ?? $this->thumbnail;
+    use HasSeo;
+
+    public function getPublicUrl(): string
+    {
+        return route('posts.show', $this);
+    }
 }
 ```
 
-## URL Methods
+Don't read `canonical_url` inside `getPublicUrl()`, because that accessor runs the resolver and would call the method again.
 
-### getSeoUrl()
+### canonical_url
 
-Get the canonical URL for the model:
-
-```php
-$url = $post->getSeoUrl();
-
-// Default implementation:
-// Returns the model's 'url' attribute
-// Or generates from route if RouteModelBinding is used
-```
-
-### getSeoUrlAttribute()
-
-Override to customize URL generation:
+Get the resolved URL for a model:
 
 ```php
-protected function getSeoUrlAttribute(): ?string
-{
-    return route('posts.show', $this);
-}
+$url = $post->canonical_url;
 ```
 
 ## Indexing Methods
@@ -283,12 +249,12 @@ if ($post->shouldBeFollowed()) {
 // Returns true unless nofollow is explicitly set
 ```
 
-### getRobotsDirective()
+### robots_meta
 
 Get the full robots meta content:
 
 ```php
-$robots = $post->getRobotsDirective();
+$robots = $post->robots_meta;
 // Result: "index, follow" or "noindex, nofollow" etc.
 ```
 
@@ -304,7 +270,7 @@ if ($post->shouldBeInSitemap()) {
 }
 
 // Returns false if:
-// - noindex is true
+// - no_index is true
 // - exclude_from_sitemap is true
 ```
 
@@ -314,8 +280,10 @@ Get the sitemap priority for this model:
 
 ```php
 $priority = $post->getSitemapPriority();
-// Returns: 0.0 to 1.0
+// Returns: 0.0 to 1.0, or null when no priority is set
 ```
+
+A saved value wins, then `seo.sitemap.default_priority`. With neither, `priority` is left out of the sitemap.
 
 ### getSitemapChangefreq()
 
@@ -323,17 +291,14 @@ Get the sitemap change frequency:
 
 ```php
 $changefreq = $post->getSitemapChangefreq();
-// Returns: always, hourly, daily, weekly, monthly, yearly, never
+// Returns: always, hourly, daily, weekly, monthly, yearly, never, or null
 ```
 
-### getSitemapLastmod()
+A saved value wins, then `seo.sitemap.default_frequency`. With neither, `changefreq` is left out of the sitemap.
 
-Get the last modification date for sitemap:
+### getSitemapImages()
 
-```php
-$lastmod = $post->getSitemapLastmod();
-// Returns: Carbon instance or null
-```
+Get the images listed for this model in the image sitemap. Override it to list a page's images. By default it returns the SEO image, leaving out `seo.open_graph.default_image`.
 
 ## Schema Methods
 
@@ -346,76 +311,42 @@ $type = $post->getSchemaType();
 // Returns: Article, BlogPosting, Product, etc.
 ```
 
-### getSchemaData()
+### setSchemaType()
 
-Get the custom schema data:
+Set the Schema.org type for this model:
 
 ```php
-$schemaData = $post->getSchemaData();
-// Returns: array of schema properties
+$post->setSchemaType('Article');
 ```
 
-### buildSchema()
+Custom properties are stored in `schema_markup` and merged into the generated schema.
 
-Build the complete schema markup:
+## Open Graph and Twitter Cards
 
-```php
-$schema = $post->buildSchema();
-// Returns: Complete JSON-LD ready array
-```
-
-## Open Graph Methods
-
-### getOpenGraphData()
-
-Get all Open Graph data:
+Get DTOs through the SEO service:
 
 ```php
-$og = $post->getOpenGraphData();
-// Returns array:
-// [
-//     'title' => '...',
-//     'description' => '...',
-//     'image' => '...',
-//     'type' => '...',
-//     'url' => '...',
-//     'site_name' => '...',
-//     'locale' => '...',
-// ]
-```
+$openGraph = seo()->getOpenGraph($post);
+$twitterCard = seo()->getTwitterCard($post);
 
-## Twitter Card Methods
-
-### getTwitterCardData()
-
-Get all Twitter Card data:
-
-```php
-$twitter = $post->getTwitterCardData();
-// Returns array:
-// [
-//     'card' => 'summary_large_image',
-//     'title' => '...',
-//     'description' => '...',
-//     'image' => '...',
-//     'site' => '@...',
-//     'creator' => '@...',
-// ]
+$openGraph->title;
+$openGraph->imageAlt;
+$openGraph->publishedTime; // Only for the article type
+$twitterCard->card;
 ```
 
 ## Hreflang Methods
 
-### getHreflang()
+### hreflang
 
 Get hreflang URLs:
 
 ```php
-$hreflang = $post->getHreflang();
+$hreflang = $post->hreflang;
 // Returns array:
 // [
 //     'en' => 'https://...',
 //     'fr' => 'https://...',
-//     'x-default' => 'https://...',
 // ]
 ```
 
@@ -430,48 +361,21 @@ $post->setHreflang([
 ]);
 ```
 
-## Analysis Methods
+## Analysis
 
-### getSeoAnalysis()
-
-Get SEO analysis results:
+Run analysis through `AnalysisService`:
 
 ```php
-$analysis = $post->getSeoAnalysis();
-// Returns array of analyzer results:
-// [
-//     'score' => 75,
-//     'readability' => ['status' => 'pass', 'message' => '...'],
-//     'keyword_density' => ['status' => 'warning', 'message' => '...'],
-//     ...
-// ]
+use ArtisanPackUI\SEO\Services\AnalysisService;
+
+$result = app(AnalysisService::class)->analyze($post);
 ```
 
-### refreshSeoAnalysis()
-
-Force refresh the SEO analysis:
-
-```php
-$analysis = $post->refreshSeoAnalysis();
-// Clears cache and re-runs all analyzers
-```
+See [SEO Analysis](Advanced-Analysis).
 
 ## Model Events
 
-The trait automatically registers model observers:
-
-```php
-// On model created
-// - Creates default SEO meta record (if auto_create enabled)
-
-// On model updated
-// - Clears SEO cache
-// - Updates sitemap entry
-
-// On model deleted
-// - Deletes associated SEO meta
-// - Removes from sitemap
-```
+Models with the trait are observed automatically. Saving a model updates its sitemap entry and clears the sitemap cache. Force deleting it removes its SEO meta and sitemap entry. Soft deletes keep them until the model is restored or force deleted.
 
 ## Customization Example
 
@@ -482,33 +386,28 @@ Here's a complete example of customizing SEO for a model:
 
 namespace App\Models;
 
-use ArtisanPackUI\Seo\Traits\HasSeo;
+use ArtisanPackUI\SEO\Contracts\HasPublicUrl;
+use ArtisanPackUI\SEO\Traits\HasSeo;
 use Illuminate\Database\Eloquent\Model;
 
-class Product extends Model
+class Product extends Model implements HasPublicUrl
 {
     use HasSeo;
 
-    // Custom title resolution
-    protected function getSeoTitleAttribute(): ?string
+    // Custom title
+    public function getSeoTitle(): string
     {
-        return $this->product_name . ' - ' . $this->brand->name;
-    }
-
-    // Custom description
-    protected function getSeoDescriptionAttribute(): ?string
-    {
-        return $this->short_description ?? substr($this->description, 0, 160);
+        return $this->seoMeta?->meta_title ?: $this->product_name . ' - ' . $this->brand->name;
     }
 
     // Custom image
-    protected function getSeoImageAttribute(): ?string
+    public function getSeoImage(): ?string
     {
         return $this->images->first()?->url ?? $this->category->default_image;
     }
 
     // Custom URL
-    protected function getSeoUrlAttribute(): ?string
+    public function getPublicUrl(): string
     {
         return route('products.show', [
             'category' => $this->category->slug,
@@ -516,36 +415,17 @@ class Product extends Model
         ]);
     }
 
-    // Custom schema type
-    public function getSchemaType(): string
+    // Custom sitemap images
+    public function getSitemapImages(): ?array
     {
-        return 'Product';
-    }
-
-    // Custom schema data
-    public function getSchemaData(): array
-    {
-        return [
-            'name' => $this->product_name,
-            'description' => $this->description,
-            'sku' => $this->sku,
-            'brand' => ['@type' => 'Brand', 'name' => $this->brand->name],
-            'offers' => [
-                '@type' => 'Offer',
-                'price' => $this->price,
-                'priceCurrency' => 'USD',
-                'availability' => $this->in_stock
-                    ? 'https://schema.org/InStock'
-                    : 'https://schema.org/OutOfStock',
-            ],
-        ];
+        return $this->images->map(fn ($image) => ['loc' => $image->url])->all();
     }
 }
 ```
 
 ## Next Steps
 
-- [Meta Tags](Meta-Tags) - Meta tag management
-- [Social Media](Social-Media) - Open Graph and Twitter Cards
-- [Schema.org](Schema) - Structured data
+- [Meta Tags](Usage-Meta-Tags) - Meta tag management
+- [Social Media](Usage-Social-Media) - Open Graph and Twitter Cards
+- [Schema.org](Usage-Schema) - Structured data
 - [Models Reference](Api-Models) - SeoMeta model documentation

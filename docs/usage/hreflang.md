@@ -51,7 +51,7 @@ $post->updateSeoMeta([
 ### Using the Hreflang Service
 
 ```php
-use ArtisanPackUI\Seo\Services\HreflangService;
+use ArtisanPackUI\SEO\Services\HreflangService;
 
 $hreflangService = app(HreflangService::class);
 
@@ -109,7 +109,7 @@ $post->updateSeoMeta([
 ### Using Blade Component
 
 ```blade
-<x-seo-hreflang :model="$post" />
+<x-seo:hreflang :model="$post" />
 ```
 
 ### Generated Output
@@ -127,7 +127,7 @@ $post->updateSeoMeta([
 The package includes a Livewire component for managing hreflang URLs:
 
 ```blade
-<livewire:hreflang-editor :model="$post" />
+<livewire:seo::hreflang-editor :model="$post" />
 ```
 
 This provides:
@@ -248,7 +248,7 @@ Use when content differs by region (pricing, legal, cultural):
 ### Validation Helper
 
 ```php
-use ArtisanPackUI\Seo\Services\HreflangService;
+use ArtisanPackUI\SEO\Services\HreflangService;
 
 $hreflangService = app(HreflangService::class);
 

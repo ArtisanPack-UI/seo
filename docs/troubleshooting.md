@@ -30,10 +30,8 @@ php artisan migrate:fresh
 If auto-discovery isn't working:
 
 ```php
-// Add to config/app.php
-'providers' => [
-    ArtisanPackUI\Seo\SeoServiceProvider::class,
-],
+// Add to bootstrap/providers.php
+ArtisanPackUI\SEO\Providers\SEOServiceProvider::class,
 ```
 
 ### Composer dependency conflict
@@ -53,7 +51,7 @@ composer update artisanpack-ui/seo -vvv
 1. **Check component is in `<head>`**:
 ```blade
 <head>
-    <x-seo-meta :model="$model" />
+    <x-seo:meta :model="$model" />
 </head>
 ```
 
@@ -88,7 +86,7 @@ $post->content
 Or override the methods:
 
 ```php
-protected function getSeoTitleAttribute(): ?string
+public function getSeoTitle(): string
 {
     return $this->headline;
 }
@@ -103,7 +101,7 @@ Check you're not manually adding a `<title>` tag alongside the component:
 <title>{{ $title }}</title>
 
 {{-- Component includes <title> tag --}}
-<x-seo-meta :model="$model" />
+<x-seo:meta :model="$model" />
 ```
 
 ## Social Sharing Issues
@@ -134,14 +132,13 @@ LinkedIn caches aggressively. Use the [Post Inspector](https://www.linkedin.com/
 
 ### Redirects not triggering
 
-1. **Check middleware is registered**:
+1. **Check the middleware is on**. `HandleRedirects` joins the `web` group automatically when these are true:
 ```php
-// bootstrap/app.php
-->withMiddleware(function (Middleware $middleware) {
-    $middleware->web(append: [
-        \ArtisanPackUI\Seo\Http\Middleware\HandleRedirects::class,
-    ]);
-})
+// config/seo.php
+'redirects' => [
+    'enabled' => true,
+    'middleware_enabled' => true,
+],
 ```
 
 2. **Verify redirect is active**:
@@ -151,8 +148,8 @@ dd($redirect->is_active); // Should be true
 ```
 
 3. **Check match type**:
-```bash
-php artisan seo:test-redirect /your-path
+```php
+seoFindRedirect('/your-path');
 ```
 
 ### Regex redirect not matching
@@ -180,19 +177,16 @@ The package prevents loops automatically. If you see this error:
 1. **Check routes are enabled**:
 ```php
 // config/seo.php
-'routes' => [
-    'sitemap' => true,
+'sitemap' => [
+    'route_enabled' => true,
 ],
 ```
 
-2. **Or add custom route**:
-```php
-Route::get('/sitemap.xml', [SitemapController::class, 'index']);
-```
+2. **Check the URL**. `sitemap-{type}-{page}.xml` returns a 404 when there's nothing to list, and a type must match `[A-Za-z0-9_.-]+`.
 
 ### Sitemap is empty
 
-1. **Check providers are registered**
+1. **Check the model has a public URL**. A model with none gets no sitemap entry. See [Public URLs](Usage-Model-Integration#public-urls).
 2. **Verify models are not excluded**:
 ```php
 $post->shouldBeInSitemap(); // Should return true
@@ -200,9 +194,13 @@ $post->shouldBeInSitemap(); // Should return true
 
 3. **Check for noindex**:
 ```php
-$post->seoMeta->noindex; // Should be false
+$post->seoMeta->no_index; // Should be false
 $post->seoMeta->exclude_from_sitemap; // Should be false
 ```
+
+### Post canonicals moved to /blog/slug
+
+Canonicals and sitemap entries read the model's `permalink` attribute. If your cms-framework version hardcodes `/blog/{slug}` there, upgrade cms-framework to 2.17 or later.
 
 ### Sitemap URLs are wrong
 
@@ -213,8 +211,30 @@ APP_URL=https://example.com
 
 2. **Verify model URL generation**:
 ```php
-$post->getSeoUrl();
+$post->canonical_url;
 ```
+
+## Robots.txt Issues
+
+### robots.txt returns a 404 but shows the right content
+
+Stock Forge and Laravel Nginx templates contain `location = /robots.txt { log_not_found off; }` and `error_page 404 /index.php;`. A missing physical file reaches PHP but keeps the 404, and crawlers treat a 4xx robots file as having no rules, so your `Sitemap:` line is never read. Check the status:
+
+```bash
+curl -I https://example.com/robots.txt
+```
+
+Either change the Nginx location:
+
+```nginx
+location = /robots.txt { access_log off; log_not_found off; try_files $uri /index.php?$query_string; }
+```
+
+Or write a physical file. See [Writing a Static File](Advanced-Robots#writing-a-static-file).
+
+### seo:write-robots says the file was left alone
+
+`public/robots.txt` exists and the package didn't write it. Laravel ships one. Delete it or pass `--force`.
 
 ## Analysis Issues
 
@@ -251,10 +271,12 @@ php artisan queue:failed
 
 ### Changes not reflecting
 
-```bash
-# Clear SEO cache
-php artisan seo:clear-cache
+```php
+// Clear SEO caches
+seo()->clearAllCaches();
+```
 
+```bash
 # Clear application cache
 php artisan cache:clear
 
@@ -297,10 +319,6 @@ composer show livewire/livewire
 <meta name="csrf-token" content="{{ csrf_token() }}">
 ```
 
-3. **Check Livewire endpoint is accessible**:
-```bash
-curl -X POST https://example.com/livewire/message/seo-meta-editor
-```
 
 ### Preview not updating
 
@@ -331,8 +349,9 @@ php artisan migrate:status
 Check your model casts:
 
 ```php
-protected $casts = [
-    'schema_data' => 'array',
+// The package casts these on SeoMeta
+[
+    'schema_markup' => 'array',
     'secondary_keywords' => 'array',
     'hreflang' => 'array',
 ];
@@ -350,12 +369,7 @@ protected $casts = [
 ],
 ```
 
-2. **Warm cache after deployments**:
-```bash
-php artisan seo:warm-cache
-```
-
-3. **Reduce query calls**:
+2. **Reduce query calls**:
 ```php
 // Eager load SEO meta
 $posts = Post::with('seoMeta')->get();
@@ -366,14 +380,14 @@ $posts = Post::with('seoMeta')->get();
 1. **Queue analysis**:
 ```php
 'analysis' => [
-    'queue' => true,
+    'queue_enabled' => true,
 ],
 ```
 
 2. **Reduce analyzers**:
 ```php
 'analyzers' => [
-    'readability' => ['enabled' => false],
+    'readability' => false,
 ],
 ```
 
@@ -384,7 +398,7 @@ $posts = Post::with('seoMeta')->get();
 Add the trait to your model:
 
 ```php
-use ArtisanPackUI\Seo\Traits\HasSeo;
+use ArtisanPackUI\SEO\Traits\HasSeo;
 
 class Post extends Model
 {
@@ -402,25 +416,19 @@ Check the schema type is supported:
 // Supported types
 Article, BlogPosting, Product, Event, Organization,
 LocalBusiness, WebSite, WebPage, Service, Review,
-AggregateRating, BreadcrumbList, FAQPage
+AggregateRating, BreadcrumbList, FAQPage,
+SoftwareSourceCode, SoftwareApplication
 ```
 
 ### "Redirect loop detected"
 
 Review your redirects for circular references:
 
-```bash
-php artisan seo:test-redirect /path
+```php
+seoFindRedirect('/path');
 ```
 
 ## Getting More Help
-
-### Enable Debug Mode
-
-```php
-// config/seo.php
-'debug' => true,
-```
 
 ### Check Logs
 

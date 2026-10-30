@@ -22,13 +22,13 @@ Generate comprehensive XML sitemaps including standard sitemaps, image sitemaps,
 
 ### Dynamic Robots.txt
 
-Generate robots.txt dynamically with global rules, bot-specific directives, and automatic sitemap inclusion.
+Generate robots.txt dynamically with global rules, bot-specific directives, and automatic sitemap inclusion, or write it to a static file.
 
 [Learn more about Robots.txt →](Advanced-Robots)
 
 ### SEO Analysis
 
-Analyze content for SEO quality with 8 built-in analyzers covering readability, keyword density, meta tags, headings, and more.
+Analyze content for SEO quality with 9 built-in analyzers covering readability, keyword density, meta tags, headings, and more.
 
 [Learn more about SEO Analysis →](Advanced-Analysis)
 
@@ -40,7 +40,7 @@ Optimize performance with comprehensive caching for meta tags, analysis results,
 
 ### Artisan Commands
 
-Command-line tools for sitemap generation, sitemap submission, and cache management.
+Command-line tools for sitemap generation, sitemap submission, static robots.txt files, and frontend scaffolding.
 
 [Learn more about Artisan Commands →](Advanced-Artisan-Commands)
 
@@ -114,42 +114,30 @@ if (seoIsEnabled('sitemap')) {
 
 ### Middleware
 
-The package provides middleware for redirect handling:
-
-```php
-// In bootstrap/app.php
-->withMiddleware(function (Middleware $middleware) {
-    $middleware->web(append: [
-        \ArtisanPackUI\Seo\Http\Middleware\HandleRedirects::class,
-    ]);
-})
-```
+`HandleRedirects` is added to the `web` group automatically when `seo.redirects.enabled` and `seo.redirects.middleware_enabled` are true.
 
 ### Routes
 
 The package can register routes for:
 
 - `/sitemap.xml` - Main sitemap or sitemap index
-- `/sitemap-{page}.xml` - Paginated main sitemap (e.g. `/sitemap-1.xml`)
+- `/sitemap-{page}.xml` - All types together, not linked from the index (e.g. `/sitemap-1.xml`)
 - `/sitemap-{type}-{page}.xml` - Type-specific sitemaps (e.g. `/sitemap-post-1.xml`)
 - `/robots.txt` - Dynamic robots.txt
 
 ```php
 // In config/seo.php
-'routes' => [
-    'sitemap' => true,
-    'robots' => true,
-],
+'sitemap' => ['route_enabled' => true],
+'robots' => ['route_enabled' => true],
 ```
 
 ### Scheduled Tasks
 
-Add sitemap generation to your scheduler:
+Sitemaps are generated on request, so scheduling is only needed if you write them to files:
 
 ```php
-// In routes/console.php or app/Console/Kernel.php
-Schedule::command('seo:generate-sitemap')->daily();
-Schedule::command('seo:submit-sitemap')->weekly();
+// In routes/console.php
+Schedule::command('seo:generate-sitemap --output=public/sitemaps')->daily();
 ```
 
 ## Performance Considerations
@@ -164,12 +152,12 @@ Schedule::command('seo:submit-sitemap')->weekly();
 ],
 
 'sitemap' => [
-    'cache' => true,
+    'cache_enabled' => true,
     'cache_ttl' => 86400, // 24 hours for sitemaps
 ],
 
 'redirects' => [
-    'cache' => true,
+    'cache_enabled' => true,
     'cache_ttl' => 3600,  // 1 hour for redirects
 ],
 ```
@@ -178,7 +166,7 @@ Schedule::command('seo:submit-sitemap')->weekly();
 
 ```php
 'analysis' => [
-    'queue' => true,  // Run analysis in background
+    'queue_enabled' => true,  // Run analysis in background
 ],
 ```
 

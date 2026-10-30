@@ -139,6 +139,25 @@ const SCHEMA_FIELDS: Record<string, SchemaFieldDef[]> = {
 		{ key: 'ratingCount', label: 'Rating Count', type: 'number' },
 		{ key: 'reviewCount', label: 'Review Count', type: 'number' },
 	],
+	SoftwareSourceCode: [
+		{ key: 'name', label: 'Name', type: 'text' },
+		{ key: 'description', label: 'Description', type: 'textarea' },
+		{ key: 'url', label: 'URL', type: 'url' },
+		{ key: 'codeRepository', label: 'Code Repository', type: 'url' },
+		{ key: 'programmingLanguage', label: 'Programming Language', type: 'text' },
+		{ key: 'runtimePlatform', label: 'Runtime Platform', type: 'text' },
+		{ key: 'license', label: 'License', type: 'url' },
+		{ key: 'version', label: 'Version', type: 'text' },
+	],
+	SoftwareApplication: [
+		{ key: 'name', label: 'Name', type: 'text' },
+		{ key: 'description', label: 'Description', type: 'textarea' },
+		{ key: 'url', label: 'URL', type: 'url' },
+		{ key: 'applicationCategory', label: 'Application Category', type: 'text' },
+		{ key: 'operatingSystem', label: 'Operating System', type: 'text' },
+		{ key: 'license', label: 'License', type: 'url' },
+		{ key: 'version', label: 'Version', type: 'text' },
+	],
 	BreadcrumbList: [],
 };
 
@@ -206,6 +225,12 @@ function handleTypeChange( value: string ): void {
 
 function handleFieldChange( key: string, value: unknown ): void {
 	const updated = { ...markup.value, [key]: value };
+
+	// softwareVersion takes priority over version in the schema output.
+	if ( 'version' === key ) {
+		delete updated.softwareVersion;
+	}
+
 	emit( 'schema-markup-change', updated );
 }
 

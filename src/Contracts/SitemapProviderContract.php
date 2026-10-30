@@ -40,6 +40,8 @@ interface SitemapProviderContract
 	 * - lastmod: Last modification date (optional)
 	 * - changefreq: Change frequency (optional)
 	 * - priority: Priority 0.0-1.0 (optional)
+	 * - title: Title used in llms.txt (optional)
+	 * - description: Description used in llms.txt (optional)
 	 * - images: Array of images (optional, for image sitemaps)
 	 * - videos: Array of videos (optional, for video sitemaps)
 	 *
@@ -52,22 +54,27 @@ interface SitemapProviderContract
 	/**
 	 * Get the default change frequency for this provider.
 	 *
-	 * Valid values: always, hourly, daily, weekly, monthly, yearly, never
+	 * Valid values: always, hourly, daily, weekly, monthly, yearly, never.
+	 * Return null to leave `changefreq` out of the sitemap.
 	 *
 	 * @since 1.0.0
+	 * @since 1.9.0 May return null.
 	 *
-	 * @return string
+	 * @return string|null
 	 */
-	public function getChangeFrequency(): string;
+	public function getChangeFrequency(): ?string;
 
 	/**
 	 * Get the default priority for this provider.
 	 *
-	 * @since 1.0.0
+	 * Return null to leave `priority` out of the sitemap.
 	 *
-	 * @return float Value between 0.0 and 1.0
+	 * @since 1.0.0
+	 * @since 1.9.0 May return null.
+	 *
+	 * @return float|null Value between 0.0 and 1.0
 	 */
-	public function getPriority(): float;
+	public function getPriority(): ?float;
 
 	/**
 	 * Get the type identifier for this provider.

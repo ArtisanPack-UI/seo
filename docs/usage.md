@@ -13,7 +13,7 @@ ArtisanPack UI SEO provides multiple ways to manage SEO for your Laravel applica
 The package uses a polymorphic relationship to attach SEO metadata to any Eloquent model. Simply add the `HasSeo` trait to your models:
 
 ```php
-use ArtisanPackUI\Seo\Traits\HasSeo;
+use ArtisanPackUI\SEO\Traits\HasSeo;
 
 class Post extends Model
 {
@@ -25,23 +25,24 @@ class Post extends Model
 
 When SEO fields aren't explicitly set, the package automatically generates values from your model's properties:
 
-1. **Title**: Uses `title`, `name`, or model class name
-2. **Description**: Uses `description`, `excerpt`, or truncated `content`
-3. **Image**: Uses `image`, `featured_image`, or configured default
+1. **Title**: Uses `title`, `name`, or the app name
+2. **Description**: Uses `excerpt`, `description`, or `content`, shortened to fit
+3. **Image**: Uses `featured_image` or the configured default
 
 ### Output Components
 
 Render SEO tags in your views using Blade components:
 
 ```blade
-{{-- All SEO tags at once --}}
-<x-seo-meta :model="$post" />
+{{-- Meta, social, and hreflang tags --}}
+<x-seo:meta :model="$post" />
+<x-seo:schema :model="$post" />
 
 {{-- Or individual components --}}
-<x-seo-meta-tags :model="$post" />
-<x-seo-open-graph :model="$post" />
-<x-seo-twitter-card :model="$post" />
-<x-seo-schema :model="$post" />
+<x-seo:meta-tags :model="$post" />
+<x-seo:open-graph :model="$post" />
+<x-seo:twitter-card :model="$post" />
+<x-seo:schema :model="$post" />
 ```
 
 ## Feature Categories
@@ -60,7 +61,7 @@ Open Graph tags for Facebook/LinkedIn, Twitter Cards, and support for Pinterest 
 
 ### Schema.org / JSON-LD
 
-Structured data markup for rich search results, including 14 built-in schema types.
+Structured data markup for rich search results, including 15 built-in schema types.
 
 [Learn more about Schema.org →](Usage-Schema)
 
@@ -97,8 +98,8 @@ $post->updateSeoMeta([
     'og_description' => 'Description for social sharing.',
     'twitter_card' => 'summary_large_image',
     'schema_type' => 'Article',
-    'noindex' => false,
-    'nofollow' => false,
+    'no_index' => false,
+    'no_follow' => false,
 ]);
 ```
 
@@ -120,16 +121,14 @@ $data = $post->getSeoData();
 ### Using the SEO Service
 
 ```php
-use ArtisanPackUI\Seo\Facades\Seo;
+// Get meta tags for a model
+$tags = seo()->getMetaTags($post);
 
-// Generate meta tags for a model
-$tags = Seo::generateMetaTags($post);
+// Get Open Graph tags
+$openGraph = seo()->getOpenGraph($post);
 
-// Generate Open Graph tags
-$ogTags = Seo::generateOpenGraphTags($post);
-
-// Generate schema markup
-$schema = Seo::generateSchema($post);
+// Get Twitter Card tags
+$twitterCard = seo()->getTwitterCard($post);
 ```
 
 ### Helper Functions
@@ -141,7 +140,7 @@ $title = seoTitle('My Page');
 
 // Truncate description to SEO length
 $desc = seoDescription($longText);
-// Result: truncated to 160 characters
+// Result: at most 160 characters, including the "..."
 
 // Get SEO meta for any model
 $meta = seoMeta($post);
@@ -158,8 +157,9 @@ $meta = seoMeta($post);
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    {{-- All SEO tags --}}
-    <x-seo-meta :model="$model ?? null" />
+    {{-- SEO tags --}}
+    <x-seo:meta :model="$model ?? null" />
+    <x-seo:schema :model="$model ?? null" />
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
@@ -190,14 +190,14 @@ The package includes Livewire components for managing SEO in your admin panel:
 
 ```blade
 {{-- Full SEO editor with all tabs --}}
-<livewire:seo-meta-editor :model="$post" />
+<livewire:seo::seo-meta-editor :model="$post" />
 
 {{-- SEO analysis panel --}}
-<livewire:seo-analysis-panel :model="$post" />
+<livewire:seo::seo-analysis-panel :model="$post" />
 
 {{-- Preview components --}}
-<livewire:meta-preview :model="$post" />
-<livewire:social-preview :model="$post" />
+<livewire:seo::meta-preview :title="$title" :description="$description" :url="$url" />
+<livewire:seo::social-preview :title="$title" :description="$description" :url="$url" />
 ```
 
 ## Next Steps

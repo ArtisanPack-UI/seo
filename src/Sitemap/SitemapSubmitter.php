@@ -36,22 +36,6 @@ use Illuminate\Support\Facades\Log;
 class SitemapSubmitter
 {
 	/**
-	 * Default search engine ping URLs.
-	 *
-	 * Note: Google's ping URL (https://www.google.com/ping?sitemap=...) was deprecated
-	 * and is no longer functional as of 2023. For Google, submit your sitemap via:
-	 * - Google Search Console (https://search.google.com/search-console)
-	 * - Adding the sitemap URL to your robots.txt file: Sitemap: https://example.com/sitemap.xml
-	 *
-	 * @since 1.0.0
-	 *
-	 * @var array<string, string>
-	 */
-	protected const DEFAULT_SEARCH_ENGINES = [
-		'bing' => 'https://www.bing.com/ping?sitemap=%s',
-	];
-
-	/**
 	 * The sitemap URL to submit.
 	 *
 	 * @since 1.0.0
@@ -372,18 +356,17 @@ class SitemapSubmitter
 	/**
 	 * Get configured search engines.
 	 *
+	 * No engine is pinged by default. Google retired its ping endpoint in
+	 * 2023 and Bing's returns 410 Gone, so list the sitemap in robots.txt,
+	 * add it in each engine's webmaster tools, and use IndexNow for updates.
+	 *
 	 * @since 1.0.0
+	 * @since 1.9.0 No longer falls back to Bing when none are configured.
 	 *
 	 * @return array<string, string>
 	 */
 	protected function getConfiguredSearchEngines(): array
 	{
-		$configured = config( 'seo.sitemap.search_engines', [] );
-
-		if ( empty( $configured ) ) {
-			return self::DEFAULT_SEARCH_ENGINES;
-		}
-
-		return $configured;
+		return (array) config( 'seo.sitemap.search_engines', [] );
 	}
 }

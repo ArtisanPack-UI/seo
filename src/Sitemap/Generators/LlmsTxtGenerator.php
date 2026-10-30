@@ -18,6 +18,7 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\SEO\Sitemap\Generators;
 
+use ArtisanPackUI\SEO\Contracts\SitemapProviderContract;
 use ArtisanPackUI\SEO\Models\SitemapEntry;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Collection;
@@ -29,10 +30,11 @@ use function applyFilters;
  * LlmsTxtGenerator class.
  *
  * Emits an [llms.txt](https://llmstxt.org/) manifest listing the site's
- * indexable pages with titles, one-line descriptions, and URLs, grouped
- * by sitemap entry type. Titles and descriptions are pulled from the
- * associated model's SEO metadata when available and fall back to a
- * URL-derived name.
+ * indexable pages and sitemap provider URLs with titles, one-line
+ * descriptions, and URLs, grouped by sitemap entry type. Titles and
+ * descriptions are pulled from the associated model's SEO metadata or
+ * the provider's URL data when available and fall back to a URL-derived
+ * name.
  *
  * @package    ArtisanPack_UI
  * @subpackage SEO
@@ -51,6 +53,15 @@ class LlmsTxtGenerator
 	protected ?int $maxEntries;
 
 	/**
+	 * Sitemap providers keyed by type.
+	 *
+	 * @since 1.9.0
+	 *
+	 * @var Collection<string, SitemapProviderContract>
+	 */
+	protected Collection $providers;
+
+	/**
 	 * Create a new LlmsTxtGenerator instance.
 	 *
 	 * @since 1.4.0
@@ -61,6 +72,23 @@ class LlmsTxtGenerator
 	{
 		$configured       = config( 'seo.llms_txt.max_entries' );
 		$this->maxEntries = $maxEntries ?? ( null === $configured ? null : (int) $configured );
+		$this->providers  = collect();
+	}
+
+	/**
+	 * Set the sitemap providers whose URLs should be listed.
+	 *
+	 * @since 1.9.0
+	 *
+	 * @param  Collection<string, SitemapProviderContract>  $providers  Providers keyed by type.
+	 *
+	 * @return self
+	 */
+	public function setProviders( Collection $providers ): self
+	{
+		$this->providers = $providers;
+
+		return $this;
 	}
 
 	/**
@@ -72,7 +100,7 @@ class LlmsTxtGenerator
 	 */
 	public function generate(): string
 	{
-		$entries = $this->getEntries();
+		$entries = $this->getEntries()->toBase()->concat( $this->getProviderEntries() );
 		$entries = $this->applyEntriesFilter( $entries );
 		$entries = $this->applyMaxEntries( $entries );
 
@@ -137,8 +165,7 @@ class LlmsTxtGenerator
 			->orderByDesc( 'priority' )
 			->orderByDesc( 'last_modified' );
 
-		$include = (array) config( 'seo.llms_txt.include_types', [] );
-		$exclude = (array) config( 'seo.llms_txt.exclude_types', [] );
+		[ $include, $exclude ] = $this->getTypeRules();
 
 		if ( [] !== $include ) {
 			$query->whereIn( 'type', $include );
@@ -159,6 +186,64 @@ class LlmsTxtGenerator
 		}
 
 		return $entries;
+	}
+
+	/**
+	 * Get provider URLs that have no stored sitemap entry.
+	 *
+	 * A stored entry decides how its URL is treated, so a provider can't
+	 * duplicate a listed page or bring back one marked as non-indexable.
+	 * URLs are compared without case, because the query may match that way
+	 * under the database's collation.
+	 *
+	 * @since 1.9.0
+	 *
+	 * @return Collection<int, array<string, mixed>>
+	 */
+	protected function getProviderEntries(): Collection
+	{
+		[ $include, $exclude ] = $this->getTypeRules();
+
+		$entries = $this->providers
+			->filter( function ( SitemapProviderContract $provider, string $type ) use ( $include, $exclude ): bool {
+				return ( [] === $include || in_array( $type, $include, true ) ) && ! in_array( $type, $exclude, true );
+			} )
+			->flatMap( function ( SitemapProviderContract $provider, string $type ): Collection {
+				return $provider->getUrls()->map( function ( array|object $url ) use ( $type ): array {
+					$url = (array) $url;
+
+					return [
+						'url'         => $url['loc'] ?? $url['url'] ?? '',
+						'type'        => $type,
+						'title'       => $url['title'] ?? null,
+						'description' => $url['description'] ?? null,
+					];
+				} );
+			} )
+			->filter( fn ( array $entry ): bool => '' !== $entry['url'] && null !== $entry['url'] )
+			->unique( 'url' )
+			->values();
+
+		$storedUrls = $entries->pluck( 'url' )->chunk( 500 )->flatMap( function ( Collection $urls ) {
+			return SitemapEntry::query()->whereIn( 'url', $urls->all() )->pluck( 'url' )->all();
+		} )->map( fn ( string $url ): string => mb_strtolower( $url ) )->flip();
+
+		return $entries->reject( fn ( array $entry ): bool => $storedUrls->has( mb_strtolower( $entry['url'] ) ) )->values();
+	}
+
+	/**
+	 * Get the configured type include and exclude lists.
+	 *
+	 * @since 1.9.0
+	 *
+	 * @return array{0: array<int, string>, 1: array<int, string>}
+	 */
+	protected function getTypeRules(): array
+	{
+		return [
+			(array) config( 'seo.llms_txt.include_types', [] ),
+			(array) config( 'seo.llms_txt.exclude_types', [] ),
+		];
 	}
 
 	/**
@@ -418,19 +503,57 @@ class LlmsTxtGenerator
 	/**
 	 * Get the site summary for the manifest header.
 	 *
+	 * Uses `seo.llms_txt.summary`, then `seo.site.description`, then the
+	 * description of the homepage's sitemap entry. The result is collapsed
+	 * to one line, because a line break would end the blockquote.
+	 *
 	 * @since 1.4.0
+	 * @since 1.9.0 Falls back to the homepage's description.
 	 *
 	 * @return string
 	 */
 	protected function getSummary(): string
 	{
-		$summary = config( 'seo.llms_txt.summary' );
+		$summary = $this->normalizeSummary( config( 'seo.llms_txt.summary' ) );
 
-		if ( is_string( $summary ) && '' !== $summary ) {
-			return $summary;
+		if ( '' === $summary ) {
+			$summary = $this->normalizeSummary( config( 'seo.site.description', '' ) );
 		}
 
-		return (string) config( 'seo.site.description', '' );
+		if ( '' === $summary ) {
+			$summary = $this->normalizeSummary( $this->getHomepageDescription() );
+		}
+
+		return $summary;
+	}
+
+	/**
+	 * Collapse a summary to one line.
+	 *
+	 * @since 1.9.0
+	 *
+	 * @param  mixed  $summary  The configured value.
+	 *
+	 * @return string An empty string if the value isn't usable text.
+	 */
+	protected function normalizeSummary( mixed $summary ): string
+	{
+		return is_string( $summary ) ? trim( (string) preg_replace( '/\s+/', ' ', $summary ) ) : '';
+	}
+
+	/**
+	 * Get the description of the homepage's sitemap entry.
+	 *
+	 * @since 1.9.0
+	 *
+	 * @return string
+	 */
+	protected function getHomepageDescription(): string
+	{
+		$root  = rtrim( (string) config( 'app.url', '' ), '/' );
+		$entry = SitemapEntry::indexable()->whereIn( 'url', [ $root, $root . '/' ] )->first();
+
+		return null === $entry ? '' : (string) $this->resolveDescription( $entry );
 	}
 
 	/**

@@ -9,7 +9,7 @@ The SEO Meta Editor is a comprehensive Livewire component for managing all SEO s
 ## Basic Usage
 
 ```blade
-<livewire:seo-meta-editor :model="$post" />
+<livewire:seo::seo-meta-editor :model="$post" />
 ```
 
 ## Features
@@ -19,48 +19,27 @@ The editor provides a tabbed interface with the following sections:
 1. **Basic** - Meta title, description, focus keywords
 2. **Social** - Open Graph, Twitter Card, Pinterest, Slack
 3. **Schema** - Schema.org type and custom data
-4. **Advanced** - Robots, indexing, sitemap settings
-5. **Hreflang** - Multi-language URL management
+4. **Advanced** - Robots, indexing, sitemap, and hreflang settings
 
 ## Properties
 
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
 | `model` | Model | Yes | Eloquent model with HasSeo trait |
-| `showPreview` | bool | No | Show/hide preview panels |
-| `autoSave` | bool | No | Enable auto-save on changes |
+| `activeTab` | string | No | Initial tab: `basic`, `social`, `schema`, or `advanced` |
 
 ## Examples
 
 ### Standard Usage
 
 ```blade
-<div class="card">
-    <div class="card-header">
-        <h3>SEO Settings</h3>
-    </div>
-    <div class="card-body">
-        <livewire:seo-meta-editor :model="$post" />
-    </div>
-</div>
+<livewire:seo::seo-meta-editor :model="$post" />
 ```
 
-### With Preview Panels
+### Opening a Tab
 
 ```blade
-<livewire:seo-meta-editor
-    :model="$post"
-    :show-preview="true"
-/>
-```
-
-### Auto-Save Mode
-
-```blade
-<livewire:seo-meta-editor
-    :model="$post"
-    :auto-save="true"
-/>
+<livewire:seo::seo-meta-editor :model="$post" active-tab="social" />
 ```
 
 ## Tab Sections
@@ -92,7 +71,7 @@ The Social tab is divided into sub-sections:
 - Title
 - Description
 - Image (with media library picker if available)
-- Type selection
+- Type selection. **Automatic** infers the type from the model
 - Locale
 - Site name
 
@@ -129,52 +108,28 @@ The Advanced tab includes:
 - **Canonical URL** - Custom canonical URL
 - **Sitemap Settings:**
   - Exclude from sitemap toggle
-  - Priority slider (0.0-1.0)
-  - Change frequency selection
-
-### Hreflang Tab
-
-The Hreflang tab includes:
-
-- Add/remove language variants
-- URL input for each language
-- x-default setting
-- Locale selection from configured options
+  - Priority number field (0-1). Leave it blank to use the site default, if there is one
+  - Change frequency selection. **Not specified** uses the site default, if there is one
+- **Hreflang** - Language variants for the page
 
 ## Events
 
-The component emits these events:
+The component dispatches these events:
 
 | Event | Payload | Description |
 |-------|---------|-------------|
-| `seo-saved` | `['model' => Model]` | After saving SEO data |
-| `seo-error` | `['errors' => array]` | When validation fails |
-
-### Listening to Events
+| `seo-meta-saved` | `id` | After saving SEO data |
+| `seo-analysis-complete` | `results` | After running analysis |
 
 ```blade
-<livewire:seo-meta-editor
-    :model="$post"
-    @seo-saved="$refresh"
-/>
-```
-
-```javascript
-// In Alpine.js
-<div x-data @seo-saved.window="alert('SEO settings saved!')">
-    <livewire:seo-meta-editor :model="$post" />
+<div x-data x-on:seo-meta-saved.window="alert('SEO settings saved!')">
+    <livewire:seo::seo-meta-editor :model="$post" />
 </div>
 ```
 
 ## Form Validation
 
-The editor validates:
-
-- Title length (max 60 characters recommended)
-- Description length (max 160 characters recommended)
-- URL formats for canonical and hreflang
-- Schema data JSON syntax
-- Required fields based on schema type
+The editor validates field lengths, the sitemap priority range (0-1), the change frequency value, and URL formats. Long titles and descriptions show a counter rather than an error.
 
 ## Customization
 
@@ -194,13 +149,14 @@ resources/views/vendor/seo/livewire/seo-meta-editor.blade.php
 ```php
 namespace App\Livewire;
 
-use ArtisanPackUI\Seo\Livewire\SeoMetaEditor as BaseSeoMetaEditor;
+use ArtisanPackUI\SEO\Livewire\SeoMetaEditor as BaseSeoMetaEditor;
+use Illuminate\Database\Eloquent\Model;
 
 class CustomSeoMetaEditor extends BaseSeoMetaEditor
 {
-    public function mount($model): void
+    public function mount(Model $model, ?string $activeTab = null): void
     {
-        parent::mount($model);
+        parent::mount($model, $activeTab);
 
         // Custom initialization
     }
@@ -236,7 +192,7 @@ public function boot(): void
 
     <div class="mt-6">
         <h2>SEO Settings</h2>
-        <livewire:seo-meta-editor :model="$post" />
+        <livewire:seo::seo-meta-editor :model="$post" />
     </div>
 
     <button type="submit">Save Post</button>
@@ -247,23 +203,8 @@ public function boot(): void
 
 ```blade
 <x-artisanpack-drawer wire:model="showSeoPanel" title="SEO Settings">
-    <livewire:seo-meta-editor :model="$post" />
+    <livewire:seo::seo-meta-editor :model="$post" />
 </x-artisanpack-drawer>
-```
-
-### With Save Button Outside
-
-```blade
-<div x-data="{ seoEditor: null }">
-    <livewire:seo-meta-editor
-        :model="$post"
-        x-ref="seoEditor"
-    />
-
-    <button wire:click="$dispatch('save-seo')">
-        Save SEO Settings
-    </button>
-</div>
 ```
 
 ## Styling
@@ -272,7 +213,7 @@ The component uses Tailwind CSS classes and daisyUI components. To customize sty
 
 ## Next Steps
 
-- [Redirect Manager](Redirect-Manager) - Manage URL redirects
-- [Analysis Panel](Analysis-Panel) - SEO analysis component
-- [SEO Dashboard](Seo-Dashboard) - Overview dashboard
+- [Redirect Manager](Components-Redirect-Manager) - Manage URL redirects
+- [Analysis Panel](Components-Analysis-Panel) - SEO analysis component
+- [SEO Dashboard](Components-Seo-Dashboard) - Overview dashboard
 - [Meta Tags](Usage-Meta-Tags) - Meta tag reference

@@ -12,6 +12,10 @@
     <meta name="twitter:image" content="{{ $twitterImage }}">
 @endif
 
+@if($twitterImageAlt)
+    <meta name="twitter:image:alt" content="{{ $twitterImageAlt }}">
+@endif
+
 @if($site)
     <meta name="twitter:site" content="{{ $site }}">
 @endif

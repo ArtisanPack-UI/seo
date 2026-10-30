@@ -12,12 +12,12 @@ Blade components render SEO tags in your HTML `<head>` section:
 
 | Component | Purpose |
 |-----------|---------|
-| `<x-seo-meta>` | All-in-one SEO output (meta, OG, Twitter, schema) |
-| `<x-seo-meta-tags>` | Basic meta tags only |
-| `<x-seo-open-graph>` | Open Graph tags |
-| `<x-seo-twitter-card>` | Twitter Card tags |
-| `<x-seo-schema>` | Schema.org JSON-LD |
-| `<x-seo-hreflang>` | Hreflang link tags |
+| `<x-seo:meta>` | Meta, Open Graph, Twitter, and hreflang tags |
+| `<x-seo:meta-tags>` | Basic meta tags only |
+| `<x-seo:open-graph>` | Open Graph tags |
+| `<x-seo:twitter-card>` | Twitter Card tags |
+| `<x-seo:schema>` | Schema.org JSON-LD |
+| `<x-seo:hreflang>` | Hreflang link tags |
 
 [Learn more about Blade Components →](Components-Blade-Components)
 
@@ -27,13 +27,13 @@ Livewire components provide interactive admin interfaces:
 
 | Component | Purpose |
 |-----------|---------|
-| `<livewire:seo-meta-editor>` | Full SEO editing interface |
-| `<livewire:redirect-manager>` | URL redirect management |
-| `<livewire:seo-dashboard>` | SEO overview dashboard |
-| `<livewire:seo-analysis-panel>` | Content analysis results |
-| `<livewire:hreflang-editor>` | Multi-language URL editor |
-| `<livewire:meta-preview>` | Search result preview |
-| `<livewire:social-preview>` | Social share preview |
+| `<livewire:seo::seo-meta-editor>` | Full SEO editing interface |
+| `<livewire:seo::redirect-manager>` | URL redirect management |
+| `<livewire:seo::seo-dashboard>` | SEO overview dashboard |
+| `<livewire:seo::seo-analysis-panel>` | Content analysis results |
+| `<livewire:seo::hreflang-editor>` | Multi-language URL editor |
+| `<livewire:seo::meta-preview>` | Search result preview |
+| `<livewire:seo::social-preview>` | Social share preview |
 
 ## Quick Usage
 
@@ -44,7 +44,7 @@ Livewire components provide interactive admin interfaces:
 <html>
 <head>
     {{-- Render all SEO tags at once --}}
-    <x-seo-meta :model="$model ?? null" />
+    <x-seo:meta :model="$model ?? null" />
 </head>
 <body>
     {{ $slot }}
@@ -59,7 +59,7 @@ Livewire components provide interactive admin interfaces:
     <h1>Edit Post SEO</h1>
 
     {{-- Full SEO editor --}}
-    <livewire:seo-meta-editor :model="$post" />
+    <livewire:seo::seo-meta-editor :model="$post" />
 </div>
 ```
 
@@ -150,7 +150,7 @@ You can extend Livewire components:
 ```php
 namespace App\Livewire;
 
-use ArtisanPackUI\Seo\Livewire\SeoMetaEditor as BaseSeoMetaEditor;
+use ArtisanPackUI\SEO\Livewire\SeoMetaEditor as BaseSeoMetaEditor;
 
 class CustomSeoMetaEditor extends BaseSeoMetaEditor
 {

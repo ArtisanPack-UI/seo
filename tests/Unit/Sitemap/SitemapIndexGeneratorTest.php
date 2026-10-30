@@ -89,7 +89,7 @@ describe( 'SitemapIndexGenerator', function (): void {
 			->and( $xml )->not->toContain( '<loc>https://example.com/sitemap-page.xml</loc>' );
 	} );
 
-	it( 'includes the page number for page one of the main sitemap', function (): void {
+	it( 'lists a paged type without an all-types child', function (): void {
 		for ( $i = 1; $i <= 3; $i++ ) {
 			SitemapEntry::create( [
 				'sitemapable_type' => 'App\\Models\\Page',
@@ -102,12 +102,14 @@ describe( 'SitemapIndexGenerator', function (): void {
 		$generator = new SitemapIndexGenerator( 'https://example.com', 2 );
 		$xml       = $generator->generate();
 
-		expect( $xml )->toContain( '<loc>https://example.com/sitemap-1.xml</loc>' )
-			->and( $xml )->toContain( '<loc>https://example.com/sitemap-2.xml</loc>' )
+		expect( $xml )->toContain( '<loc>https://example.com/sitemap-page-1.xml</loc>' )
+			->and( $xml )->toContain( '<loc>https://example.com/sitemap-page-2.xml</loc>' )
+			->and( $xml )->not->toContain( '<loc>https://example.com/sitemap-1.xml</loc>' )
+			->and( $xml )->not->toContain( '<loc>https://example.com/sitemap-2.xml</loc>' )
 			->and( $xml )->not->toContain( '<loc>https://example.com/sitemap.xml</loc>' );
 	} );
 
-	it( 'does not reference itself when the main sitemap fits on one page', function (): void {
+	it( 'does not list an all-types child or itself when per-type children exist', function (): void {
 		SitemapEntry::create( [
 			'sitemapable_type' => 'App\\Models\\Page',
 			'sitemapable_id'   => 1,
@@ -125,7 +127,9 @@ describe( 'SitemapIndexGenerator', function (): void {
 		$generator = new SitemapIndexGenerator( 'https://example.com' );
 		$xml       = $generator->generate();
 
-		expect( $xml )->toContain( '<loc>https://example.com/sitemap-1.xml</loc>' )
+		expect( $xml )->toContain( '<loc>https://example.com/sitemap-page-1.xml</loc>' )
+			->and( $xml )->toContain( '<loc>https://example.com/sitemap-post-1.xml</loc>' )
+			->and( $xml )->not->toContain( '<loc>https://example.com/sitemap-1.xml</loc>' )
 			->and( $xml )->not->toContain( '<loc>https://example.com/sitemap.xml</loc>' );
 	} );
 
@@ -233,6 +237,73 @@ describe( 'SitemapIndexGenerator', function (): void {
 		$xml       = $generator->generate();
 
 		expect( $xml )->toContain( '<lastmod>' );
+	} );
+
+	it( 'does not need an index just because the image sitemap is enabled', function (): void {
+		config( [ 'seo.sitemap.types.image' => true ] );
+
+		SitemapEntry::create( [
+			'sitemapable_type' => 'App\\Models\\Page',
+			'sitemapable_id'   => 1,
+			'url'              => 'https://example.com/page',
+			'type'             => 'page',
+		] );
+
+		$generator = new SitemapIndexGenerator( 'https://example.com' );
+
+		expect( $generator->needsIndex() )->toBeFalse();
+	} );
+
+	it( 'lists every image sitemap page', function (): void {
+		config( [ 'seo.sitemap.types.image' => true ] );
+
+		foreach ( [ 1, 2, 3 ] as $id ) {
+			SitemapEntry::create( [
+				'sitemapable_type' => 'App\\Models\\Page',
+				'sitemapable_id'   => $id,
+				'url'              => 'https://example.com/page-' . $id,
+				'type'             => 'page',
+				'images'           => [ [ 'loc' => 'https://example.com/image.jpg' ] ],
+			] );
+		}
+
+		$xml = ( new SitemapIndexGenerator( 'https://example.com', 2 ) )->generate();
+
+		expect( $xml )->toContain( 'sitemap-images.xml' )
+			->and( $xml )->toContain( 'sitemap-images-2.xml' )
+			->and( $xml )->not->toContain( 'sitemap-images-3.xml' );
+	} );
+
+	it( 'ignores empty image lists', function (): void {
+		config( [ 'seo.sitemap.types.image' => true ] );
+
+		SitemapEntry::create( [
+			'sitemapable_type' => 'App\\Models\\Page',
+			'sitemapable_id'   => 1,
+			'url'              => 'https://example.com/page',
+			'type'             => 'page',
+			'images'           => [],
+		] );
+
+		expect( ( new SitemapIndexGenerator( 'https://example.com' ) )->needsIndex() )->toBeFalse();
+	} );
+
+	it( 'ignores images on non-indexable entries', function (): void {
+		config( [ 'seo.sitemap.types.image' => true ] );
+
+		SitemapEntry::create( [
+			'sitemapable_type' => 'App\\Models\\Page',
+			'sitemapable_id'   => 1,
+			'url'              => 'https://example.com/hidden',
+			'type'             => 'page',
+			'is_indexable'     => false,
+			'images'           => [ [ 'loc' => 'https://example.com/image.jpg' ] ],
+		] );
+
+		$generator = new SitemapIndexGenerator( 'https://example.com' );
+
+		expect( $generator->needsIndex() )->toBeFalse()
+			->and( $generator->generate() )->not->toContain( 'sitemap-images.xml' );
 	} );
 
 	it( 'includes image sitemap when enabled', function (): void {

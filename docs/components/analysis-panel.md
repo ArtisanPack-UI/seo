@@ -9,7 +9,7 @@ The SEO Analysis Panel is a Livewire component that displays content analysis re
 ## Basic Usage
 
 ```blade
-<livewire:seo-analysis-panel :model="$post" />
+<livewire:seo::seo-analysis-panel :model="$post" />
 ```
 
 ## Features
@@ -39,7 +39,7 @@ The SEO Analysis Panel is a Livewire component that displays content analysis re
         <h3>SEO Analysis</h3>
     </div>
     <div class="card-body">
-        <livewire:seo-analysis-panel :model="$post" />
+        <livewire:seo::seo-analysis-panel :model="$post" />
     </div>
 </div>
 ```
@@ -47,7 +47,7 @@ The SEO Analysis Panel is a Livewire component that displays content analysis re
 ### Compact View (Score Only)
 
 ```blade
-<livewire:seo-analysis-panel
+<livewire:seo::seo-analysis-panel
     :model="$post"
     :show-details="false"
 />
@@ -56,7 +56,7 @@ The SEO Analysis Panel is a Livewire component that displays content analysis re
 ### With Auto-Refresh
 
 ```blade
-<livewire:seo-analysis-panel
+<livewire:seo::seo-analysis-panel
     :model="$post"
     :auto-refresh="true"
 />
@@ -186,13 +186,13 @@ Checks word count:
 ## Refresh Analysis
 
 ```blade
-<livewire:seo-analysis-panel :model="$post">
+<livewire:seo::seo-analysis-panel :model="$post">
     <x-slot:actions>
         <button wire:click="refresh">
             Re-analyze
         </button>
     </x-slot:actions>
-</livewire:seo-analysis-panel>
+</livewire:seo::seo-analysis-panel>
 ```
 
 ## Events
@@ -214,7 +214,7 @@ php artisan vendor:publish --tag=seo-views
 ```php
 namespace App\Livewire;
 
-use ArtisanPackUI\Seo\Livewire\SeoAnalysisPanel as BaseSeoAnalysisPanel;
+use ArtisanPackUI\SEO\Livewire\SeoAnalysisPanel as BaseSeoAnalysisPanel;
 
 class CustomSeoAnalysisPanel extends BaseSeoAnalysisPanel
 {
@@ -232,22 +232,61 @@ class CustomSeoAnalysisPanel extends BaseSeoAnalysisPanel
 ```php
 namespace App\Seo\Analyzers;
 
-use ArtisanPackUI\Seo\Contracts\AnalyzerInterface;
+use ArtisanPackUI\SEO\Contracts\AnalyzerContract;
+use ArtisanPackUI\SEO\Models\SeoMeta;
+use Illuminate\Database\Eloquent\Model;
 
-class CustomAnalyzer implements AnalyzerInterface
+class CustomAnalyzer implements AnalyzerContract
 {
-    public function analyze($model): array
+    public function analyze(Model $model, string $content, ?string $focusKeyword, ?SeoMeta $seoMeta): array
     {
-        // Your analysis logic
+        $value = $this->calculateValue($content);
+
+        if ($value >= 5) {
+            return [
+                'score' => 100,
+                'issues' => [],
+                'suggestions' => [],
+                'passed' => ["Value is {$value}."],
+                'details' => ['value' => $value],
+            ];
+        }
+
         return [
-            'status' => 'pass', // pass, warning, fail
-            'title' => 'Custom Check',
-            'message' => 'Custom check passed.',
-            'score' => 100,
+            'score' => $value * 20,
+            'issues' => [
+                ['type' => 'warning', 'message' => "Value is {$value}, should be at least 5."],
+            ],
+            'suggestions' => [],
+            'passed' => [],
+            'details' => ['value' => $value],
         ];
+    }
+
+    public function getName(): string
+    {
+        return 'custom';
+    }
+
+    public function getCategory(): string
+    {
+        return 'content'; // readability, keyword, meta, or content
+    }
+
+    public function getWeight(): int
+    {
+        return 25;
+    }
+
+    protected function calculateValue(string $content): int
+    {
+        // Your custom logic
+        return 10;
     }
 }
 ```
+
+See [SEO Analysis](Advanced-Analysis#custom-analyzers) for registration.
 
 ## Integration with Editor
 
@@ -256,11 +295,11 @@ The analysis panel is often used alongside the SEO Meta Editor:
 ```blade
 <div class="grid grid-cols-3 gap-6">
     <div class="col-span-2">
-        <livewire:seo-meta-editor :model="$post" />
+        <livewire:seo::seo-meta-editor :model="$post" />
     </div>
 
     <div>
-        <livewire:seo-analysis-panel
+        <livewire:seo::seo-analysis-panel
             :model="$post"
             :auto-refresh="true"
         />

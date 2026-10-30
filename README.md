@@ -21,7 +21,7 @@ php artisan vendor:publish --tag=seo-config
 
 ```php
 // Add the HasSeo trait to your model
-use ArtisanPackUI\Seo\Traits\HasSeo;
+use ArtisanPackUI\SEO\Traits\HasSeo;
 
 class Post extends Model
 {
@@ -32,7 +32,7 @@ class Post extends Model
 ```blade
 <!-- Render all SEO tags in your layout -->
 <head>
-    <x-seo-meta :model="$post" />
+    <x-seo:meta :model="$post" />
 </head>
 ```
 
@@ -40,12 +40,12 @@ class Post extends Model
 
 - **Meta Tag Management**: Title, description, robots directives, and canonical URLs with automatic fallbacks
 - **Social Media Tags**: Open Graph for Facebook/LinkedIn and Twitter Cards with image support
-- **Schema.org Markup**: 14 built-in JSON-LD schema types for rich search results
+- **Schema.org Markup**: 15 built-in JSON-LD schema types for rich search results
 - **Multi-Language Support**: Hreflang tags for international SEO
 - **URL Redirects**: Exact, regex, and wildcard redirects with hit tracking
-- **XML Sitemaps**: Standard, image, video, and news sitemaps with automatic indexing
-- **Dynamic Robots.txt**: Configurable rules with bot-specific directives
-- **SEO Analysis**: 8 built-in analyzers for content quality scoring
+- **XML Sitemaps**: Standard, image, video, and news sitemaps with automatic indexing, leaving out `priority` and `changefreq` unless set
+- **Dynamic Robots.txt**: Configurable rules with bot-specific directives, plus an optional static `public/robots.txt`
+- **SEO Analysis**: 9 built-in analyzers for content quality scoring
 - **Performance Caching**: Comprehensive caching for meta tags, sitemaps, and redirects
 - **Admin Components**: Livewire components for visual SEO management
 - **AI Features**: Five AI agents for title/description suggestions, content analysis, schema generation, and hreflang gap detection (requires `artisanpack-ui/ai`)
@@ -62,24 +62,24 @@ class Post extends Model
 
 | Component | Purpose |
 |-----------|---------|
-| `<x-seo-meta>` | All-in-one SEO output (meta, OG, Twitter, schema) |
-| `<x-seo-meta-tags>` | Basic meta tags only |
-| `<x-seo-open-graph>` | Open Graph tags for social sharing |
-| `<x-seo-twitter-card>` | Twitter Card meta tags |
-| `<x-seo-schema>` | Schema.org JSON-LD markup |
-| `<x-seo-hreflang>` | Hreflang link tags for multi-language |
+| `<x-seo:meta>` | All-in-one SEO output (meta, OG, Twitter, hreflang) |
+| `<x-seo:meta-tags>` | Basic meta tags only |
+| `<x-seo:open-graph>` | Open Graph tags for social sharing |
+| `<x-seo:twitter-card>` | Twitter Card meta tags |
+| `<x-seo:schema>` | Schema.org JSON-LD markup |
+| `<x-seo:hreflang>` | Hreflang link tags for multi-language |
 
 ### Livewire Components
 
 | Component | Purpose |
 |-----------|---------|
-| `<livewire:seo-meta-editor>` | Full SEO editing interface with tabs |
-| `<livewire:redirect-manager>` | URL redirect management |
-| `<livewire:seo-dashboard>` | SEO overview and statistics |
-| `<livewire:seo-analysis-panel>` | Content analysis results |
-| `<livewire:hreflang-editor>` | Multi-language URL editor |
-| `<livewire:meta-preview>` | Search result preview |
-| `<livewire:social-preview>` | Social share preview |
+| `<livewire:seo::seo-meta-editor>` | Full SEO editing interface with tabs |
+| `<livewire:seo::redirect-manager>` | URL redirect management |
+| `<livewire:seo::seo-dashboard>` | SEO overview and statistics |
+| `<livewire:seo::seo-analysis-panel>` | Content analysis results |
+| `<livewire:seo::hreflang-editor>` | Multi-language URL editor |
+| `<livewire:seo::meta-preview>` | Search result preview |
+| `<livewire:seo::social-preview>` | Social share preview |
 | `<livewire:seo::ai-meta-title-suggestor>` | AI-generated title variants |
 | `<livewire:seo::ai-meta-description-suggestor>` | AI-generated meta description |
 | `<livewire:seo::ai-content-analyzer>` | AI content quality scoring with recommendations |
@@ -88,7 +88,7 @@ class Post extends Model
 
 ### Schema Types
 
-Article, BlogPosting, Product, Organization, Person, LocalBusiness, Event, Recipe, FAQPage, HowTo, BreadcrumbList, WebSite, WebPage, VideoObject
+Organization, LocalBusiness, WebSite, WebPage, Article, BlogPosting, Product, Service, Event, FAQPage, BreadcrumbList, Review, AggregateRating, SoftwareSourceCode, SoftwareApplication
 
 Organization now emits validated `sameAs` URLs and supports a
 width/height-carrying `ImageObject` for the publisher logo.
@@ -149,7 +149,7 @@ Comprehensive documentation is available at [docs.artisanpackui.dev](https://doc
 - **[Social Media](https://docs.artisanpackui.dev/seo/usage/social-media)** - Open Graph and Twitter Cards
 - **[Schema.org](https://docs.artisanpackui.dev/seo/usage/schema)** - Structured data markup
 - **[Components](https://docs.artisanpackui.dev/seo/components)** - Blade and Livewire components
-- **[API Reference](https://docs.artisanpackui.dev/seo/api)** - Models, services, and events
+- **[API Reference](https://docs.artisanpackui.dev/seo/api)** - Models, services, and hooks
 
 ## Configuration
 
@@ -166,35 +166,44 @@ php artisan vendor:publish --tag=seo-config
 return [
     // Site defaults
     'site' => [
-        'name' => env('APP_NAME'),
-        'separator' => ' | ',
+        'name' => env('SEO_SITE_NAME', env('APP_NAME', 'Laravel')),
+        'description' => env('SEO_SITE_DESCRIPTION', ''),
+        'separator' => env('SEO_TITLE_SEPARATOR', ' | '),
     ],
 
     // Default meta values
     'defaults' => [
-        'title' => null,
-        'description' => null,
-        'image' => null,
-        'robots' => 'index, follow',
+        'robots' => env('SEO_DEFAULT_ROBOTS', 'index, follow'),
+        'title_max_length' => 60,
+        'description_max_length' => 160,
+    ],
+
+    // Sitemaps. Null defaults leave priority and changefreq out.
+    'sitemap' => [
+        'enabled' => env('SEO_SITEMAP_ENABLED', true),
+        'route_enabled' => true,
+        'default_frequency' => null,
+        'default_priority' => null,
+        'types' => ['standard' => true, 'image' => true, 'video' => false, 'news' => false],
+        'search_engines' => [],
+    ],
+
+    // Robots.txt
+    'robots' => [
+        'enabled' => true,
+        'route_enabled' => true,
+        'write_static' => env('SEO_ROBOTS_WRITE_STATIC', false),
     ],
 
     // Feature toggles
-    'redirects' => ['enabled' => true],
-    'sitemap' => ['enabled' => true],
-    'robots' => ['enabled' => true],
-    'analysis' => ['enabled' => true],
+    'redirects' => ['enabled' => env('SEO_REDIRECTS_ENABLED', true)],
+    'analysis' => ['enabled' => env('SEO_ANALYSIS_ENABLED', true)],
 
     // Caching
     'cache' => [
-        'enabled' => true,
+        'enabled' => env('SEO_CACHE_ENABLED', true),
+        'ttl' => env('SEO_CACHE_TTL', 3600),
         'driver' => null, // Uses default cache driver
-        'ttl' => 3600,
-    ],
-
-    // Routes
-    'routes' => [
-        'sitemap' => true,
-        'robots' => true,
     ],
 ];
 ```
@@ -204,12 +213,15 @@ return [
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `SEO_SITE_NAME` | Site name for titles | `APP_NAME` |
+| `SEO_SITE_DESCRIPTION` | Site description, used as a meta and llms.txt fallback | empty |
 | `SEO_TITLE_SEPARATOR` | Separator between title and site name | ` \| ` |
 | `SEO_DEFAULT_ROBOTS` | Default robots directive | `index, follow` |
 | `SEO_CACHE_ENABLED` | Enable SEO caching | `true` |
 | `SEO_CACHE_TTL` | Cache TTL in seconds | `3600` |
 | `SEO_REDIRECTS_ENABLED` | Enable redirect handling | `true` |
 | `SEO_SITEMAP_ENABLED` | Enable sitemap generation | `true` |
+| `SEO_SITEMAP_SUBMIT_ENABLED` | Ping configured search engines from `notifyOnPublish()` | `false` |
+| `SEO_ROBOTS_WRITE_STATIC` | Write the rules to `public/robots.txt` | `false` |
 | `SEO_ANALYSIS_ENABLED` | Enable SEO analysis | `true` |
 
 ## Artisan Commands
@@ -218,12 +230,38 @@ return [
 # Generate XML sitemap
 php artisan seo:generate-sitemap
 
-# Submit sitemap to search engines
+# Submit sitemap to configured search engines (none by default)
 php artisan seo:submit-sitemap
 
-# Clear SEO cache
-php artisan seo:clear-cache
+# Sync public/robots.txt with the seo.robots settings
+php artisan seo:write-robots
 ```
+
+### Serving robots.txt on Forge and stock Laravel Nginx templates
+
+The dynamic `robots.txt` route returns a 404 status on Nginx templates that
+contain `location = /robots.txt { log_not_found off; }` and
+`error_page 404 /index.php;`. A missing physical file reaches PHP but keeps
+the 404, and crawlers treat a 4xx robots file as having no rules, so your
+`Sitemap:` line is never read. The response body looks correct, so check the
+status with `curl -I https://your-site.test/robots.txt`.
+
+There are two fixes. Either change the Nginx location:
+
+```nginx
+location = /robots.txt { access_log off; log_not_found off; try_files $uri /index.php?$query_string; }
+```
+
+Or write a physical file. Delete any existing `public/robots.txt`, set
+`SEO_ROBOTS_WRITE_STATIC=true`, and run `php artisan seo:write-robots`, or
+`php artisan optimize` during your deploy. Run the command again after changing
+the rules. Setting it back to `false` and running it removes the file. The
+command never replaces a `robots.txt` it didn't write unless you pass `--force`.
+
+Early Laravel 11 releases have no `optimize` hook for packages, so run
+`seo:write-robots` directly on those. The file's `Sitemap:` line uses
+`APP_URL`, and every host sharing the public directory gets the same file, so
+sites served from several hosts should use the Nginx fix instead.
 
 ## Requirements
 
@@ -239,28 +277,9 @@ This package integrates with the ArtisanPack UI ecosystem:
 - [artisanpack-ui/livewire-ui-components](https://github.com/ArtisanPack-UI/livewire-ui-components) - UI components
 - [artisanpack-ui/hooks](https://github.com/ArtisanPack-UI/hooks) - WordPress-style hooks for extensibility
 
-## Events
+## Hooks Instead of Events
 
-The package dispatches events for key actions:
-
-```php
-use ArtisanPackUI\Seo\Events\SeoMetaCreated;
-use ArtisanPackUI\Seo\Events\SeoMetaUpdated;
-use ArtisanPackUI\Seo\Events\SitemapGenerated;
-use ArtisanPackUI\Seo\Events\RedirectHit;
-
-// Listen for SEO meta changes
-Event::listen(SeoMetaUpdated::class, function ($event) {
-    // $event->seoMeta contains the updated meta
-    // $event->model contains the associated model
-});
-
-// Listen for redirect hits
-Event::listen(RedirectHit::class, function ($event) {
-    // $event->redirect contains the redirect record
-    // $event->request contains the HTTP request
-});
-```
+The package doesn't dispatch Laravel events. Use the filter and action hooks listed under [Extensibility Hooks](#extensibility-hooks) to run code at key points.
 
 ## Helper Functions
 
@@ -274,8 +293,8 @@ $meta = seoMeta($post);
 // Format a page title with site name
 $title = seoTitle('My Page'); // "My Page | Site Name"
 
-// Truncate description to SEO length
-$desc = seoDescription($longText); // Truncated to 160 chars
+// Shorten a description to SEO length
+$desc = seoDescription($longText); // 160 chars at most, including the "..."
 
 // Check if a feature is enabled
 if (seoIsEnabled('sitemap')) {
@@ -291,41 +310,67 @@ $separator = seoConfig('site.separator');
 ### Custom Schema Types
 
 ```php
-use ArtisanPackUI\Seo\Contracts\SchemaBuilderInterface;
+use ArtisanPackUI\SEO\Schema\Builders\AbstractSchema;
+use Illuminate\Database\Eloquent\Model;
 
-class CustomSchemaBuilder implements SchemaBuilderInterface
+class CustomSchema extends AbstractSchema
 {
-    public function build($model, array $data = []): array
+    public function getType(): string
+    {
+        return 'CustomType';
+    }
+
+    public function generate(?Model $model = null): array
     {
         return [
             '@context' => 'https://schema.org',
-            '@type' => 'CustomType',
+            '@type' => $this->getType(),
             // ... custom properties
         ];
     }
 }
 
-// Register via service provider
-$this->app->bind('seo.schema.custom', CustomSchemaBuilder::class);
+// Register in a service provider's boot() method
+app('seo')->registerSchemaType('CustomType', CustomSchema::class);
 ```
 
 ### Custom Analyzers
 
 ```php
-use ArtisanPackUI\Seo\Contracts\AnalyzerInterface;
+use ArtisanPackUI\SEO\Contracts\AnalyzerContract;
+use ArtisanPackUI\SEO\Models\SeoMeta;
+use Illuminate\Database\Eloquent\Model;
 
-class CustomAnalyzer implements AnalyzerInterface
+class CustomAnalyzer implements AnalyzerContract
 {
-    public function analyze($model): array
+    public function analyze(Model $model, string $content, ?string $focusKeyword, ?SeoMeta $seoMeta): array
     {
         return [
             'score' => 85,
-            'status' => 'good',
-            'message' => 'Content passes custom analysis.',
+            'issues' => [],
             'suggestions' => [],
+            'passed' => ['Content passes custom analysis.'],
         ];
     }
+
+    public function getName(): string
+    {
+        return 'custom';
+    }
+
+    public function getCategory(): string
+    {
+        return 'content';
+    }
+
+    public function getWeight(): int
+    {
+        return 10;
+    }
 }
+
+// Register in a service provider's boot() method
+app('seo')->registerAnalyzer('custom', CustomAnalyzer::class);
 ```
 
 ### Extensibility Hooks
@@ -366,6 +411,9 @@ Hooks are called with helper functions from `artisanpack-ui/hooks`: `applyFilter
 |---|---|---|---|---|
 | `ap.seo.metaTags` | filter | `MetaTagService::generate()` | `(array $tags, ?Model $subject, Request $request)` | `array $tags` |
 | `ap.seo.sitemapEntries` | filter | `SitemapGenerator::generate()` and `generateFromProvider()` | `(array $entries, string $sitemapType)` | `array $entries` |
+| `ap.seo.llmsTxtEntries` | filter | `LlmsTxtGenerator::generate()` | `(array $entries)`, where entries are `SitemapEntry` models or arrays for provider URLs | `array $entries` |
+| `ap.seo.feedEntries` | filter | `FeedGenerator` | `(array $entries, string $feedType)` | `array $entries` |
+| `ap.seo.analysisContent` | filter | `AnalysisService` | `(string $content, Model $model)` | `string $content` |
 | `ap.seo.schemaGraph` | filter | `SchemaService::generateGraph()` | `(array $graph, ?Model $model)` | `array $graph` |
 | `ap.seo.schemaRendering` | action | `SchemaService::renderGraph()` (before encode) | `(array $graph, ?Model $model)` | — |
 | `ap.seo.schemaRendered` | action | `SchemaService::renderGraph()` (after encode) | `(array $graph, ?Model $model)` | — |
@@ -440,7 +488,7 @@ Mid-render code — most commonly a block's `render()` method or a Livewire comp
 Accepts either a raw associative array or an `AbstractSchema` builder instance:
 
 ```php
-use ArtisanPackUI\SEO\Schema\Builders\FAQPage;
+use ArtisanPackUI\SEO\Schema\Builders\FAQPageSchema;
 
 class FaqBlock
 {
@@ -463,7 +511,7 @@ class FaqBlock
         ] );
 
         // Or, using a builder:
-        apSeoAddSchema( new FAQPage( $attributes ) );
+        apSeoAddSchema( new FAQPageSchema( $attributes ) );
 
         return view( 'blocks.faq', $attributes )->render();
     }
@@ -474,16 +522,7 @@ Entries pushed via `apSeoAddSchema()` pass through the `ap.seo.schemaGraph` filt
 
 ## Middleware
 
-Add the redirect middleware to handle URL redirects:
-
-```php
-// In bootstrap/app.php
-->withMiddleware(function (Middleware $middleware) {
-    $middleware->web(append: [
-        \ArtisanPackUI\Seo\Http\Middleware\HandleRedirects::class,
-    ]);
-})
-```
+`HandleRedirects` is added to the `web` middleware group automatically. Set `seo.redirects.enabled` or `seo.redirects.middleware_enabled` to `false` to turn it off.
 
 ## Contributing
 

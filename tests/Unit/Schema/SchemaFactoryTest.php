@@ -67,6 +67,8 @@ describe( 'SchemaFactory', function (): void {
 			'BreadcrumbList',
 			'Review',
 			'AggregateRating',
+			'SoftwareSourceCode',
+			'SoftwareApplication',
 		];
 
 		foreach ( $expectedTypes as $type ) {

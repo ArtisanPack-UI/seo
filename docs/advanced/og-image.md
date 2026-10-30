@@ -70,6 +70,25 @@ Pass per-page `overrides` to swap the template inline, or set
 renderer opens directly. Resolve any user-visible template choice to a
 whitelist of server-controlled paths first.
 
+File names end in the image's size, such as `{hash}-1200x630.png`. Images
+rendered before 1.9.0 keep their old names and render once more under
+the new name; the old files aren't removed.
+
+## Image tags
+
+When `og:image` is a generated card, `og:image:width`, `og:image:height`,
+`og:image:alt` and `twitter:image:alt` are emitted automatically. The
+size comes from the file name, and the alt text is the page title, since
+the card shows it. Read the size yourself with:
+
+```php
+$size = app( OgImageService::class )->dimensionsForUrl( $url );
+// ['width' => 1200, 'height' => 630], or null if the URL isn't a generated card
+```
+
+Cards from before 1.9.0 have no size in their name, so they get no
+detail tags until they're regenerated.
+
 ## Layout (1.6.0)
 
 The default layout anchors the title stack to the **bottom-left** of

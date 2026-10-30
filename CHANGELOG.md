@@ -7,6 +7,153 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-10-30
+
+### Added
+
+- **`HasPublicUrl` contract and `PublicUrlResolver`.** Models can declare
+  their public URL with `getPublicUrl()`. Canonical tags, `og:url`,
+  schema and sitemap entries now share one resolver, which runs in this
+  order: saved `canonical_url`, `HasPublicUrl`, `getUrl()`, then a
+  `permalink` attribute. Canonical tags and `og:url` fall back to the
+  current request URL, schema leaves `url` out, and sitemaps try a
+  `{model}.show` route. A relative `permalink` is built from `app.url`
+  (#117).
+- **`SoftwareSourceCode` and `SoftwareApplication` schema types.** Both are
+  registered with `SchemaFactory`, offered in the SEO editor, admin schema
+  tabs and AI schema suggestions, and included in the TypeScript types.
+  `SoftwareApplication`
+  emits `version` as `softwareVersion` and leaves out `codeRepository`,
+  `programmingLanguage` and `runtimePlatform`, which Schema.org only
+  defines for `SoftwareSourceCode` (#119).
+- **Image dimensions and alt text on social tags.** `og:image:width`,
+  `og:image:height`, `og:image:alt` and `twitter:image:alt` are emitted when
+  known: from the media library, from generated OG cards, or from the new
+  `seo.open_graph.default_image_width`, `default_image_height` and
+  `default_image_alt` settings. `OpenGraphDTO`, `TwitterCardDTO`, their API
+  resources and TypeScript types carry the new fields (#120).
+- **Optional static `robots.txt`.** `seo.robots.write_static`
+  (`SEO_ROBOTS_WRITE_STATIC`) writes the generated rules to
+  `public/robots.txt`, for servers that serve the dynamic route with a 404
+  status. `seo:write-robots` writes the file, or removes it when the setting
+  is off, and also runs during `php artisan optimize`. Apps that store robots
+  settings at runtime should call `RobotsService::syncStaticFile()` from a
+  console command or queued job after saving. A `robots.txt` the package
+  didn't write is left alone unless you pass `--force`, so delete Laravel's
+  stock file before turning this on (#123).
+- llms.txt now lists sitemap provider URLs under their registered type.
+  Providers may add `title` and `description` to each URL. URLs with a stored
+  sitemap entry are skipped, so a provider can't list a non-indexable page.
+  `ap.seo.llmsTxtEntries` callbacks now receive these URLs as arrays alongside
+  `SitemapEntry` models once a provider is registered, so handle both (#122).
+
+### Changed
+
+- **Breaking: URLs are no longer guessed from a model's slug.** The
+  `url( $model->slug )` fallback produced wrong canonicals for anything
+  outside the site root. A model that relied on it now gets the request
+  URL for its canonical and `og:url`, no schema `url`, and no new sitemap
+  entry unless it has a `{model}.show` route. Existing entries keep their
+  URL. To keep these models in the sitemap, implement `HasPublicUrl` or
+  `getUrl()`, or add a `permalink` attribute. A custom
+  `getCanonicalUrlAttribute()` accessor no longer feeds the sitemap for the
+  same reason, and `getOrCreateSitemapEntry()` and `updateSitemapEntry()`
+  throw `InvalidArgumentException` for a model with no URL (#117).
+- **Breaking: `article:*` tags moved to Open Graph.** They are now rendered
+  with `property` by `<x-seo:open-graph>` and `<x-seo:meta>`, only when
+  `og:type` is `article`, and are gone from `MetaTagsDTO::$additionalMeta`.
+  Read them from `OpenGraphDTO::$publishedTime` and `$modifiedTime` (#120).
+- **Breaking: `meta name="keywords"` is no longer emitted.** Search engines
+  ignore it and it published each page's focus keywords. To keep it, add a
+  `keywords` key to `additionalMeta` in the `ap.seo.metaTags` filter (#120).
+- **Breaking: sitemaps omit `priority` and `changefreq` unless set for a
+  URL.** `seo.sitemap.default_priority` and `default_frequency` now default to
+  null. A new migration makes the `seo_meta` and `sitemap_entries` columns
+  nullable and clears values matching the old `0.5` and `weekly` defaults,
+  because they can't be told apart from a deliberate choice, so reselect any
+  you want to keep. **If you published `config/seo.php`, set both defaults to
+  null**, or the next save writes them back. `getSitemapPriority()`,
+  `getSitemapChangefreq()` and the `SitemapProviderContract` methods may now
+  return null. The Livewire SEO editor's priority slider is now a number
+  field that can be left blank, and change frequency has a "Not specified"
+  option (#121).
+- **Breaking: no search engine is pinged by default.** Bing's ping endpoint
+  now returns 410 Gone, so it was removed from the default
+  `seo.sitemap.search_engines`, and an empty list no longer falls back to it.
+  `seo:submit-sitemap` says so instead of reporting a failure. Remove `bing`
+  from a published config, list your sitemap in robots.txt, and use IndexNow
+  to announce updates (#121).
+- The image sitemap is on by default. It only joins the sitemap index when
+  an indexable entry has images, so a site without images keeps its plain
+  sitemap. The index now lists every image sitemap page, and
+  `seo.open_graph.default_image` is no longer recorded as a page's image. Set
+  `seo.sitemap.types.image` to false to opt out (#121).
+- Generated OG image file names now end in the image's size, such as
+  `{hash}-1200x630.png`, so existing images render once more under the new
+  name. Older files are not removed (#120).
+- The title suffix is skipped when it would push a title past
+  `seo.defaults.title_max_length`. Set the limit to 0 to always add it (#120).
+- `seoDescription()` now counts the trailing `...` toward its limit (#120).
+- The llms.txt summary falls back to the homepage's description when
+  `seo.llms_txt.summary` and `seo.site.description` are empty, and is kept on
+  one line so it stays inside the blockquote (#122).
+- **Breaking: the sitemap index only lists per-type children.** An
+  `ap.seo.sitemapEntries` callback that checks for the all-types `''` value
+  now only affects `sitemap-{page}.xml`, which the index no longer links,
+  so move that logic to the per-type values. A sitemap type must also
+  match `[A-Za-z0-9_.-]+`, or its child can't be reached (#116).
+- `SitemapObserver` and `getOrCreateSitemapEntry()` no longer use the
+  request URL, so saving a model from an admin screen can't put that
+  screen's URL in the sitemap (#117).
+- `og_type` is now nullable with no default, and null means "infer it".
+  The SEO editor and admin tabs have an "Automatic" option, and the editor
+  no longer writes `website` on every save (#118).
+- Provider sitemaps now paginate. `SitemapGenerator::generateFromProvider()`
+  lists stored entries of the provider's type followed by provider URLs it
+  doesn't already store, keeps each page within `max_urls_per_file`, and
+  takes optional `$page` and `$type` arguments. The new
+  `getProviderTotalPages()` counts the pages, and the index lists each one.
+  `SitemapService::getTotalPages()` includes provider URLs for a provider's
+  type (#116).
+- `SchemaService::generate()` loads the model's `SeoMeta` when none is
+  passed, so the schema `url` honors a saved canonical (#117).
+- `SchemaGenerationAgent` always sets `jsonld['@type']` to the validated
+  `suggested_type` (#119).
+- `seo:generate-sitemap` always writes `sitemap-{type}-{page}.xml`, matching
+  the URLs in the sitemap index. It used to write `sitemap-{type}.xml` for
+  page 1 (#116).
+
+### Fixed
+
+- **`SitemapEntry::withImages()` and `withVideos()` work on Postgres.** They
+  compared a `json` column to a string, which Postgres rejects, and they now
+  also exclude empty arrays on MySQL (#121).
+- **Descriptions stay within their limit.** Generated meta descriptions were
+  up to 163 characters, and generated Open Graph descriptions up to 203,
+  because `...` was added after the limit. Saved `meta_description` and
+  `og_description` values are no longer shortened at all (#120).
+- **`og:type` inference now runs for models with a `seo_meta` row.** The
+  column's `website` default meant every post reported `website`. A new
+  migration clears the default and nulls existing `website` rows, because
+  they can't be told apart from a deliberate choice. If you want
+  `website` on a post, reselect it after migrating. `getSeoData()` now
+  reports the same type as the Open Graph tags (#118).
+- **The sitemap index no longer lists every URL twice.** It stopped adding
+  the all-types `sitemap-{page}.xml` child when per-type children exist.
+  That route still responds for URLs already submitted to search consoles.
+  The per-type route now accepts underscores, capitals and dots, so
+  `blog_post` children resolve instead of returning 404 (#116).
+- **Empty sitemap children return 404.** `sitemap-{type}-{page}.xml` used
+  to return an empty `<urlset/>` for any type or page with no entries. The
+  check runs after `ap.seo.sitemapEntries`, so entries a callback adds or
+  removes count. A type served by a registered provider can still return
+  an empty page 1 (#116).
+- `sitemap-images-{page}.xml`, `sitemap-videos-{page}.xml` and
+  `sitemap-news-{page}.xml` now serve their own sitemaps unless stored
+  entries use that type name (#116).
+- A provider now appears in the index when every stored row of its type is
+  non-indexable (#116).
+
 ## [1.8.1] - 2026-10-22
 
 ### Fixed

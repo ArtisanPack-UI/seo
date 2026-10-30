@@ -58,6 +58,12 @@ return [
 		'type'          => 'website',
 		'default_image' => null,
 		'site_name'     => env( 'APP_NAME', 'Laravel' ),
+
+		// Details of `default_image`, emitted as og:image:width, og:image:height,
+		// og:image:alt and twitter:image:alt when set.
+		'default_image_width'  => null,
+		'default_image_height' => null,
+		'default_image_alt'    => null,
 	],
 
 	/*
@@ -117,8 +123,8 @@ return [
 		'route_enabled'     => true,
 		'route_path'        => 'sitemap.xml',
 		'max_urls_per_file' => 10000,
-		'default_frequency' => 'weekly',
-		'default_priority'  => 0.5,
+		'default_frequency' => null, // Left out of the sitemap when null
+		'default_priority'  => null, // Left out of the sitemap when null
 		'cache_enabled'     => true,
 		'cache_ttl'         => 3600, // 1 hour in seconds
 		'submit_enabled'    => env( 'SEO_SITEMAP_SUBMIT_ENABLED', false ),
@@ -129,7 +135,7 @@ return [
 		],
 		'types' => [
 			'standard' => true,
-			'image'    => false,
+			'image'    => true,
 			'video'    => false,
 			'news'     => false,
 		],
@@ -138,11 +144,10 @@ return [
 			'max_age_days' => 2, // Google News only indexes last 2 days
 		],
 		'search_engines' => [
-			// The active default ping engine. Google's ping endpoint was
-			// deprecated in 2023 — for Google, submit via Search Console or
-			// list your sitemap in robots.txt. Override this array to add,
-			// remove, or replace engines.
-			'bing' => 'https://www.bing.com/ping?sitemap=%s',
+			// No engine accepts sitemap pings by default: Google retired its
+			// endpoint in 2023 and Bing's now returns 410 Gone. List your
+			// sitemap in robots.txt and use IndexNow for updates. Add engines
+			// here as `'name' => 'https://example.com/ping?sitemap=%s'`.
 		],
 	],
 
@@ -188,9 +193,10 @@ return [
 	|
 	| Configuration for the llms.txt AI-discovery manifest (see
 	| https://llmstxt.org/). The manifest is generated from the same
-	| indexable SitemapEntry source as the XML sitemap, so any regeneration
-	| triggered by the sitemap observer refreshes this output too. Route
-	| wiring is left to consumers (e.g. Keystone).
+	| indexable SitemapEntry source as the XML sitemap, plus URLs from
+	| registered sitemap providers, so any regeneration triggered by the
+	| sitemap observer refreshes this output too. Route wiring is left to
+	| consumers (e.g. Keystone).
 	|
 	*/
 
@@ -209,7 +215,8 @@ return [
 		// Header rendered as the top-level `# {title}` line. Falls back to seo.site.name.
 		'title'         => null,
 
-		// Blockquote summary rendered under the title. Falls back to seo.site.description.
+		// Blockquote summary rendered under the title. Falls back to
+		// seo.site.description, then to the homepage's description.
 		'summary'       => null,
 
 		// Optional intro paragraph rendered above the entry sections.
@@ -267,6 +274,13 @@ return [
 		'route_enabled' => true,
 		'route_path'    => 'robots.txt',
 		'cache_ttl'     => 3600, // 1 hour in seconds
+
+		// When true, write the generated content to public/robots.txt so it
+		// doesn't depend on the web server reaching the dynamic route. Stock
+		// Forge/Laravel Nginx templates serve that route with a 404 status.
+		// Run `php artisan seo:write-robots` after changing the rules; turning
+		// this off and running it again removes the file.
+		'write_static'  => env( 'SEO_ROBOTS_WRITE_STATIC', false ),
 
 		/*
 		|--------------------------------------------------------------------------
