@@ -415,6 +415,24 @@ class SitemapService
 	}
 
 	/**
+	 * Check if a type-specific sitemap exists.
+	 *
+	 * A registered provider always serves its type, even with no URLs to
+	 * list. Any other type needs indexable entries reaching the given page.
+	 *
+	 * @since 1.9.0
+	 *
+	 * @param  string  $type  The sitemap type.
+	 * @param  int     $page  The page number.
+	 *
+	 * @return bool
+	 */
+	public function hasSitemap( string $type, int $page = 1 ): bool
+	{
+		return $this->providers->has( $type ) || $page <= $this->getTotalPages( $type );
+	}
+
+	/**
 	 * Clear all sitemap caches.
 	 *
 	 * Replaces the generation token that is baked into every sitemap cache
@@ -569,7 +587,7 @@ class SitemapService
 		if ( null !== $type && $this->providers->has( $type ) ) {
 			$generator = new SitemapGenerator( $this->maxUrls );
 
-			return $generator->generateFromProvider( $this->providers->get( $type ) );
+			return $generator->generateFromProvider( $this->providers->get( $type ), $page, $type );
 		}
 
 		$generator = new SitemapGenerator( $this->maxUrls );

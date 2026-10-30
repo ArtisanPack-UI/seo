@@ -70,6 +70,8 @@ export type {
     ServiceSchemaConfig,
     ReviewSchemaConfig,
     AggregateRatingSchemaConfig,
+    SoftwareSourceCodeSchemaConfig,
+    SoftwareApplicationSchemaConfig,
     SchemaConfig,
     SchemaResponse,
     PersonConfig,

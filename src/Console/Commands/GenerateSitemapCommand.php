@@ -216,7 +216,7 @@ class GenerateSitemapCommand extends Command
 
 		for ( $page = 1; $page <= max( 1, $totalPages ); $page++ ) {
 			$xml      = $service->generate( $type, $page );
-			$filename = $page > 1 ? "sitemap-{$type}-{$page}.xml" : "sitemap-{$type}.xml";
+			$filename = "sitemap-{$type}-{$page}.xml";
 			File::put( "{$outputPath}/{$filename}", $xml );
 			$this->line( __( '  Created: :file', [ 'file' => $filename ] ) );
 		}

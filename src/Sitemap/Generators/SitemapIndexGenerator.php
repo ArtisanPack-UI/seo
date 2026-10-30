@@ -171,18 +171,12 @@ class SitemapIndexGenerator
 		$types     = SitemapEntry::getAvailableTypes();
 		$generator = new SitemapGenerator( $this->maxUrls );
 
-		// Add main sitemap pages for all entries. The page number is always
-		// included so each child URL matches the `seo.sitemap.page` route and
-		// the index never points back at itself.
-		$totalPages = $generator->getTotalPages();
-		for ( $page = 1; $page <= $totalPages; $page++ ) {
-			$sitemaps->push( $this->buildSitemapEntry( null, $page ) );
-		}
-
-		// Add type-specific sitemaps. The page number is always included
-		// (including page 1) because database-driven types are served by
-		// the `sitemap-{type}-{page}.xml` route only — the un-paginated
-		// `sitemap-{type}.xml` form exists only for image, video, and news.
+		// Every entry has a type, so the type-specific sitemaps cover the whole
+		// site and an all-types child would only repeat them. The page number
+		// is always included (including page 1) because database-driven types
+		// are served by the `sitemap-{type}-{page}.xml` route only — the
+		// un-paginated `sitemap-{type}.xml` form exists only for image, video,
+		// and news.
 		foreach ( $types as $type ) {
 			$typePages = $generator->getTotalPages( $type );
 

@@ -51,6 +51,22 @@ it( 'falls back to WebPage for unsupported types', function (): void {
 	expect( $result['suggested_type'] )->toBe( 'WebPage' );
 } );
 
+it( 'keeps a suggested software type', function ( string $type ): void {
+	$this->prompter->queue( [
+		'suggested_type'          => $type,
+		'confidence'              => 0.9,
+		'jsonld'                  => [ '@context' => 'https://schema.org', '@type' => $type ],
+		'missing_required_fields' => [],
+	] );
+
+	$result = SchemaGenerationAgent::for( [
+		'content' => 'sample',
+		'title'   => 'sample',
+	] )->run();
+
+	expect( $result['suggested_type'] )->toBe( $type );
+} )->with( [ 'SoftwareSourceCode', 'SoftwareApplication' ] );
+
 it( 'syncs jsonld @type when suggested_type is coerced', function (): void {
 	// Model returns an unsupported type in BOTH suggested_type and jsonld['@type'];
 	// the agent must coerce jsonld to match the top-level fallback so downstream

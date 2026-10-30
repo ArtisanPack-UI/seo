@@ -17,15 +17,17 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\SEO\Traits;
 
+use ArtisanPackUI\SEO\Contracts\HasPublicUrl;
 use ArtisanPackUI\SEO\Models\SeoMeta;
 use ArtisanPackUI\SEO\Models\SitemapEntry;
 use ArtisanPackUI\SEO\Observers\SeoObserver;
 use ArtisanPackUI\SEO\Observers\SitemapObserver;
+use ArtisanPackUI\SEO\Services\SocialMetaService;
+use ArtisanPackUI\SEO\Support\PublicUrlResolver;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\MorphOne;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
-use RuntimeException;
 
 /**
  * HasSeo trait for Eloquent models.
@@ -236,30 +238,16 @@ trait HasSeo
 	/**
 	 * Get the canonical URL for this model.
 	 *
+	 * Implement {@see HasPublicUrl} to give the model a URL of its own.
+	 *
 	 * @since 1.0.0
+	 * @since 1.9.0 No longer guesses the URL from the model's slug.
 	 *
 	 * @return string
 	 */
 	public function getCanonicalUrlAttribute(): string
 	{
-		if ( null !== $this->seoMeta?->canonical_url && '' !== $this->seoMeta->canonical_url ) {
-			return $this->seoMeta->canonical_url;
-		}
-
-		if ( method_exists( $this, 'getUrl' ) ) {
-			return $this->getUrl();
-		}
-
-		if ( isset( $this->slug ) && null !== $this->slug ) {
-			return url( $this->slug );
-		}
-
-		// Safely get current URL outside HTTP context
-		try {
-			return url()->current();
-		} catch ( RuntimeException $e ) {
-			return '';
-		}
+		return PublicUrlResolver::resolve( $this, $this->seoMeta );
 	}
 
 	/**
@@ -384,7 +372,7 @@ trait HasSeo
 				'title'       => $seoMeta?->og_title ?? $this->getSeoTitle(),
 				'description' => $seoMeta?->og_description ?? $this->getSeoDescription(),
 				'image'       => $this->getSeoImage(),
-				'type'        => $seoMeta?->og_type ?? config( 'seo.open_graph.type', 'website' ),
+				'type'        => app( SocialMetaService::class )->resolveOgType( $this, $seoMeta ),
 				'locale'      => $seoMeta?->og_locale ?? app()->getLocale(),
 				'site_name'   => $seoMeta?->og_site_name ?? config( 'seo.open_graph.site_name', config( 'app.name' ) ),
 			],
@@ -567,7 +555,7 @@ trait HasSeo
 		}
 
 		if ( ! $this->sitemapEntry ) {
-			$url = $this->canonical_url;
+			$url = PublicUrlResolver::resolveModelUrl( $this, $this->seoMeta );
 
 			// Guard against empty URLs to prevent invalid sitemap entries
 			if ( '' === $url || null === $url ) {

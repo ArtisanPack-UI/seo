@@ -41,12 +41,6 @@ if ( true === config( 'seo.sitemap.route_enabled', true ) ) {
 		->where( 'page', '[1-9][0-9]*' )
 		->name( 'seo.sitemap.page' );
 
-	// Type-specific sitemaps with pagination
-	Route::get( 'sitemap-{type}-{page}.xml', [ SitemapController::class, 'show' ] )
-		->where( 'type', '[a-z0-9\-]+' )
-		->where( 'page', '[1-9][0-9]*' )
-		->name( 'seo.sitemap.type' );
-
 	// Image sitemap routes
 	if ( true === config( 'seo.sitemap.types.image', false ) ) {
 		Route::get( 'sitemap-images.xml', [ SitemapController::class, 'images' ] )
@@ -76,6 +70,13 @@ if ( true === config( 'seo.sitemap.route_enabled', true ) ) {
 			->where( 'page', '[1-9][0-9]*' )
 			->name( 'seo.sitemap.news.page' );
 	}
+
+	// Type-specific sitemaps with pagination. Registered after the specialized
+	// routes so `sitemap-images-2.xml` and friends don't land here as a type.
+	Route::get( 'sitemap-{type}-{page}.xml', [ SitemapController::class, 'show' ] )
+		->where( 'type', '[A-Za-z0-9_\-]+' )
+		->where( 'page', '[1-9][0-9]*' )
+		->name( 'seo.sitemap.type' );
 }
 
 /*

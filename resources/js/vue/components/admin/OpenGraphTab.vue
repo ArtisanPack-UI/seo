@@ -16,6 +16,7 @@ import { Input, Select, Textarea } from '@artisanpack-ui/vue';
 import type { SeoMetaResponse } from '../../../types/seo-data';
 
 const OG_TYPE_OPTIONS = [
+	{ value: '', name: 'Automatic' },
 	{ value: 'website', name: 'Website' },
 	{ value: 'article', name: 'Article' },
 	{ value: 'book', name: 'Book' },
@@ -44,7 +45,7 @@ const emit = defineEmits<{
 	<div class="flex flex-col gap-4">
 		<Select
 			label="OG Type"
-			:model-value="data.og_type ?? 'website'"
+			:model-value="data.og_type ?? ''"
 			@update:model-value="emit( 'change', 'og_type', $event )"
 			:options="OG_TYPE_OPTIONS"
 			option-value="value"

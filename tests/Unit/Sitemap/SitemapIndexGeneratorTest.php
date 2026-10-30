@@ -89,7 +89,7 @@ describe( 'SitemapIndexGenerator', function (): void {
 			->and( $xml )->not->toContain( '<loc>https://example.com/sitemap-page.xml</loc>' );
 	} );
 
-	it( 'includes the page number for page one of the main sitemap', function (): void {
+	it( 'lists a paged type without an all-types child', function (): void {
 		for ( $i = 1; $i <= 3; $i++ ) {
 			SitemapEntry::create( [
 				'sitemapable_type' => 'App\\Models\\Page',
@@ -102,12 +102,14 @@ describe( 'SitemapIndexGenerator', function (): void {
 		$generator = new SitemapIndexGenerator( 'https://example.com', 2 );
 		$xml       = $generator->generate();
 
-		expect( $xml )->toContain( '<loc>https://example.com/sitemap-1.xml</loc>' )
-			->and( $xml )->toContain( '<loc>https://example.com/sitemap-2.xml</loc>' )
+		expect( $xml )->toContain( '<loc>https://example.com/sitemap-page-1.xml</loc>' )
+			->and( $xml )->toContain( '<loc>https://example.com/sitemap-page-2.xml</loc>' )
+			->and( $xml )->not->toContain( '<loc>https://example.com/sitemap-1.xml</loc>' )
+			->and( $xml )->not->toContain( '<loc>https://example.com/sitemap-2.xml</loc>' )
 			->and( $xml )->not->toContain( '<loc>https://example.com/sitemap.xml</loc>' );
 	} );
 
-	it( 'does not reference itself when the main sitemap fits on one page', function (): void {
+	it( 'does not list an all-types child or itself when per-type children exist', function (): void {
 		SitemapEntry::create( [
 			'sitemapable_type' => 'App\\Models\\Page',
 			'sitemapable_id'   => 1,
@@ -125,7 +127,9 @@ describe( 'SitemapIndexGenerator', function (): void {
 		$generator = new SitemapIndexGenerator( 'https://example.com' );
 		$xml       = $generator->generate();
 
-		expect( $xml )->toContain( '<loc>https://example.com/sitemap-1.xml</loc>' )
+		expect( $xml )->toContain( '<loc>https://example.com/sitemap-page-1.xml</loc>' )
+			->and( $xml )->toContain( '<loc>https://example.com/sitemap-post-1.xml</loc>' )
+			->and( $xml )->not->toContain( '<loc>https://example.com/sitemap-1.xml</loc>' )
 			->and( $xml )->not->toContain( '<loc>https://example.com/sitemap.xml</loc>' );
 	} );
 

@@ -202,6 +202,8 @@ describe( 'TypeScript Types Publishing', function (): void {
 			'BreadcrumbList',
 			'Review',
 			'AggregateRating',
+			'SoftwareSourceCode',
+			'SoftwareApplication',
 		];
 
 		expect( $content )->toContain( 'export type SchemaType' );
@@ -226,6 +228,8 @@ describe( 'TypeScript Types Publishing', function (): void {
 			'ServiceSchemaConfig',
 			'ReviewSchemaConfig',
 			'AggregateRatingSchemaConfig',
+			'SoftwareSourceCodeSchemaConfig',
+			'SoftwareApplicationSchemaConfig',
 		];
 
 		foreach ( $configInterfaces as $interface ) {

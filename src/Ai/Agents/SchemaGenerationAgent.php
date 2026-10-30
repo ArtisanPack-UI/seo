@@ -74,6 +74,8 @@ class SchemaGenerationAgent extends ArtisanPackAgent
 		'HowTo',
 		'VideoObject',
 		'WebPage',
+		'SoftwareSourceCode',
+		'SoftwareApplication',
 	];
 
 	/**

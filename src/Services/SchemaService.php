@@ -19,6 +19,7 @@ namespace ArtisanPackUI\SEO\Services;
 
 use ArtisanPackUI\SEO\Models\SeoMeta;
 use ArtisanPackUI\SEO\Schema\SchemaFactory;
+use ArtisanPackUI\SEO\Support\PublicUrlResolver;
 use ArtisanPackUI\SEO\Support\SchemaCollector;
 use ArtisanPackUI\SEO\Traits\HasSeo;
 use DateTimeInterface;
@@ -337,6 +338,7 @@ class SchemaService
 	 * Extract data from model for schema generation.
 	 *
 	 * @since 1.0.0
+	 * @since 1.9.0 The URL comes from {@see PublicUrlResolver}, so it matches the canonical URL.
 	 *
 	 * @param  Model         $model    The model.
 	 * @param  SeoMeta|null  $seoMeta  The SeoMeta instance.
@@ -352,10 +354,9 @@ class SchemaService
 		$data['description'] = $seoMeta?->meta_description ?? $model->excerpt ?? $model->description ?? '';
 
 		// URL
-		if ( method_exists( $model, 'getUrl' ) ) {
-			$data['url'] = $model->getUrl();
-		} elseif ( isset( $model->slug ) ) {
-			$data['url'] = url( $model->slug );
+		$url = PublicUrlResolver::resolve( $model, $seoMeta );
+		if ( '' !== $url ) {
+			$data['url'] = $url;
 		}
 
 		// Image

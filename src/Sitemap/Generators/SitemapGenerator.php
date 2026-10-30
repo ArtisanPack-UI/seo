@@ -87,21 +87,34 @@ class SitemapGenerator
 	/**
 	 * Generate a sitemap from a custom provider.
 	 *
+	 * Entries stored under the provider's type are included too, because the
+	 * provider's child is the only sitemap that can list them. A provider
+	 * isn't paginated, so its URLs only appear on page 1.
+	 *
 	 * @since 1.0.0
+	 * @since 1.9.0 Includes stored entries of the provider's type.
 	 *
 	 * @param  SitemapProviderContract  $provider  The sitemap provider.
+	 * @param  int                      $page      Page number for pagination.
+	 * @param  string|null              $type      The registered type, when it differs from the provider's own.
 	 *
 	 * @return string The generated XML sitemap.
 	 */
-	public function generateFromProvider( SitemapProviderContract $provider ): string
+	public function generateFromProvider( SitemapProviderContract $provider, int $page = 1, ?string $type = null ): string
 	{
-		$urls = $provider->getUrls();
+		$type    = $type ?? $provider->getType();
+		$entries = $this->getEntries( $type, $page )->toBase();
 
-		$entries = $urls->map( function ( $url ) use ( $provider ) {
-			return $this->normalizeProviderUrl( $url, $provider );
-		} )->filter()->values();
+		if ( 1 === $page ) {
+			$entries = $entries
+				->concat( $provider->getUrls()->map( function ( $url ) use ( $provider ) {
+					return $this->normalizeProviderUrl( $url, $provider );
+				} )->filter() )
+				->unique( fn ( SitemapEntry|array $entry ) => $this->getEntryValue( $entry, 'url' ) )
+				->values();
+		}
 
-		$entries = $this->applyEntriesFilter( $entries, $provider->getType() );
+		$entries = $this->applyEntriesFilter( $entries, $type );
 
 		return $this->buildXml( $entries );
 	}
