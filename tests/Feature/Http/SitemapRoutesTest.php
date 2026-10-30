@@ -477,6 +477,38 @@ describe( 'Empty Sitemap Children', function (): void {
 		expect( $this->get( '/sitemap-empty-1.xml' )->assertStatus( 200 )->getContent() )->toContain( '<urlset' );
 	} );
 
+	it( 'returns 404 for a provider page past its stored entries', function (): void {
+		config( [ 'seo.sitemap.providers' => [ 'custom' => SitemapRoutesTestCustomProvider::class ] ] );
+
+		$this->get( '/sitemap-custom-2.xml' )->assertNotFound();
+	} );
+
+	it( 'keeps a stored type that shares a name with a specialized sitemap', function (): void {
+		config( [ 'seo.sitemap.types.news' => true ] );
+
+		app( 'router' )->setRoutes( new RouteCollection() );
+		require __DIR__ . '/../../../routes/web.php';
+
+		$urls = createSitemapRouteEntries( 'news', 1 );
+
+		expect( $this->get( '/sitemap-news-1.xml' )->assertStatus( 200 )->getContent() )->toContain( $urls[0] );
+	} );
+
+	it( 'lists a provider whose stored rows are all non-indexable', function (): void {
+		config( [ 'seo.sitemap.providers' => [ 'custom' => SitemapRoutesTestCustomProvider::class ] ] );
+
+		SitemapEntry::create( [
+			'sitemapable_type' => 'App\\Models\\Page',
+			'sitemapable_id'   => 1,
+			'url'              => 'https://example.com/hidden',
+			'type'             => 'custom',
+			'is_indexable'     => false,
+		] );
+
+		expect( getSitemapIndexLocs( $this->get( '/sitemap.xml' )->assertStatus( 200 )->getContent() ) )
+			->toContain( 'https://example.com/sitemap-custom-1.xml' );
+	} );
+
 	it( 'routes a paged image sitemap to the image sitemap, not a type', function (): void {
 		config( [ 'seo.sitemap.types.image' => true ] );
 

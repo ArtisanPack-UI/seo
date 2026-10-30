@@ -31,7 +31,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   entry. Existing entries keep their URL. To keep these models in the
   sitemap, implement `HasPublicUrl` or `getUrl()`, or add a `permalink`
   attribute. A custom `getCanonicalUrlAttribute()` accessor no longer feeds
-  the sitemap for the same reason (#117).
+  the sitemap for the same reason, and `getOrCreateSitemapEntry()` and
+  `updateSitemapEntry()` throw `InvalidArgumentException` for a model with
+  no URL (#117).
+- **Breaking: the sitemap index only lists per-type children.** An
+  `ap.seo.sitemapEntries` callback that checks for the all-types `''` value
+  now only affects `sitemap-{page}.xml`, which the index no longer links,
+  so move that logic to the per-type values. Entries a callback adds for a
+  type with no stored rows now return 404. A sitemap type must also match
+  `[A-Za-z0-9_-]+`, or its child can't be reached (#116).
 - `SitemapObserver` and `getOrCreateSitemapEntry()` no longer use the
   request URL, so saving a model from an admin screen can't put that
   screen's URL in the sitemap (#117).
@@ -60,11 +68,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   children resolve instead of returning 404 (#116).
 - **Empty sitemap children return 404.** `sitemap-{type}-{page}.xml` used
   to return an empty `<urlset/>` for any type or page with no entries. A
-  type served by a registered provider can still return an empty set
+  type served by a registered provider can still return an empty page 1
   (#116).
 - `sitemap-images-{page}.xml`, `sitemap-videos-{page}.xml` and
-  `sitemap-news-{page}.xml` reach their own controllers instead of being
-  matched as a type (#116).
+  `sitemap-news-{page}.xml` now serve their own sitemaps unless stored
+  entries use that type name (#116).
+- A provider now appears in the index when every stored row of its type is
+  non-indexable (#116).
 
 ## [1.8.1] - 2026-10-22
 

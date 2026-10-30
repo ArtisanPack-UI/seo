@@ -187,8 +187,8 @@ class SitemapIndexGenerator
 
 		// Add provider-specific sitemaps
 		foreach ( $this->providers->keys() as $providerType ) {
-			// Skip if type is already in database types (already handled above)
-			if ( in_array( $providerType, $types, true ) ) {
+			// Skip if the type already has a child from indexable database entries
+			if ( $generator->getTotalPages( $providerType ) > 0 ) {
 				continue;
 			}
 

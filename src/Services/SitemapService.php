@@ -417,8 +417,8 @@ class SitemapService
 	/**
 	 * Check if a type-specific sitemap exists.
 	 *
-	 * A registered provider always serves its type, even with no URLs to
-	 * list. Any other type needs indexable entries reaching the given page.
+	 * A registered provider always serves page 1 of its type, even with no
+	 * URLs to list. Other pages need indexable entries reaching that page.
 	 *
 	 * @since 1.9.0
 	 *
@@ -429,7 +429,7 @@ class SitemapService
 	 */
 	public function hasSitemap( string $type, int $page = 1 ): bool
 	{
-		return $this->providers->has( $type ) || $page <= $this->getTotalPages( $type );
+		return ( 1 === $page && $this->providers->has( $type ) ) || $page <= $this->getTotalPages( $type );
 	}
 
 	/**

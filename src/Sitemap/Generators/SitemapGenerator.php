@@ -96,7 +96,7 @@ class SitemapGenerator
 	 *
 	 * @param  SitemapProviderContract  $provider  The sitemap provider.
 	 * @param  int                      $page      Page number for pagination.
-	 * @param  string|null              $type      The registered type, when it differs from the provider's own.
+	 * @param  string|null              $type      The registered type to read stored entries for, when it differs from the provider's own.
 	 *
 	 * @return string The generated XML sitemap.
 	 */
@@ -114,7 +114,7 @@ class SitemapGenerator
 				->values();
 		}
 
-		$entries = $this->applyEntriesFilter( $entries, $type );
+		$entries = $this->applyEntriesFilter( $entries, $provider->getType() );
 
 		return $this->buildXml( $entries );
 	}
