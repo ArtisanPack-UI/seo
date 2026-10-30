@@ -18,6 +18,7 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\SEO\Services;
 
 use Illuminate\Support\Facades\File;
+use RuntimeException;
 
 /**
  * RobotsService class.
@@ -329,9 +330,17 @@ class RobotsService
 	 * job: the `Sitemap:` line uses the current host, and a web request's
 	 * `Host` header would otherwise be saved into the file.
 	 *
+	 * This writes the rules held by this instance, which include any added
+	 * with {@see disallow()} and {@see allow()}. A long-running process that
+	 * changed `seo.robots` should resolve a new instance first. Every host
+	 * sharing the public directory gets the same file, so sites served from
+	 * several hosts should use the dynamic route instead.
+	 *
 	 * @since 1.9.0
 	 *
 	 * @param  bool  $force  Overwrite a robots.txt this package didn't write.
+	 *
+	 * @throws RuntimeException If the file can't be removed.
 	 *
 	 * @return string One of `written`, `unchanged`, `removed`, `disabled`, or `unmanaged`.
 	 */
@@ -343,7 +352,9 @@ class RobotsService
 
 		if ( ! $this->isStaticWriteEnabled() ) {
 			if ( $isManaged ) {
-				File::delete( $path );
+				if ( ! File::delete( $path ) ) {
+					throw new RuntimeException( __( 'Could not delete :path.', [ 'path' => $path ] ) );
+				}
 
 				return 'removed';
 			}

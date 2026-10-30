@@ -230,4 +230,15 @@ describe( 'seo:submit-sitemap', function (): void {
 		Http::assertNothingSent();
 	} );
 
+	it( 'fails when an engine is requested but none are configured', function (): void {
+		config( [ 'seo.sitemap.search_engines' => [] ] );
+		Http::fake();
+
+		$this->artisan( 'seo:submit-sitemap', [ '--engine' => 'bing' ] )
+			->expectsOutputToContain( 'Unknown search engine' )
+			->assertFailed();
+
+		Http::assertNothingSent();
+	} );
+
 } );

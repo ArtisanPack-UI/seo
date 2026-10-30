@@ -147,7 +147,7 @@ class MediaLibraryIntegration
 		$url        = (string) ( $url ?? $this->getSocialImageUrl( $mediaId ) );
 		$alt        = $media->alt_text ?? null;
 		$isOriginal = $url === ( method_exists( $media, 'url' ) ? $media->url() : ( $media->url ?? null ) );
-		$isSocial   = ! $isOriginal && str_contains( $url, '-' . self::SOCIAL_IMAGE_SIZE . '.' );
+		$isSocial   = ! $isOriginal && str_contains( basename( (string) parse_url( $url, PHP_URL_PATH ) ), '-' . self::SOCIAL_IMAGE_SIZE . '.' );
 
 		return [
 			'width'  => $isSocial ? self::SOCIAL_IMAGE_WIDTH : ( $isOriginal ? ( $media->width ?? null ) : null ),

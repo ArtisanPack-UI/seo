@@ -18,9 +18,12 @@ use ArtisanPackUI\SEO\Contracts\SitemapProviderContract;
 use ArtisanPackUI\SEO\Models\SitemapEntry;
 use ArtisanPackUI\SEO\Services\SitemapService;
 use ArtisanPackUI\SEO\Sitemap\Generators\LlmsTxtGenerator;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Schema;
 
 uses( RefreshDatabase::class );
 
@@ -47,6 +50,18 @@ beforeEach( function (): void {
 afterEach( function (): void {
 	Filter::removeAll( 'ap.seo.llmsTxtEntries' );
 } );
+
+/**
+ * Homepage model with its own description.
+ */
+class LlmsHomePage extends Model
+{
+	public $timestamps = false;
+
+	protected $table = 'llms_home_pages';
+
+	protected $guarded = [];
+}
 
 /**
  * Build a sitemap provider serving the given URLs.
@@ -225,6 +240,47 @@ describe( 'LlmsTxtGenerator providers and summary', function (): void {
 		};
 
 		expect( $generator->generate() )->toContain( "> What this site is about.\n" );
+	} );
+
+	it( 'reads the homepage description from its model', function (): void {
+		config( [ 'seo.site.description' => '   ', 'app.url' => 'https://example.com' ] );
+
+		Schema::create( 'llms_home_pages', function ( Blueprint $table ): void {
+			$table->id();
+			$table->string( 'meta_description' )->nullable();
+		} );
+
+		$page = LlmsHomePage::create( [ 'meta_description' => 'Words about the home page.' ] );
+
+		SitemapEntry::create( [
+			'sitemapable_type' => LlmsHomePage::class,
+			'sitemapable_id'   => $page->id,
+			'url'              => 'https://example.com',
+			'type'             => 'page',
+		] );
+
+		expect( ( new LlmsTxtGenerator() )->generate() )->toContain( "> Words about the home page.\n" );
+	} );
+
+	it( 'lists provider URLs given as objects', function (): void {
+		$output = ( new LlmsTxtGenerator() )->setProviders( collect( [
+			'archive' => llmsTestProvider( [ (object) [ 'loc' => 'https://example.com/blog', 'title' => 'Blog' ] ] ),
+		] ) )->generate();
+
+		expect( $output )->toContain( '- [Blog](https://example.com/blog)' );
+	} );
+
+	it( 'gives each set of providers its own cache entry', function (): void {
+		$service = new SitemapService();
+		$service->setCacheEnabled( true );
+		$service->clearCache();
+
+		$without = $service->generateLlmsTxt();
+
+		$service->registerProvider( 'archive', llmsTestProvider( [ [ 'loc' => 'https://example.com/blog' ] ] ) );
+
+		expect( $without )->not->toContain( 'https://example.com/blog' )
+			->and( $service->generateLlmsTxt() )->toContain( 'https://example.com/blog' );
 	} );
 
 	it( 'omits the blockquote when nothing describes the site', function (): void {

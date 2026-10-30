@@ -17,6 +17,7 @@ declare( strict_types=1 );
 use ArtisanPackUI\SEO\Services\RobotsService;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\URL;
 
 beforeEach( function (): void {
 	$this->publicPath = sys_get_temp_dir() . '/seo-robots-' . uniqid();
@@ -36,6 +37,9 @@ beforeEach( function (): void {
 		'seo.sitemap.route_enabled' => true,
 	] );
 
+	URL::forceRootUrl( 'https://example.com' );
+	URL::forceScheme( 'https' );
+
 	$this->app->forgetInstance( RobotsService::class );
 } );
 
@@ -52,7 +56,7 @@ describe( 'seo:write-robots', function (): void {
 
 		expect( $content )->toStartWith( RobotsService::STATIC_FILE_MARKER )
 			->and( $content )->toContain( 'Disallow: /admin' )
-			->and( $content )->toMatch( '#^Sitemap: \S+/sitemap\.xml$#m' );
+			->and( $content )->toContain( 'Sitemap: https://example.com/sitemap.xml' );
 	} );
 
 	it( 'refreshes its own file when the rules change', function (): void {
@@ -130,6 +134,18 @@ describe( 'seo:write-robots', function (): void {
 		File::deleteDirectory( $this->publicPath );
 
 		$this->artisan( 'seo:write-robots' )->assertFailed();
+	} );
+
+	it( 'fails when its own file cannot be removed', function (): void {
+		$this->artisan( 'seo:write-robots' );
+
+		config( [ 'seo.robots.write_static' => false ] );
+
+		File::partialMock()->shouldReceive( 'delete' )->once()->andReturn( false );
+
+		$this->artisan( 'seo:write-robots' )
+			->expectsOutputToContain( 'Could not delete' )
+			->assertFailed();
 	} );
 
 	it( 'runs as part of optimize', function (): void {

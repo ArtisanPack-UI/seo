@@ -91,6 +91,29 @@ describe( 'OpenGraphDTO', function (): void {
 		] );
 	} );
 
+	it( 'round-trips image details and article times', function (): void {
+		$dto = new OpenGraphDTO(
+			title: 'OG Title',
+			description: null,
+			image: 'https://example.com/image.jpg',
+			url: 'https://example.com',
+			imageWidth: 1200,
+			imageHeight: 630,
+			imageAlt: 'A mountain',
+			publishedTime: '2026-10-01T12:00:00+00:00',
+			modifiedTime: '2026-10-02T12:00:00+00:00',
+		);
+
+		$array = $dto->toArray();
+
+		expect( $array['og:image:width'] )->toBe( 1200 )
+			->and( $array['og:image:height'] )->toBe( 630 )
+			->and( $array['og:image:alt'] )->toBe( 'A mountain' )
+			->and( $array['article:published_time'] )->toBe( '2026-10-01T12:00:00+00:00' )
+			->and( $array['article:modified_time'] )->toBe( '2026-10-02T12:00:00+00:00' )
+			->and( OpenGraphDTO::fromArray( $array ) )->toEqual( $dto );
+	} );
+
 	it( 'converts to filtered array excluding null and empty values', function (): void {
 		$dto = new OpenGraphDTO(
 			title: 'OG Title',

@@ -249,6 +249,8 @@ describe( 'social image details', function (): void {
 		'generated social size'             => [ 'https://example.com/summer-social-social.jpg', 1200, 630 ],
 		'original named like a social file' => [ 'https://example.com/summer-social.jpg', 800, 800 ],
 		'some other size'                   => [ 'https://example.com/summer-large.jpg', null, null ],
+		'social only in a parent directory' => [ 'https://example.com/my-social.images/summer-large.jpg', null, null ],
+		'social only in the query string'   => [ 'https://example.com/summer-large.jpg?from=a-social.jpg', null, null ],
 	] );
 
 	it( 'ignores media details when a different image won', function (): void {

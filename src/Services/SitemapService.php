@@ -225,16 +225,20 @@ class SitemapService
 	 *
 	 * Cached alongside XML sitemaps so {@see clearCache()} — invoked by the
 	 * sitemap observer whenever a tracked entry changes — invalidates this
-	 * output too.
+	 * output too. The key includes the registered provider types, because
+	 * they change the output.
 	 *
 	 * @since 1.4.0
+	 * @since 1.9.0 The cache key includes the provider types.
 	 *
 	 * @return string The generated llms.txt content.
 	 */
 	public function generateLlmsTxt(): string
 	{
 		if ( $this->cacheEnabled ) {
-			return Cache::remember( $this->getCacheKey( 'llms_txt' ), $this->cacheTtl, function () {
+			$providerTypes = $this->providers->keys()->sort()->implode( ',' );
+
+			return Cache::remember( $this->getCacheKey( 'llms_txt', '' === $providerTypes ? null : $providerTypes ), $this->cacheTtl, function () {
 				return $this->generateLlmsTxtFresh();
 			} );
 		}

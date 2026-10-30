@@ -249,6 +249,11 @@ Or write a physical file. Delete any existing `public/robots.txt`, set
 the rules. Setting it back to `false` and running it removes the file. The
 command never replaces a `robots.txt` it didn't write unless you pass `--force`.
 
+Early Laravel 11 releases have no `optimize` hook for packages, so run
+`seo:write-robots` directly on those. The file's `Sitemap:` line uses
+`APP_URL`, and every host sharing the public directory gets the same file, so
+sites served from several hosts should use the Nginx fix instead.
+
 ## Requirements
 
 - PHP 8.2 or higher

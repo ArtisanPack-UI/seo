@@ -193,6 +193,8 @@ class LlmsTxtGenerator
 	 *
 	 * A stored entry decides how its URL is treated, so a provider can't
 	 * duplicate a listed page or bring back one marked as non-indexable.
+	 * URLs are compared without case, because the query may match that way
+	 * under the database's collation.
 	 *
 	 * @since 1.9.0
 	 *
@@ -207,12 +209,16 @@ class LlmsTxtGenerator
 				return ( [] === $include || in_array( $type, $include, true ) ) && ! in_array( $type, $exclude, true );
 			} )
 			->flatMap( function ( SitemapProviderContract $provider, string $type ): Collection {
-				return $provider->getUrls()->map( fn ( array $url ): array => [
-					'url'         => $url['loc'] ?? $url['url'] ?? '',
-					'type'        => $type,
-					'title'       => $url['title'] ?? null,
-					'description' => $url['description'] ?? null,
-				] );
+				return $provider->getUrls()->map( function ( array|object $url ) use ( $type ): array {
+					$url = (array) $url;
+
+					return [
+						'url'         => $url['loc'] ?? $url['url'] ?? '',
+						'type'        => $type,
+						'title'       => $url['title'] ?? null,
+						'description' => $url['description'] ?? null,
+					];
+				} );
 			} )
 			->filter( fn ( array $entry ): bool => '' !== $entry['url'] && null !== $entry['url'] )
 			->unique( 'url' )
@@ -220,9 +226,9 @@ class LlmsTxtGenerator
 
 		$storedUrls = $entries->pluck( 'url' )->chunk( 500 )->flatMap( function ( Collection $urls ) {
 			return SitemapEntry::query()->whereIn( 'url', $urls->all() )->pluck( 'url' )->all();
-		} )->flip();
+		} )->map( fn ( string $url ): string => mb_strtolower( $url ) )->flip();
 
-		return $entries->reject( fn ( array $entry ): bool => $storedUrls->has( $entry['url'] ) )->values();
+		return $entries->reject( fn ( array $entry ): bool => $storedUrls->has( mb_strtolower( $entry['url'] ) ) )->values();
 	}
 
 	/**
@@ -508,17 +514,31 @@ class LlmsTxtGenerator
 	 */
 	protected function getSummary(): string
 	{
-		$summary = config( 'seo.llms_txt.summary' );
+		$summary = $this->normalizeSummary( config( 'seo.llms_txt.summary' ) );
 
-		if ( ! is_string( $summary ) || '' === $summary ) {
-			$summary = (string) config( 'seo.site.description', '' );
+		if ( '' === $summary ) {
+			$summary = $this->normalizeSummary( config( 'seo.site.description', '' ) );
 		}
 
 		if ( '' === $summary ) {
-			$summary = $this->getHomepageDescription();
+			$summary = $this->normalizeSummary( $this->getHomepageDescription() );
 		}
 
-		return trim( (string) preg_replace( '/\s+/', ' ', $summary ) );
+		return $summary;
+	}
+
+	/**
+	 * Collapse a summary to one line.
+	 *
+	 * @since 1.9.0
+	 *
+	 * @param  mixed  $summary  The configured value.
+	 *
+	 * @return string An empty string if the value isn't usable text.
+	 */
+	protected function normalizeSummary( mixed $summary ): string
+	{
+		return is_string( $summary ) ? trim( (string) preg_replace( '/\s+/', ' ', $summary ) ) : '';
 	}
 
 	/**

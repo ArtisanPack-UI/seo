@@ -45,6 +45,12 @@ describe( 'SitemapSubmitter', function (): void {
 		expect( $submitter->getSearchEngines() )->toBe( [] );
 	} );
 
+	it( 'ships with no search engines configured', function (): void {
+		$config = require __DIR__ . '/../../../config/seo.php';
+
+		expect( $config['sitemap']['search_engines'] )->toBe( [] );
+	} );
+
 	it( 'sends no requests when no search engines are configured', function (): void {
 		config( [ 'seo.sitemap.search_engines' => [] ] );
 		Http::fake();
