@@ -26,6 +26,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Schema;
 
 uses( RefreshDatabase::class );
@@ -222,12 +223,36 @@ describe( 'Shared public URL', function (): void {
 			->and( $page->canonical_url )->toBe( 'https://example.com/packages/seo' );
 	} );
 
-	it( 'leaves the schema URL out when there is none', function (): void {
+	it( 'gives every service the contract URL with no saved canonical', function (): void {
+		$page = PublicUrlTestContractPage::create( [ 'title' => 'SEO' ] );
+
+		$seoMeta = new SeoMeta( [ 'schema_type' => 'WebPage' ] );
+
+		expect( app( MetaTagService::class )->generate( $page, $seoMeta )->canonical )->toBe( 'https://example.com/from-contract' )
+			->and( app( SocialMetaService::class )->generateOpenGraph( $page, $seoMeta )->url )->toBe( 'https://example.com/from-contract' )
+			->and( app( SchemaService::class )->generate( $page, $seoMeta )['url'] )->toBe( 'https://example.com/from-contract' );
+	} );
+
+	it( 'leaves the request URL out of the schema URL', function (): void {
+		simulatePublicUrlRequest( 'https://example.com/blog' );
+
 		$page = PublicUrlTestPage::create( [ 'title' => 'SEO', 'slug' => 'seo' ] );
 
 		$schema = app( SchemaService::class )->generate( $page, new SeoMeta( [ 'schema_type' => 'WebPage' ] ) );
 
 		expect( $schema )->not->toHaveKey( 'url' );
+	} );
+
+	it( 'loads the saved canonical when schema gets no SeoMeta', function (): void {
+		$page = PublicUrlTestContractPage::create( [ 'title' => 'SEO' ] );
+
+		$page->seoMeta()->create( [
+			'canonical_url' => 'https://example.com/packages/seo',
+			'schema_type'   => 'WebPage',
+		] );
+
+		expect( app( SchemaService::class )->generate( $page->fresh() )['url'] )
+			->toBe( 'https://example.com/packages/seo' );
 	} );
 
 } );
@@ -241,10 +266,35 @@ describe( 'Sitemap URLs', function (): void {
 			->toBe( 'https://example.com/packages/seo' );
 	} );
 
-	it( 'skips a model with only a slug', function (): void {
+	it( 'skips a model with only a slug and no show route', function (): void {
 		PublicUrlTestPage::create( [ 'title' => 'SEO', 'slug' => 'seo' ] );
 
 		expect( SitemapEntry::count() )->toBe( 0 );
+	} );
+
+	it( 'uses a show route in both sitemap paths', function (): void {
+		Route::get( '/test-pages/{page}', fn () => '' )->name( 'public_url_test_page.show' );
+		Route::getRoutes()->refreshNameLookups();
+
+		$page = PublicUrlTestPage::create( [ 'title' => 'SEO', 'slug' => 'seo' ] );
+
+		expect( SitemapEntry::where( 'sitemapable_id', $page->id )->value( 'url' ) )
+			->toBe( route( 'public_url_test_page.show', $page ) );
+
+		SitemapEntry::query()->delete();
+
+		expect( $page->fresh()->getOrCreateSitemapEntry()->url )
+			->toBe( route( 'public_url_test_page.show', $page ) );
+	} );
+
+	it( 'builds a relative permalink from app.url, not an admin host', function (): void {
+		config( [ 'app.url' => 'https://example.com' ] );
+		simulatePublicUrlRequest( 'https://admin.example.com/pages/1/edit' );
+
+		$page = PublicUrlTestPage::create( [ 'title' => 'SEO', 'permalink' => '/about/team' ] );
+
+		expect( SitemapEntry::where( 'sitemapable_id', $page->id )->value( 'url' ) )
+			->toBe( 'https://example.com/about/team' );
 	} );
 
 	it( 'never stores the admin URL that saved the model', function (): void {

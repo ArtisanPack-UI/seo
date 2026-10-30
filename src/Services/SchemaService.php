@@ -59,6 +59,7 @@ class SchemaService
 	 * Generate schema data for a model.
 	 *
 	 * @since 1.0.0
+	 * @since 1.9.0 Loads the model's SeoMeta when none is passed.
 	 *
 	 * @param  Model         $model    The model to generate schema for.
 	 * @param  SeoMeta|null  $seoMeta  Optional SeoMeta instance.
@@ -67,7 +68,8 @@ class SchemaService
 	 */
 	public function generate( Model $model, ?SeoMeta $seoMeta = null ): array
 	{
-		$type = $this->resolveSchemaType( $model, $seoMeta );
+		$seoMeta = $seoMeta ?? $this->resolveModelSeoMeta( $model );
+		$type    = $this->resolveSchemaType( $model, $seoMeta );
 
 		if ( ! $this->factory->supports( $type ) ) {
 			$type = 'WebPage';
@@ -338,7 +340,8 @@ class SchemaService
 	 * Extract data from model for schema generation.
 	 *
 	 * @since 1.0.0
-	 * @since 1.9.0 The URL comes from {@see PublicUrlResolver}, so it matches the canonical URL.
+	 * @since 1.9.0 The URL comes from {@see PublicUrlResolver}. The request URL is left
+	 *              out because schema can be generated away from the model's own page.
 	 *
 	 * @param  Model         $model    The model.
 	 * @param  SeoMeta|null  $seoMeta  The SeoMeta instance.
@@ -354,8 +357,8 @@ class SchemaService
 		$data['description'] = $seoMeta?->meta_description ?? $model->excerpt ?? $model->description ?? '';
 
 		// URL
-		$url = PublicUrlResolver::resolve( $model, $seoMeta );
-		if ( '' !== $url ) {
+		$url = PublicUrlResolver::resolveModelUrl( $model, $seoMeta );
+		if ( null !== $url ) {
 			$data['url'] = $url;
 		}
 

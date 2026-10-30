@@ -51,6 +51,22 @@ it( 'falls back to WebPage for unsupported types', function (): void {
 	expect( $result['suggested_type'] )->toBe( 'WebPage' );
 } );
 
+it( 'syncs a mismatched jsonld @type to a supported suggested_type', function (): void {
+	$this->prompter->queue( [
+		'suggested_type'          => 'SoftwareSourceCode',
+		'confidence'              => 0.9,
+		'jsonld'                  => [ '@context' => 'https://schema.org', '@type' => 'WebPage' ],
+		'missing_required_fields' => [],
+	] );
+
+	$result = SchemaGenerationAgent::for( [
+		'content' => 'sample',
+		'title'   => 'sample',
+	] )->run();
+
+	expect( $result['jsonld']['@type'] )->toBe( 'SoftwareSourceCode' );
+} );
+
 it( 'keeps a suggested software type', function ( string $type ): void {
 	$this->prompter->queue( [
 		'suggested_type'          => $type,

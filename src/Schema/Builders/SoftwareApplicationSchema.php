@@ -100,7 +100,7 @@ class SoftwareApplicationSchema extends AbstractSchema
 			$schema[ $property ] = $this->get( $property );
 		}
 
-		$schema['softwareVersion'] = $this->get( 'softwareVersion' ) ?? $this->get( 'version' );
+		$schema['softwareVersion'] = $this->get( 'softwareVersion' ) ?: $this->get( 'version' );
 
 		return $this->filterEmpty( $schema );
 	}

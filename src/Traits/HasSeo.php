@@ -555,7 +555,7 @@ trait HasSeo
 		}
 
 		if ( ! $this->sitemapEntry ) {
-			$url = PublicUrlResolver::resolveModelUrl( $this, $this->seoMeta );
+			$url = PublicUrlResolver::resolveSitemapUrl( $this, $this->seoMeta );
 
 			// Guard against empty URLs to prevent invalid sitemap entries
 			if ( '' === $url || null === $url ) {

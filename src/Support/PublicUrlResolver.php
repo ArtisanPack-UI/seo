@@ -19,15 +19,19 @@ namespace ArtisanPackUI\SEO\Support;
 
 use ArtisanPackUI\SEO\Contracts\HasPublicUrl;
 use ArtisanPackUI\SEO\Models\SeoMeta;
+use Exception;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 /**
  * PublicUrlResolver class.
  *
  * The single source for "where does this model live", so canonical tags,
  * Open Graph, schema and sitemaps can't disagree. Tiers run in this order:
- * saved `canonical_url`, {@see HasPublicUrl}, `getUrl()`, a `permalink`
- * attribute, then the current request URL.
+ * saved `canonical_url`, {@see HasPublicUrl}, `getUrl()`, then a `permalink`
+ * attribute. Each caller then picks its own last resort: {@see resolve()}
+ * uses the request URL for the page being rendered, and
+ * {@see resolveSitemapUrl()} tries a `{model}.show` route.
  *
  * @package    ArtisanPack_UI
  * @subpackage SEO
@@ -81,7 +85,41 @@ class PublicUrlResolver
 	}
 
 	/**
+	 * Resolve the URL to list a model under in the sitemap.
+	 *
+	 * Falls back to a `{model}.show` route when the model declares no URL.
+	 * Returns null rather than guessing, so several models can't collapse
+	 * onto one URL.
+	 *
+	 * @since 1.9.0
+	 *
+	 * @param  Model         $model    The model to resolve a URL for.
+	 * @param  SeoMeta|null  $seoMeta  The model's SeoMeta instance, if any.
+	 *
+	 * @return string|null The URL, or null if the model has none.
+	 */
+	public static function resolveSitemapUrl( Model $model, ?SeoMeta $seoMeta = null ): ?string
+	{
+		$url = self::resolveModelUrl( $model, $seoMeta );
+
+		if ( null !== $url ) {
+			return $url;
+		}
+
+		$routeName = Str::snake( class_basename( $model ) );
+
+		try {
+			return route( "{$routeName}.show", $model );
+		} catch ( Exception $e ) {
+			return null;
+		}
+	}
+
+	/**
 	 * Make a URL returned by a model absolute.
+	 *
+	 * A relative URL is built from `app.url`, not the current request, so a
+	 * save from an admin host can't store that host's URL.
 	 *
 	 * @since 1.9.0
 	 *
@@ -91,7 +129,17 @@ class PublicUrlResolver
 	 */
 	protected static function absoluteUrl( mixed $url ): ?string
 	{
-		return is_string( $url ) && '' !== $url ? url( $url ) : null;
+		if ( ! is_string( $url ) || '' === $url ) {
+			return null;
+		}
+
+		if ( url()->isValidUrl( $url ) ) {
+			return $url;
+		}
+
+		$root = rtrim( (string) config( 'app.url', '' ), '/' );
+
+		return '' !== $root ? rtrim( $root . '/' . ltrim( $url, '/' ), '/' ) : url( $url );
 	}
 
 	/**

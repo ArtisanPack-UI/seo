@@ -178,6 +178,11 @@ class SitemapIndexGenerator
 		// un-paginated `sitemap-{type}.xml` form exists only for image, video,
 		// and news.
 		foreach ( $types as $type ) {
+			// A provider's child also lists stored entries of its type
+			if ( $this->providers->has( $type ) ) {
+				continue;
+			}
+
 			$typePages = $generator->getTotalPages( $type );
 
 			for ( $page = 1; $page <= $typePages; $page++ ) {
@@ -186,16 +191,15 @@ class SitemapIndexGenerator
 		}
 
 		// Add provider-specific sitemaps
-		foreach ( $this->providers->keys() as $providerType ) {
-			// Skip if the type already has a child from indexable database entries
-			if ( $generator->getTotalPages( $providerType ) > 0 ) {
-				continue;
-			}
+		foreach ( $this->providers as $providerType => $provider ) {
+			$providerPages = max( 1, $generator->getProviderTotalPages( $provider, $providerType ) );
 
-			$sitemaps->push( [
-				'loc'     => $this->getSitemapUrl( $providerType, 1 ),
-				'lastmod' => now()->format( 'c' ),
-			] );
+			for ( $page = 1; $page <= $providerPages; $page++ ) {
+				$sitemap            = $this->buildSitemapEntry( $providerType, $page );
+				$sitemap['lastmod'] = $sitemap['lastmod'] ?? now()->format( 'c' );
+
+				$sitemaps->push( $sitemap );
+			}
 		}
 
 		// Add image sitemap if enabled

@@ -88,11 +88,11 @@ class SitemapGenerator
 	 * Generate a sitemap from a custom provider.
 	 *
 	 * Entries stored under the provider's type are included too, because the
-	 * provider's child is the only sitemap that can list them. A provider
-	 * isn't paginated, so its URLs only appear on page 1.
+	 * provider's child is the only sitemap that can list them. Stored entries
+	 * come first and provider URLs follow, across as many pages as they need.
 	 *
 	 * @since 1.0.0
-	 * @since 1.9.0 Includes stored entries of the provider's type.
+	 * @since 1.9.0 Includes stored entries of the provider's type and paginates.
 	 *
 	 * @param  SitemapProviderContract  $provider  The sitemap provider.
 	 * @param  int                      $page      Page number for pagination.
@@ -103,20 +103,33 @@ class SitemapGenerator
 	public function generateFromProvider( SitemapProviderContract $provider, int $page = 1, ?string $type = null ): string
 	{
 		$type    = $type ?? $provider->getType();
-		$entries = $this->getEntries( $type, $page )->toBase();
-
-		if ( 1 === $page ) {
-			$entries = $entries
-				->concat( $provider->getUrls()->map( function ( $url ) use ( $provider ) {
-					return $this->normalizeProviderUrl( $url, $provider );
-				} )->filter() )
-				->unique( fn ( SitemapEntry|array $entry ) => $this->getEntryValue( $entry, 'url' ) )
-				->values();
-		}
+		$stored  = $this->getEntries( $type, $page )->toBase();
+		$offset  = max( 0, ( $page - 1 ) * $this->maxUrls - $this->countEntries( $type ) );
+		$entries = $stored
+			->concat( $this->getProviderEntries( $provider, $type )->slice( $offset, $this->maxUrls - $stored->count() ) )
+			->values();
 
 		$entries = $this->applyEntriesFilter( $entries, $provider->getType() );
 
 		return $this->buildXml( $entries );
+	}
+
+	/**
+	 * Get the total number of pages for a provider's sitemap.
+	 *
+	 * @since 1.9.0
+	 *
+	 * @param  SitemapProviderContract  $provider  The sitemap provider.
+	 * @param  string|null              $type      The registered type to read stored entries for, when it differs from the provider's own.
+	 *
+	 * @return int
+	 */
+	public function getProviderTotalPages( SitemapProviderContract $provider, ?string $type = null ): int
+	{
+		$type  = $type ?? $provider->getType();
+		$count = $this->countEntries( $type ) + $this->getProviderEntries( $provider, $type )->count();
+
+		return (int) ceil( $count / max( 1, $this->maxUrls ) );
 	}
 
 	/**
@@ -130,15 +143,7 @@ class SitemapGenerator
 	 */
 	public function getTotalPages( ?string $type = null ): int
 	{
-		$query = SitemapEntry::indexable();
-
-		if ( null !== $type ) {
-			$query->byType( $type );
-		}
-
-		$count = $query->count();
-
-		return (int) ceil( $count / max( 1, $this->maxUrls ) );
+		return (int) ceil( $this->countEntries( $type ) / max( 1, $this->maxUrls ) );
 	}
 
 	/**
@@ -174,6 +179,49 @@ class SitemapGenerator
 		$filtered = applyFilters( 'ap.seo.sitemapEntries', $entries->all(), $sitemapType );
 
 		return collect( is_array( $filtered ) ? $filtered : $entries->all() );
+	}
+
+	/**
+	 * Count the indexable entries for a sitemap type.
+	 *
+	 * @since 1.9.0
+	 *
+	 * @param  string|null  $type  The sitemap type.
+	 *
+	 * @return int
+	 */
+	protected function countEntries( ?string $type ): int
+	{
+		$query = SitemapEntry::indexable();
+
+		if ( null !== $type ) {
+			$query->byType( $type );
+		}
+
+		return $query->count();
+	}
+
+	/**
+	 * Get a provider's URLs that aren't already stored under its type.
+	 *
+	 * @since 1.9.0
+	 *
+	 * @param  SitemapProviderContract  $provider  The sitemap provider.
+	 * @param  string                   $type      The type stored entries are read from.
+	 *
+	 * @return Collection<int, array<string, mixed>>
+	 */
+	protected function getProviderEntries( SitemapProviderContract $provider, string $type ): Collection
+	{
+		$entries = $provider->getUrls()->map( function ( $url ) use ( $provider ) {
+			return $this->normalizeProviderUrl( $url, $provider );
+		} )->filter()->unique( 'url' )->values();
+
+		$storedUrls = $entries->pluck( 'url' )->chunk( 500 )->flatMap( function ( Collection $urls ) use ( $type ) {
+			return SitemapEntry::indexable()->byType( $type )->whereIn( 'url', $urls->all() )->pluck( 'url' )->all();
+		} )->flip();
+
+		return $entries->reject( fn ( array $entry ) => $storedUrls->has( $entry['url'] ) )->values();
 	}
 
 	/**

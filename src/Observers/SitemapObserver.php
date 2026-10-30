@@ -22,7 +22,6 @@ use ArtisanPackUI\SEO\Services\SitemapService;
 use ArtisanPackUI\SEO\Support\PublicUrlResolver;
 use ArtisanPackUI\SEO\Support\SeoMetaResolver;
 use DateTimeInterface;
-use Exception;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -282,23 +281,7 @@ class SitemapObserver
 	 */
 	protected function getModelUrl( Model $model ): ?string
 	{
-		// The request URL is whatever page saved the model, not the model's URL
-		$url = PublicUrlResolver::resolveModelUrl( $model, SeoMetaResolver::resolve( $model ) );
-
-		if ( null !== $url ) {
-			return $url;
-		}
-
-		// Fall back to route guess based on model name
-		$routeName = Str::snake( class_basename( $model ) );
-
-		try {
-			return route( "{$routeName}.show", $model );
-		} catch ( Exception $e ) {
-			// Return null if route doesn't exist to prevent multiple models
-			// from collapsing to the same URL
-			return null;
-		}
+		return PublicUrlResolver::resolveSitemapUrl( $model, SeoMetaResolver::resolve( $model ) );
 	}
 
 	/**

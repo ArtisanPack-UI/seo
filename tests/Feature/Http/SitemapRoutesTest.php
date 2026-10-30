@@ -18,6 +18,7 @@ use ArtisanPackUI\SEO\Models\SitemapEntry;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Routing\RouteCollection;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 
 uses( RefreshDatabase::class );
 
@@ -390,14 +391,69 @@ describe( 'Sitemap Index Coverage', function (): void {
 	it( 'keeps stored entries when a provider serves their type', function (): void {
 		config( [ 'seo.sitemap.providers' => [ 'custom' => SitemapRoutesTestCustomProvider::class ] ] );
 
-		$urls = createSitemapRouteEntries( 'custom', 1 );
+		SitemapEntry::create( [
+			'sitemapable_type' => 'App\\Models\\Page',
+			'sitemapable_id'   => 1,
+			'url'              => 'https://example.com/stored-only',
+			'type'             => 'custom',
+		] );
 
 		createSitemapRouteEntries( 'page', 1 );
 
 		$content = $this->get( '/sitemap-custom-1.xml' )->assertStatus( 200 )->getContent();
 
-		expect( $content )->toContain( $urls[0] )
+		expect( $content )->toContain( 'https://example.com/stored-only' )
 			->and( $content )->toContain( 'https://example.com/custom/2' );
+	} );
+
+	it( 'keeps provider sitemaps within the per-file limit', function (): void {
+		config( [
+			'seo.sitemap.max_urls_per_file' => 1,
+			'seo.sitemap.providers'         => [ 'custom' => SitemapRoutesTestCustomProvider::class ],
+		] );
+
+		SitemapEntry::create( [
+			'sitemapable_type' => 'App\\Models\\Page',
+			'sitemapable_id'   => 1,
+			'url'              => 'https://example.com/stored-only',
+			'type'             => 'custom',
+		] );
+
+		$locs = getSitemapIndexLocs( $this->get( '/sitemap.xml' )->assertStatus( 200 )->getContent() );
+
+		expect( $locs )->toHaveCount( 3 );
+
+		foreach ( $locs as $loc ) {
+			$content = $this->get( parse_url( $loc, PHP_URL_PATH ) )->assertStatus( 200 )->getContent();
+
+			expect( substr_count( $content, '<url>' ) )->toBe( 1 );
+		}
+
+		expect( getUrlsFromSitemapChildren( $this ) )->toEqualCanonicalizing( [
+			'https://example.com/stored-only',
+			'https://example.com/custom/1',
+			'https://example.com/custom/2',
+		] );
+	} );
+
+	it( 'lists a URL once when a provider repeats a stored entry on a later page', function (): void {
+		config( [
+			'seo.sitemap.max_urls_per_file' => 1,
+			'seo.sitemap.providers'         => [ 'custom' => SitemapRoutesTestCustomProvider::class ],
+		] );
+
+		$urls = createSitemapRouteEntries( 'custom', 2 );
+
+		expect( getUrlsFromSitemapChildren( $this ) )->toEqualCanonicalizing( $urls );
+	} );
+
+	it( 'serves the child for a dotted type', function (): void {
+		$urls = [
+			...createSitemapRouteEntries( 'page', 1 ),
+			...createSitemapRouteEntries( 'blog.post', 1 ),
+		];
+
+		expect( getUrlsFromSitemapChildren( $this ) )->toEqualCanonicalizing( $urls );
 	} );
 
 	it( 'lists a URL once when a provider repeats a stored entry', function (): void {
@@ -443,6 +499,22 @@ describe( 'Sitemap Index Coverage', function (): void {
 			->and( $content )->toContain( $urls[1] );
 	} );
 
+	it( 'still pages the all-types sitemap', function (): void {
+		config( [ 'seo.sitemap.max_urls_per_file' => 1 ] );
+
+		$urls = [
+			...createSitemapRouteEntries( 'page', 1 ),
+			...createSitemapRouteEntries( 'post', 1 ),
+		];
+
+		$first  = $this->get( '/sitemap-1.xml' )->assertStatus( 200 )->getContent();
+		$second = $this->get( '/sitemap-2.xml' )->assertStatus( 200 )->getContent();
+
+		expect( substr_count( $first . $second, '<url>' ) )->toBe( 2 )
+			->and( $first . $second )->toContain( $urls[0] )
+			->and( $first . $second )->toContain( $urls[1] );
+	} );
+
 } );
 
 describe( 'Empty Sitemap Children', function (): void {
@@ -475,6 +547,37 @@ describe( 'Empty Sitemap Children', function (): void {
 		config( [ 'seo.sitemap.providers' => [ 'empty' => SitemapRoutesTestEmptyProvider::class ] ] );
 
 		expect( $this->get( '/sitemap-empty-1.xml' )->assertStatus( 200 )->getContent() )->toContain( '<urlset' );
+	} );
+
+	it( 'serves a type whose entries only come from a filter', function (): void {
+		addFilter( 'ap.seo.sitemapEntries', fn ( array $entries, string $type ): array => 'dynamic' === $type
+			? [ [ 'url' => 'https://example.com/dynamic' ] ]
+			: $entries );
+
+		expect( $this->get( '/sitemap-dynamic-1.xml' )->assertStatus( 200 )->getContent() )
+			->toContain( 'https://example.com/dynamic' );
+
+		removeAllFilters( 'ap.seo.sitemapEntries' );
+	} );
+
+	it( 'returns 404 when a filter removes every entry', function (): void {
+		createSitemapRouteEntries( 'page', 1 );
+
+		addFilter( 'ap.seo.sitemapEntries', fn ( array $entries, string $type ): array => 'page' === $type ? [] : $entries );
+
+		$this->get( '/sitemap-page-1.xml' )->assertNotFound();
+
+		removeAllFilters( 'ap.seo.sitemapEntries' );
+	} );
+
+	it( 'does not cache a made-up type', function (): void {
+		config( [ 'seo.sitemap.cache_enabled' => true ] );
+
+		$spy = Cache::spy();
+
+		$this->get( '/sitemap-nonsense-1.xml' )->assertNotFound();
+
+		$spy->shouldNotHaveReceived( 'put' );
 	} );
 
 	it( 'returns 404 for a provider page past its stored entries', function (): void {

@@ -130,9 +130,10 @@ describe( 'og_type migration', function (): void {
 	} );
 
 	it( 'keeps the unique seoable index', function (): void {
-		$indexes = array_merge( ...array_column( Schema::getIndexes( 'seo_meta' ), 'columns' ) );
+		$indexes = collect( Schema::getIndexes( 'seo_meta' ) )
+			->where( 'columns', [ 'seoable_type', 'seoable_id' ] );
 
-		expect( $indexes )->toContain( 'seoable_type', 'seoable_id', 'focus_keyword' );
+		expect( $indexes->contains( 'unique', true ) )->toBeTrue();
 	} );
 
 	it( 'restores the default on rollback', function (): void {

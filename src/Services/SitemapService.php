@@ -411,25 +411,43 @@ class SitemapService
 	{
 		$generator = new SitemapGenerator( $this->maxUrls );
 
+		if ( null !== $type && $this->providers->has( $type ) ) {
+			return $generator->getProviderTotalPages( $this->providers->get( $type ), $type );
+		}
+
 		return $generator->getTotalPages( $type );
 	}
 
 	/**
-	 * Check if a type-specific sitemap exists.
+	 * Generate a type-specific sitemap, unless it has nothing to list.
 	 *
-	 * A registered provider always serves page 1 of its type, even with no
-	 * URLs to list. Other pages need indexable entries reaching that page.
+	 * Checks the rendered XML rather than counting rows, so entries added or
+	 * removed by `ap.seo.sitemapEntries` callbacks count. Empty results aren't
+	 * cached, so requests for made-up types can't fill the cache. A registered
+	 * provider always serves page 1 of its type, even with no URLs to list.
 	 *
 	 * @since 1.9.0
 	 *
 	 * @param  string  $type  The sitemap type.
 	 * @param  int     $page  The page number.
 	 *
-	 * @return bool
+	 * @return string|null The generated XML sitemap, or null if there's nothing to serve.
 	 */
-	public function hasSitemap( string $type, int $page = 1 ): bool
+	public function generateTypeSitemap( string $type, int $page = 1 ): ?string
 	{
-		return ( 1 === $page && $this->providers->has( $type ) ) || $page <= $this->getTotalPages( $type );
+		$cacheKey = $this->getCacheKey( 'standard', $type, $page );
+		$cached   = $this->cacheEnabled ? Cache::get( $cacheKey ) : null;
+		$xml      = $cached ?? $this->generateFresh( $type, $page );
+
+		if ( ! str_contains( $xml, '<url>' ) && ! ( 1 === $page && $this->providers->has( $type ) ) ) {
+			return null;
+		}
+
+		if ( $this->cacheEnabled && null === $cached ) {
+			Cache::put( $cacheKey, $xml, $this->cacheTtl );
+		}
+
+		return $xml;
 	}
 
 	/**

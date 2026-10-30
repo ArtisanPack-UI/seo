@@ -102,6 +102,16 @@ describe( 'SoftwareApplicationSchema', function (): void {
 		expect( $schema['softwareVersion'] )->toBe( '3.0.0' );
 	} );
 
+	it( 'falls back to version when softwareVersion is empty', function (): void {
+		$schema = ( new SoftwareApplicationSchema( [
+			'name'            => 'Keystone',
+			'softwareVersion' => '',
+			'version'         => '2.0.0',
+		] ) )->generate();
+
+		expect( $schema['softwareVersion'] )->toBe( '2.0.0' );
+	} );
+
 	it( 'leaves out source code properties', function (): void {
 		$schema = ( new SoftwareApplicationSchema( [
 			'name'           => 'Keystone',

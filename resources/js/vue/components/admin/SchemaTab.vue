@@ -225,6 +225,12 @@ function handleTypeChange( value: string ): void {
 
 function handleFieldChange( key: string, value: unknown ): void {
 	const updated = { ...markup.value, [key]: value };
+
+	// softwareVersion takes priority over version in the schema output.
+	if ( 'version' === key ) {
+		delete updated.softwareVersion;
+	}
+
 	emit( 'schema-markup-change', updated );
 }
 

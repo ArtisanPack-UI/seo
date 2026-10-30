@@ -89,18 +89,18 @@ class SitemapController extends Controller
 	 */
 	public function show( string $type, int $page = 1 ): Response
 	{
-		if ( ! $this->sitemapService->hasSitemap( $type, $page ) ) {
-			return match ( $type ) {
-				'images' => $this->images( $page ),
-				'videos' => $this->videos( $page ),
-				'news'   => $this->news( $page ),
-				default  => abort( 404 ),
-			};
+		$content = $this->sitemapService->generateTypeSitemap( $type, $page );
+
+		if ( null !== $content ) {
+			return $this->xmlResponse( $content );
 		}
 
-		$content = $this->sitemapService->generate( $type, $page );
-
-		return $this->xmlResponse( $content );
+		return match ( $type ) {
+			'images' => $this->images( $page ),
+			'videos' => $this->videos( $page ),
+			'news'   => $this->news( $page ),
+			default  => abort( 404 ),
+		};
 	}
 
 	/**

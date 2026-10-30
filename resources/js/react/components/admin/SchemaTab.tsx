@@ -245,6 +245,12 @@ export function SchemaTab( {
 
 	const handleFieldChange = useCallback( ( key: string, value: unknown ): void => {
 		const updated = { ...markup, [key]: value };
+
+		// softwareVersion takes priority over version in the schema output.
+		if ( 'version' === key ) {
+			delete updated.softwareVersion;
+		}
+
 		onSchemaMarkupChange( updated );
 	}, [markup, onSchemaMarkupChange] );
 
