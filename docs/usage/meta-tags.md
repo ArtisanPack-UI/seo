@@ -20,9 +20,7 @@ $post->updateSeoMeta([
 ### Using the SEO Service
 
 ```php
-use ArtisanPackUI\Seo\Facades\Seo;
-
-$meta = Seo::updateMeta($post, [
+$meta = seo()->updateSeoMeta($post, [
     'meta_title' => 'Custom Title',
     'meta_description' => 'Custom description.',
 ]);
@@ -33,16 +31,15 @@ $meta = Seo::updateMeta($post, [
 When no custom title is set, the package generates one from your model:
 
 ```php
-// Priority order for title fallback:
+// Priority order for the title tag:
 // 1. meta_title field on SEO meta record
-// 2. Model's 'title' attribute
-// 3. Model's 'name' attribute
-// 4. Model class name
-
-$post->title = 'My Blog Post';
-$title = $post->getSeoTitle();
-// Result: "My Blog Post | My Site"
+// 2. Model's 'meta_title' attribute
+// 3. Model's 'title' attribute
+// 4. Model's 'name' attribute
+// 5. The app name
 ```
+
+`$post->getSeoTitle()` returns the base title. The title tag adds the site name.
 
 ### Customizing the Title Suffix
 
@@ -52,30 +49,29 @@ $title = $post->getSeoTitle();
     'name' => 'My Site',
     'separator' => ' | ',
 ],
-
-// Or per-request
-$title = seoTitle('My Page', ' - ');
-// Result: "My Page - My Site"
 ```
+
+```php
+seoTitle('My Page');        // "My Page | My Site"
+seoTitle('My Page', false); // "My Page"
+```
+
+The suffix is left off when the title already contains the site name, and when it would push the title past `seo.defaults.title_max_length`, which is 60 by default. Set the limit to 0 to always add it.
 
 ## Automatic Description Generation
 
-When no custom description is set:
-
 ```php
-// Priority order for description fallback:
+// Priority order for the description tag:
 // 1. meta_description field on SEO meta record
-// 2. Model's 'description' attribute
+// 2. Model's 'meta_description' attribute
 // 3. Model's 'excerpt' attribute
-// 4. Truncated 'content' attribute
-// 5. Site default description from config
-
-$post->content = 'Long article content here...';
-$desc = $post->getSeoDescription();
-// Result: First 160 characters of content
+// 4. Model's 'description' attribute
+// 5. Site default from seo.site.description
 ```
 
 ### Description Length
+
+A saved description is left at its full length, so check long ones with the [SEO analysis](Advanced-Analysis). Text taken from an excerpt or description is shortened to `seo.defaults.description_max_length`, including the `...`.
 
 ```php
 // In config/seo.php
@@ -85,7 +81,7 @@ $desc = $post->getSeoDescription();
 
 // Using helper function
 $desc = seoDescription($longText, 155);
-// Truncates to 155 characters
+// At most 155 characters, including the "..."
 ```
 
 ## Robots Directives
@@ -96,8 +92,8 @@ Control how search engines index and follow links on your pages.
 
 ```php
 $post->updateSeoMeta([
-    'noindex' => true,   // Don't index this page
-    'nofollow' => true,  // Don't follow links on this page
+    'no_index' => true,   // Don't index this page
+    'no_follow' => true,  // Don't follow links on this page
 ]);
 ```
 
@@ -137,14 +133,15 @@ Canonical URLs prevent duplicate content issues by specifying the preferred URL 
 
 ### Automatic Canonicals
 
-By default, the package generates canonical URLs based on the model's URL:
+The canonical URL uses the first of these that has a value:
 
-```php
-// In config/seo.php
-'defaults' => [
-    'canonical' => true,
-],
-```
+1. A saved `canonical_url`
+2. `getPublicUrl()` from the `HasPublicUrl` contract
+3. `getUrl()` on the model
+4. A `permalink` attribute
+5. The current request URL
+
+URLs are never guessed from a model's slug. See [Public URLs](Usage-Model-Integration#public-urls).
 
 ### Custom Canonical URLs
 
@@ -152,19 +149,6 @@ By default, the package generates canonical URLs based on the model's URL:
 $post->updateSeoMeta([
     'canonical_url' => 'https://example.com/preferred-url',
 ]);
-```
-
-### Disabling Canonical
-
-```php
-$post->updateSeoMeta([
-    'canonical_url' => null,
-]);
-
-// Or globally in config
-'defaults' => [
-    'canonical' => false,
-],
 ```
 
 ## Focus Keywords
@@ -184,13 +168,23 @@ The focus keyword is used by the SEO analysis feature to check:
 - Keyword presence in content
 - Keyword density
 
+Focus keywords are only used for analysis. The package doesn't emit a `keywords` meta tag, because search engines ignore it and it would publish your targeting. To add one yourself, use the `ap.seo.metaTags` filter:
+
+```php
+addFilter( 'ap.seo.metaTags', function ( array $tags ): array {
+    $tags['additionalMeta']['keywords'] = 'laravel, seo';
+
+    return $tags;
+} );
+```
+
 ## Rendering Meta Tags
 
 ### Using the Blade Component
 
 ```blade
 {{-- Renders title, description, robots, and canonical --}}
-<x-seo-meta-tags :model="$post" />
+<x-seo:meta-tags :model="$post" />
 ```
 
 ### Generated Output
@@ -198,8 +192,8 @@ The focus keyword is used by the SEO analysis feature to check:
 ```html
 <title>My Blog Post | My Site</title>
 <meta name="description" content="Learn about amazing things in this comprehensive guide.">
-<meta name="robots" content="index, follow">
 <link rel="canonical" href="https://example.com/posts/my-blog-post">
+<meta name="robots" content="index, follow">
 ```
 
 ### Without a Model
@@ -207,7 +201,7 @@ The focus keyword is used by the SEO analysis feature to check:
 For pages without an associated model:
 
 ```blade
-<x-seo-meta-tags
+<x-seo:meta-tags
     :title="'About Us | My Site'"
     :description="'Learn more about our company.'"
 />
@@ -224,7 +218,7 @@ For pages without an associated model:
 
 ### Meta Descriptions
 
-- Keep descriptions between 150-160 characters
+- Keep descriptions at 160 characters or less
 - Include a call-to-action when appropriate
 - Include your primary keyword naturally
 - Make each description unique and compelling
@@ -238,15 +232,12 @@ For pages without an associated model:
 
 ## Meta Tag Validation
 
-The SEO analysis feature validates meta tags:
+The SEO analysis feature checks meta tag lengths with its `meta_length` analyzer:
 
 ```php
-// Get analysis results
-$analysis = $post->getSeoAnalysis();
+use ArtisanPackUI\SEO\Services\AnalysisService;
 
-// Check meta length issues
-$metaLength = $analysis['meta_length'];
-// Returns: pass/fail status and recommendations
+$result = app(AnalysisService::class)->analyze($post);
 ```
 
 ## Next Steps

@@ -12,7 +12,7 @@ This page outlines the system requirements and dependencies for ArtisanPack UI S
 
 ## Laravel Version
 
-- **Laravel 10.x**, **11.x**, **12.x**, or **13.x**
+- **Laravel 11.x**, **12.x**, or **13.x**
 
 ## Required Dependencies
 

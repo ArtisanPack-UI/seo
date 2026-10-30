@@ -6,12 +6,12 @@ title: Blade Components
 
 Blade components render SEO tags in your HTML. These are designed for use in your layout's `<head>` section.
 
-## seo-meta
+## x-seo:meta
 
-The all-in-one component that renders all SEO tags:
+The all-in-one component that renders meta, social, and hreflang tags:
 
 ```blade
-<x-seo-meta :model="$post" />
+<x-seo:meta :model="$post" />
 ```
 
 ### What It Renders
@@ -20,10 +20,12 @@ The all-in-one component that renders all SEO tags:
 - Meta description
 - Robots meta
 - Canonical URL
-- Open Graph tags
+- Author meta, when the model has one
+- Open Graph tags, including `article:*` tags and image details
 - Twitter Card tags
-- Schema.org JSON-LD
 - Hreflang links
+
+Schema.org JSON-LD isn't included. Add `<x-seo:schema>` alongside it.
 
 ### Properties
 
@@ -33,38 +35,40 @@ The all-in-one component that renders all SEO tags:
 | `title` | string\|null | `null` | Override title |
 | `description` | string\|null | `null` | Override description |
 | `image` | string\|null | `null` | Override image URL |
-| `url` | string\|null | `null` | Override canonical URL |
-| `robots` | string\|null | `null` | Override robots directive |
+| `canonical` | string\|null | `null` | Override canonical URL |
+| `includeOpenGraph` | bool | `true` | Include Open Graph tags |
+| `includeTwitterCard` | bool | `true` | Include Twitter Card tags |
+| `includeHreflang` | bool | `true` | Include hreflang links |
 
 ### Examples
 
 ```blade
 {{-- With model --}}
-<x-seo-meta :model="$post" />
+<x-seo:meta :model="$post" />
 
 {{-- Without model (static page) --}}
-<x-seo-meta
+<x-seo:meta
     title="About Us | My Site"
     description="Learn more about our company and mission."
     image="https://example.com/about-og.jpg"
 />
 
 {{-- With overrides --}}
-<x-seo-meta
+<x-seo:meta
     :model="$post"
     :title="$customTitle"
-    robots="noindex, follow"
+    :include-hreflang="false"
 />
 ```
 
 ---
 
-## seo-meta-tags
+## x-seo:meta-tags
 
 Renders only basic meta tags (title, description, robots, canonical):
 
 ```blade
-<x-seo-meta-tags :model="$post" />
+<x-seo:meta-tags :model="$post" />
 ```
 
 ### Generated Output
@@ -72,8 +76,8 @@ Renders only basic meta tags (title, description, robots, canonical):
 ```html
 <title>Post Title | My Site</title>
 <meta name="description" content="Post description here.">
-<meta name="robots" content="index, follow">
 <link rel="canonical" href="https://example.com/posts/post-slug">
+<meta name="robots" content="index, follow">
 ```
 
 ### Properties
@@ -90,16 +94,16 @@ Renders only basic meta tags (title, description, robots, canonical):
 
 ```blade
 {{-- Basic usage --}}
-<x-seo-meta-tags :model="$post" />
+<x-seo:meta-tags :model="$post" />
 
 {{-- Static page --}}
-<x-seo-meta-tags
+<x-seo:meta-tags
     title="Contact Us"
     description="Get in touch with our team."
 />
 
 {{-- Noindex page --}}
-<x-seo-meta-tags
+<x-seo:meta-tags
     :model="$draftPost"
     robots="noindex, nofollow"
 />
@@ -107,25 +111,27 @@ Renders only basic meta tags (title, description, robots, canonical):
 
 ---
 
-## seo-open-graph
+## x-seo:open-graph
 
 Renders Open Graph meta tags for social sharing:
 
 ```blade
-<x-seo-open-graph :model="$post" />
+<x-seo:open-graph :model="$post" />
 ```
 
 ### Generated Output
 
 ```html
-<meta property="og:type" content="article">
 <meta property="og:title" content="Post Title">
 <meta property="og:description" content="Post description.">
-<meta property="og:url" content="https://example.com/posts/slug">
 <meta property="og:image" content="https://example.com/images/post.jpg">
+<meta property="og:url" content="https://example.com/posts/slug">
+<meta property="og:type" content="article">
 <meta property="og:site_name" content="My Site">
 <meta property="og:locale" content="en_US">
 ```
+
+`og:image:width`, `og:image:height`, and `og:image:alt` are added when known. On an `article`, so are `article:published_time` and `article:modified_time`. Setting `type` changes this too, and overriding `image` looks up the details for that image.
 
 ### Properties
 
@@ -144,16 +150,16 @@ Renders Open Graph meta tags for social sharing:
 
 ```blade
 {{-- Basic usage --}}
-<x-seo-open-graph :model="$post" />
+<x-seo:open-graph :model="$post" />
 
 {{-- Product page --}}
-<x-seo-open-graph
+<x-seo:open-graph
     :model="$product"
     type="product"
 />
 
 {{-- Static page --}}
-<x-seo-open-graph
+<x-seo:open-graph
     type="website"
     title="My Site - Home"
     description="Welcome to my site."
@@ -163,12 +169,12 @@ Renders Open Graph meta tags for social sharing:
 
 ---
 
-## seo-twitter-card
+## x-seo:twitter-card
 
 Renders Twitter Card meta tags:
 
 ```blade
-<x-seo-twitter-card :model="$post" />
+<x-seo:twitter-card :model="$post" />
 ```
 
 ### Generated Output
@@ -198,16 +204,16 @@ Renders Twitter Card meta tags:
 
 ```blade
 {{-- Basic usage --}}
-<x-seo-twitter-card :model="$post" />
+<x-seo:twitter-card :model="$post" />
 
 {{-- Summary card --}}
-<x-seo-twitter-card
+<x-seo:twitter-card
     :model="$post"
     card="summary"
 />
 
 {{-- Static page --}}
-<x-seo-twitter-card
+<x-seo:twitter-card
     card="summary_large_image"
     title="My Site"
     description="Welcome to my site."
@@ -217,12 +223,12 @@ Renders Twitter Card meta tags:
 
 ---
 
-## seo-schema
+## x-seo:schema
 
 Renders Schema.org JSON-LD structured data:
 
 ```blade
-<x-seo-schema :model="$post" />
+<x-seo:schema :model="$post" />
 ```
 
 ### Generated Output
@@ -248,42 +254,39 @@ Renders Schema.org JSON-LD structured data:
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
 | `model` | Model\|null | `null` | Eloquent model with HasSeo trait |
-| `type` | string\|null | `null` | Override schema type |
-| `data` | array\|null | `null` | Override schema data |
+| `schemas` | array | `[]` | Additional schemas |
+| `includeOrganization` | bool | `false` | Include the Organization schema |
+| `includeWebsite` | bool | `false` | Include the WebSite schema |
+| `useGraph` | bool | `true` | Output one `@graph` block |
+| `breadcrumbs` | array\|null | `null` | Breadcrumb items |
 
 ### Examples
 
 ```blade
 {{-- Basic usage --}}
-<x-seo-schema :model="$post" />
+<x-seo:schema :model="$post" />
+
+{{-- With site-wide schemas --}}
+<x-seo:schema
+    :model="$post"
+    :include-organization="true"
+    :include-website="true"
+/>
 
 {{-- Custom schema --}}
-<x-seo-schema
-    type="FAQPage"
-    :data="[
-        'mainEntity' => $faqItems,
-    ]"
-/>
-
-{{-- Organization schema --}}
-<x-seo-schema
-    type="Organization"
-    :data="[
-        'name' => 'My Company',
-        'url' => 'https://example.com',
-        'logo' => 'https://example.com/logo.png',
-    ]"
-/>
+<x-seo:schema :schemas="[
+    ['@type' => 'FAQPage', 'mainEntity' => $faqItems],
+]" />
 ```
 
 ---
 
-## seo-hreflang
+## x-seo:hreflang
 
 Renders hreflang link tags for international SEO:
 
 ```blade
-<x-seo-hreflang :model="$post" />
+<x-seo:hreflang :model="$post" />
 ```
 
 ### Generated Output
@@ -301,15 +304,17 @@ Renders hreflang link tags for international SEO:
 |----------|------|---------|-------------|
 | `model` | Model\|null | `null` | Eloquent model with HasSeo trait |
 | `urls` | array\|null | `null` | Override hreflang URLs |
+| `defaultUrl` | string\|null | `null` | URL for x-default |
+| `includeXDefault` | bool | `true` | Include x-default |
 
 ### Examples
 
 ```blade
 {{-- From model --}}
-<x-seo-hreflang :model="$post" />
+<x-seo:hreflang :model="$post" />
 
 {{-- Manual URLs --}}
-<x-seo-hreflang :urls="[
+<x-seo:hreflang :urls="[
     'en' => 'https://example.com/page',
     'fr' => 'https://example.fr/page',
     'x-default' => 'https://example.com/page',
@@ -329,16 +334,17 @@ Renders hreflang link tags for international SEO:
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    {{-- All SEO tags --}}
-    <x-seo-meta :model="$model ?? null" />
+    {{-- SEO tags --}}
+    <x-seo:meta :model="$model ?? null" />
+    <x-seo:schema :model="$model ?? null" />
 
     {{-- Or individual components --}}
     {{--
-    <x-seo-meta-tags :model="$model ?? null" />
-    <x-seo-open-graph :model="$model ?? null" />
-    <x-seo-twitter-card :model="$model ?? null" />
-    <x-seo-schema :model="$model ?? null" />
-    <x-seo-hreflang :model="$model ?? null" />
+    <x-seo:meta-tags :model="$model ?? null" />
+    <x-seo:open-graph :model="$model ?? null" />
+    <x-seo:twitter-card :model="$model ?? null" />
+    <x-seo:schema :model="$model ?? null" />
+    <x-seo:hreflang :model="$model ?? null" />
     --}}
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -366,7 +372,7 @@ class PostController extends Controller
 
 ## Next Steps
 
-- [SEO Meta Editor](Seo-Meta-Editor) - Admin editing component
+- [SEO Meta Editor](Components-Seo-Meta-Editor) - Admin editing component
 - [Meta Tags](Usage-Meta-Tags) - Meta tag management
 - [Social Media](Usage-Social-Media) - Social optimization
 - [Schema.org](Usage-Schema) - Structured data

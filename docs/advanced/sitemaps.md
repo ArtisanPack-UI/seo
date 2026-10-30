@@ -4,154 +4,201 @@ title: XML Sitemaps
 
 # XML Sitemaps
 
-ArtisanPack UI SEO provides comprehensive XML sitemap generation including standard sitemaps, image sitemaps, video sitemaps, and news sitemaps.
+ArtisanPack UI SEO provides XML sitemap generation, including standard, image, video, and news sitemaps.
 
 ## Overview
 
 XML sitemaps help search engines discover and index your content. The package supports:
 
-- **Standard Sitemaps** - URLs with priority and change frequency
-- **Image Sitemaps** - For image discovery
+- **Standard Sitemaps** - URLs with their last modified date
+- **Image Sitemaps** - For image discovery, on by default
 - **Video Sitemaps** - For video content
 - **News Sitemaps** - For news articles
-- **Sitemap Index** - For large sites with multiple sitemaps
+- **Sitemap Index** - For sites with several sitemap types or pages
 
 ## Configuration
 
 ```php
 // In config/seo.php
 'sitemap' => [
-    'enabled' => true,
-    'max_urls' => 10000,
-    'cache_enabled' => true,
-    'cache_ttl' => 3600,
-    'default_priority' => 0.5,
-    'default_changefreq' => 'weekly',
+    'enabled'           => env('SEO_SITEMAP_ENABLED', true),
+    'route_enabled'     => true,
+    'route_path'        => 'sitemap.xml',
+    'max_urls_per_file' => 10000,
+    'default_frequency' => null,
+    'default_priority'  => null,
+    'cache_enabled'     => true,
+    'cache_ttl'         => 3600,
+    'submit_enabled'    => env('SEO_SITEMAP_SUBMIT_ENABLED', false),
+    'submit_timeout'    => 10,
+    'providers'         => [],
     'types' => [
         'standard' => true,
-        'image' => true,
-        'video' => true,
-        'news' => false,
+        'image'    => true,
+        'video'    => false,
+        'news'     => false,
     ],
     'news' => [
-        'publication_name' => env('APP_NAME'),
-        'publication_language' => 'en',
+        'types'        => ['article', 'post', 'news'],
+        'max_age_days' => 2,
     ],
+    'search_engines' => [],
 ],
 ```
 
 | Option | Description |
 |--------|-------------|
-| `max_urls` | Maximum URLs per sitemap file |
+| `route_enabled` | Register the sitemap routes |
+| `route_path` | Path of the main sitemap |
+| `max_urls_per_file` | Maximum URLs per sitemap file |
+| `default_frequency` | Site-wide `changefreq`, left out when null |
+| `default_priority` | Site-wide `priority` (0.0-1.0), left out when null |
 | `cache_enabled` | Enable sitemap caching |
 | `cache_ttl` | Cache time-to-live in seconds |
-| `default_priority` | Default URL priority (0.0-1.0) |
-| `default_changefreq` | Default change frequency |
-| `types` | Enable/disable sitemap types |
+| `submit_enabled` | Ping search engines from `notifyOnPublish()` |
+| `submit_timeout` | HTTP timeout for pings, in seconds |
+| `providers` | Provider classes keyed by sitemap type |
+| `types` | Enable or disable the specialized sitemaps |
+| `search_engines` | Ping URLs keyed by engine name, empty by default |
+
+## Priority and Change Frequency
+
+`priority` and `changefreq` are left out of a sitemap unless they're set for a URL. Identical values on every URL tell crawlers nothing.
+
+A URL's value comes from its SEO meta, then the site-wide `default_priority` or `default_frequency` setting. A blank field inherits a site-wide default, so setting one means no page can opt out of it.
+
+```php
+$post->updateSeoMeta([
+    'sitemap_priority' => 0.8,
+    'sitemap_changefreq' => 'daily',
+]);
+```
 
 ## Generating Sitemaps
 
-### Using Artisan Command
+The routes generate sitemaps on request, so most sites don't need to run anything.
+
+### Using the Artisan Command
 
 ```bash
-# Generate all enabled sitemaps
-php artisan seo:generate-sitemap
+# Write every type to a directory
+php artisan seo:generate-sitemap --output=public/sitemaps
 
-# Generate specific type
-php artisan seo:generate-sitemap --type=standard
-php artisan seo:generate-sitemap --type=image
-php artisan seo:generate-sitemap --type=video
-php artisan seo:generate-sitemap --type=news
+# Write one type
+php artisan seo:generate-sitemap --type=post --output=public/sitemaps
 ```
+
+See [Artisan Commands](Advanced-Artisan-Commands) for all options.
 
 ### Programmatically
 
 ```php
-use ArtisanPackUI\Seo\Services\SitemapService;
+use ArtisanPackUI\SEO\Services\SitemapService;
 
-$sitemapService = app('seo.sitemap');
+$sitemapService = app(SitemapService::class);
 
-// Generate all sitemaps
-$sitemapService->generate();
+// All types
+$xml = $sitemapService->generate();
 
-// Generate specific type
-$sitemapService->generateStandard();
-$sitemapService->generateImages();
-$sitemapService->generateVideos();
-$sitemapService->generateNews();
+// One type and page
+$xml = $sitemapService->generate('post', 2);
 
-// Generate sitemap index
-$sitemapService->generateIndex();
+// One type and page, or null when there's nothing to list
+$xml = $sitemapService->generateTypeSitemap('post', 2);
+
+// Specialized sitemaps
+$xml = $sitemapService->generateImages();
+$xml = $sitemapService->generateVideos();
+$xml = $sitemapService->generateNews();
+
+// Sitemap index
+$xml = $sitemapService->generateIndex();
 ```
 
-### Using Helper
+## How URLs Are Resolved
 
-```php
-seoGenerateSitemap();
-seoGenerateSitemap('standard');
-```
+Sitemap entries use the same resolver as canonical tags, Open Graph, and schema. It tries these in order:
+
+1. A saved `canonical_url`
+2. `getPublicUrl()` from the `HasPublicUrl` contract
+3. `getUrl()` on the model
+4. A `permalink` attribute
+5. A `{model}.show` route
+
+A model with none of these gets no sitemap entry. URLs are never guessed from a model's slug. A relative URL is built from `app.url`. See [Model Integration](Usage-Model-Integration#public-urls).
 
 ## Sitemap Providers
 
-Register models to be included in sitemaps using providers.
+Providers add URLs that have no model, such as archive pages.
 
 ### Creating a Provider
 
 ```php
 namespace App\Seo\Providers;
 
-use ArtisanPackUI\Seo\Contracts\SitemapProviderInterface;
-use App\Models\Post;
+use ArtisanPackUI\SEO\Contracts\SitemapProviderContract;
 use Illuminate\Support\Collection;
 
-class PostSitemapProvider implements SitemapProviderInterface
+class ArchiveSitemapProvider implements SitemapProviderContract
 {
-    public function getEntries(): Collection
+    public function getUrls(): Collection
     {
-        return Post::query()
-            ->published()
-            ->with('seoMeta')
-            ->get()
-            ->filter(fn ($post) => $post->shouldBeInSitemap())
-            ->map(fn ($post) => [
-                'url' => $post->url,
-                'lastmod' => $post->updated_at,
-                'priority' => $post->seoMeta?->sitemap_priority ?? 0.5,
-                'changefreq' => $post->seoMeta?->sitemap_changefreq ?? 'weekly',
-                'images' => $this->getImages($post),
-            ]);
+        return collect([
+            [
+                'loc'         => url('/blog'),
+                'lastmod'     => now(),
+                'title'       => 'Blog',
+                'description' => 'All of our articles.',
+            ],
+        ]);
     }
 
-    protected function getImages($post): array
+    public function getChangeFrequency(): ?string
     {
-        return $post->images->map(fn ($image) => [
-            'loc' => $image->url,
-            'title' => $image->title,
-            'caption' => $image->caption,
-        ])->toArray();
+        return null;
+    }
+
+    public function getPriority(): ?float
+    {
+        return null;
+    }
+
+    public function getType(): string
+    {
+        return 'archive';
     }
 }
 ```
+
+Return `null` from `getChangeFrequency()` or `getPriority()` to leave them out of the sitemap. A `changefreq` or `priority` on an individual URL takes precedence. `title` and `description` are used by [llms.txt](Advanced-Llms-Txt).
 
 ### Registering Providers
 
 ```php
-// In a service provider
-use ArtisanPackUI\Seo\Services\SitemapService;
+// In config/seo.php
+'sitemap' => [
+    'providers' => [
+        'archive' => \App\Seo\Providers\ArchiveSitemapProvider::class,
+    ],
+],
+```
+
+Or in a service provider:
+
+```php
+use ArtisanPackUI\SEO\Services\SitemapService;
 
 public function boot(): void
 {
-    $sitemap = app(SitemapService::class);
-
-    $sitemap->registerProvider(PostSitemapProvider::class);
-    $sitemap->registerProvider(ProductSitemapProvider::class);
-    $sitemap->registerProvider(CategorySitemapProvider::class);
+    app(SitemapService::class)->registerProvider('archive', new ArchiveSitemapProvider());
 }
 ```
 
+A provider's sitemap lists stored entries of its type, followed by its URLs that aren't already stored. Its pages stay within `max_urls_per_file`, and the index lists each one.
+
 ## Model Integration
 
-Models with the `HasSeo` trait can automatically be included in sitemaps.
+Models with the `HasSeo` trait are tracked automatically.
 
 ### Sitemap Settings
 
@@ -169,15 +216,17 @@ $post->updateSeoMeta([
 // Check if model should be in sitemap
 $post->shouldBeInSitemap();
 
-// Get sitemap priority
+// Get priority and change frequency, null when not set
 $post->getSitemapPriority();
-
-// Get change frequency
 $post->getSitemapChangefreq();
 
-// Get last modification date
-$post->getSitemapLastmod();
+// Get the sitemap type, images, and videos
+$post->getSitemapType();
+$post->getSitemapImages();
+$post->getSitemapVideos();
 ```
+
+Override `getSitemapImages()` to list a page's images. By default it lists the model's SEO image, leaving out `seo.open_graph.default_image` because that isn't the page's own image.
 
 ## Sitemap Types
 
@@ -189,13 +238,13 @@ $post->getSitemapLastmod();
     <url>
         <loc>https://example.com/posts/my-post</loc>
         <lastmod>2024-01-15T10:30:00+00:00</lastmod>
-        <changefreq>weekly</changefreq>
-        <priority>0.8</priority>
     </url>
 </urlset>
 ```
 
 ### Image Sitemap
+
+The image sitemap only joins the index when an indexable entry has images, so a site without images keeps its plain sitemap. Set `seo.sitemap.types.image` to `false` to turn it off.
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -253,15 +302,11 @@ $post->getSitemapLastmod();
 
 ### Sitemap Index
 
-For large sites with multiple sitemaps:
+`/sitemap.xml` serves an index when there's more than one type, a provider, more than one page, images to list, or an enabled video or news sitemap. The index lists per-type children, and every image sitemap page:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-    <sitemap>
-        <loc>https://example.com/sitemap-1.xml</loc>
-        <lastmod>2024-01-15T10:30:00+00:00</lastmod>
-    </sitemap>
     <sitemap>
         <loc>https://example.com/sitemap-post-1.xml</loc>
         <lastmod>2024-01-15T10:30:00+00:00</lastmod>
@@ -275,85 +320,50 @@ For large sites with multiple sitemaps:
 
 ## Serving Sitemaps
 
-### Via Routes
+The package registers these routes when `seo.sitemap.route_enabled` is true:
 
-The package can register sitemap routes:
+| Route | Serves |
+|-------|--------|
+| `/sitemap.xml` | The sitemap index, or the plain sitemap when no index is needed |
+| `/sitemap-{page}.xml` | All types together, kept for URLs already submitted to search consoles |
+| `/sitemap-{type}-{page}.xml` | One type |
+| `/sitemap-images.xml`, `/sitemap-images-{page}.xml` | Images, when enabled |
+| `/sitemap-videos.xml`, `/sitemap-videos-{page}.xml` | Videos, when enabled |
+| `/sitemap-news.xml`, `/sitemap-news-{page}.xml` | News, when enabled |
 
-```php
-// In config/seo.php
-'routes' => [
-    'sitemap' => true,
-],
-
-// Registers:
-// GET /sitemap.xml
-// GET /sitemap-{page}.xml
-// GET /sitemap-{type}-{page}.xml
-```
-
-### Via Controller
-
-```php
-use ArtisanPackUI\Seo\Services\SitemapService;
-
-class SitemapController extends Controller
-{
-    public function __construct(
-        protected SitemapService $sitemap
-    ) {}
-
-    public function index()
-    {
-        return response($this->sitemap->getIndexContent())
-            ->header('Content-Type', 'application/xml');
-    }
-
-    public function show(string $type)
-    {
-        return response($this->sitemap->getContent($type))
-            ->header('Content-Type', 'application/xml');
-    }
-}
-```
+A type must match `[A-Za-z0-9_.-]+`, or its child can't be reached. An empty `sitemap-{type}-{page}.xml` returns a 404, except page 1 of a type with a registered provider. A stored type named `images`, `videos`, or `news` takes over its numbered URLs.
 
 ## Submitting Sitemaps
 
-### Using Artisan Command
+No search engine is pinged by default. Google retired its ping endpoint in 2023 and Bing's returns 410 Gone. Instead:
+
+- List your sitemap in robots.txt, which the package does automatically
+- Add it in each engine's webmaster tools
+- Use [IndexNow](Advanced-Indexnow) to announce updates
+
+For an engine that still accepts pings, add it to `search_engines`:
+
+```php
+'search_engines' => [
+    'custom' => 'https://search.example.com/ping?sitemap=%s',
+],
+```
 
 ```bash
-# Submit to all search engines
 php artisan seo:submit-sitemap
-
-# Submit to specific engine
-php artisan seo:submit-sitemap --engine=google
-php artisan seo:submit-sitemap --engine=bing
+php artisan seo:submit-sitemap --engine=custom
 ```
 
-### Programmatically
-
 ```php
-$sitemapService->submit();
-$sitemapService->submitToGoogle();
-$sitemapService->submitToBing();
+$results = app(SitemapService::class)->submit();
 ```
 
-### Using Helper
+### Notifying on Publish
+
+`notifyOnPublish()` runs IndexNow when `seo.indexnow.enabled` is on, and sitemap pings when `seo.sitemap.submit_enabled` is on. Call it from a queued job:
 
 ```php
-seoSubmitSitemap();
-seoSubmitSitemap('google');
-```
-
-## Scheduling
-
-Add sitemap generation to your scheduler:
-
-```php
-// In routes/console.php
-use Illuminate\Support\Facades\Schedule;
-
-Schedule::command('seo:generate-sitemap')->daily();
-Schedule::command('seo:submit-sitemap')->weekly();
+app(SitemapService::class)->notifyOnPublish($post->canonical_url);
 ```
 
 ## Change Frequency Values
@@ -368,61 +378,25 @@ Schedule::command('seo:submit-sitemap')->weekly();
 | `yearly` | Changes every year |
 | `never` | Archived content |
 
-## Priority Guidelines
-
-| Priority | Use Case |
-|----------|----------|
-| 1.0 | Homepage |
-| 0.8 | Important pages (products, services) |
-| 0.6 | Category pages |
-| 0.5 | Regular content (default) |
-| 0.3 | Archive pages |
-| 0.1 | Low-priority pages |
-
 ## Caching
 
-Sitemaps are cached for performance. Cached XML is invalidated automatically
-whenever a model tracked by `HasSeo` is saved, force deleted, or restored, so
-the next request regenerates fresh output — you do not need to run
-`clearCache()` yourself after content changes. The `seo:generate-sitemap`
-command also flushes the cache before regenerating so the cached copy is
-primed with the current content.
+Sitemaps are cached for performance. Cached XML is invalidated automatically whenever a model tracked by `HasSeo` is saved, force deleted, or restored, so the next request regenerates fresh output. You don't need to run `clearCache()` yourself after content changes. `seo:generate-sitemap --output` also clears the cache before regenerating, so the cached copy is primed with the current content.
 
 ```php
 use ArtisanPackUI\SEO\Services\SitemapService;
 
 // Manually clear the sitemap cache (e.g. after a bulk import that bypasses model events)
 app(SitemapService::class)->clearCache();
-
-// Regenerate with fresh cache
-app(SitemapService::class)->generate();
 ```
 
-Clearing writes a new generation token instead of deleting keys one by one,
-so it is a single cache write. Pages for deleted content stop being served
-too. See [Caching](Caching) for the key format.
+Clearing writes a new generation token instead of deleting keys one by one, so it is a single cache write. Pages for deleted content stop being served too. See [Caching](Advanced-Caching) for the key format.
 
-## Events
+## Filtering Entries
 
-Listen for sitemap events:
-
-```php
-use ArtisanPackUI\Seo\Events\SitemapGenerated;
-use ArtisanPackUI\Seo\Events\SitemapSubmitted;
-
-Event::listen(SitemapGenerated::class, function ($event) {
-    Log::info("Sitemap generated: {$event->type}");
-});
-
-Event::listen(SitemapSubmitted::class, function ($event) {
-    if ($event->success) {
-        Log::info("Sitemap submitted to {$event->engine}");
-    }
-});
-```
+Use the `ap.seo.sitemapEntries` filter to add, remove, or reorder entries. See [Filter Hooks](Api-Filter-Hooks#apseositemapentries).
 
 ## Next Steps
 
-- [Robots.txt](Robots) - Configure robots.txt
-- [Artisan Commands](Artisan-Commands) - CLI reference
-- [Caching](Caching) - Cache configuration
+- [Robots.txt](Advanced-Robots) - Configure robots.txt
+- [Artisan Commands](Advanced-Artisan-Commands) - CLI reference
+- [Caching](Advanced-Caching) - Cache configuration

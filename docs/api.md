@@ -45,18 +45,15 @@ seoTitle($title)         // Format page title
 seoDescription($text)    // Truncate description
 seoIsEnabled($feature)   // Check feature status
 seoConfig($key)          // Get config value
+seoRedirect()            // Get RedirectService
+apSeoAddSchema($schema)  // Add a schema to the page
 ```
 
 [View Helper Functions Documentation →](Api-Helpers)
 
 ### Events
 
-| Event | When Fired |
-|-------|------------|
-| `SeoMetaCreated` | After SEO meta created |
-| `SeoMetaUpdated` | After SEO meta updated |
-| `SitemapGenerated` | After sitemap generation |
-| `RedirectHit` | When redirect is triggered |
+The package doesn't dispatch Laravel events. The Livewire components dispatch browser events.
 
 [View Events Documentation →](Api-Events)
 
@@ -66,33 +63,35 @@ seoConfig($key)          // Get config value
 |--------|------------|-------|
 | `ap.seo.metaTags` | Before meta tags are rendered | 1.3.0 |
 | `ap.seo.sitemapEntries` | Before sitemap entries are serialized | 1.3.0 |
+| `ap.seo.llmsTxtEntries` | Before llms.txt entries are rendered | 1.4.0 |
+| `ap.seo.analysisContent` | Before content reaches the analyzers | 1.7.0 |
 
 [View Filter Hooks Documentation →](Api-Filter-Hooks)
 
 ## Facades
 
-The package provides these facades:
+The `SEO` facade resolves the `ArtisanPackUI\SEO\SEO` registry class, which holds analyzers, schema types, and sitemap providers:
 
 ```php
-use ArtisanPackUI\Seo\Facades\Seo;
-use ArtisanPackUI\Seo\Facades\Redirect;
+use ArtisanPackUI\SEO\Facades\SEO;
 
-// Using Seo facade
-$meta = Seo::getMetaForModel($post);
-$tags = Seo::generateMetaTags($post);
+SEO::registerAnalyzer('custom', CustomAnalyzer::class);
+SEO::registerSchemaType('Recipe', RecipeSchema::class);
+SEO::registerSitemapProvider('archive', ArchiveSitemapProvider::class);
 
-// Using Redirect facade
-$redirect = Redirect::create([...]);
-$match = Redirect::findMatch('/old-path');
+$title = SEO::title('My Page');
+$enabled = SEO::isEnabled('sitemap');
 ```
+
+For everything else, use the `seo()` helper or the services.
 
 ## Dependency Injection
 
 All services can be injected via Laravel's container:
 
 ```php
-use ArtisanPackUI\Seo\Services\SeoService;
-use ArtisanPackUI\Seo\Services\SitemapService;
+use ArtisanPackUI\SEO\Services\SeoService;
+use ArtisanPackUI\SEO\Services\SitemapService;
 
 class MyController extends Controller
 {
@@ -110,73 +109,22 @@ class MyController extends Controller
 
 ## Container Bindings
 
-The package registers these bindings:
+Services are singletons bound by class name, so resolve them with `app(SitemapService::class)`. The only string binding is `seo`, which resolves the `SEO` registry class.
 
-```php
-// Singletons
-$this->app->singleton('seo', SeoService::class);
-$this->app->singleton('seo.redirect', RedirectService::class);
-$this->app->singleton('seo.sitemap', SitemapService::class);
-$this->app->singleton('seo.robots', RobotsService::class);
-$this->app->singleton('seo.analysis', AnalysisService::class);
-$this->app->singleton('seo.cache', CacheService::class);
-```
+## Contracts
 
-Access via app helper:
+| Contract | Purpose |
+|----------|---------|
+| `AnalyzerContract` | Custom analyzers: `analyze()`, `getName()`, `getCategory()`, `getWeight()` |
+| `SchemaTypeContract` | Schema types, usually through `AbstractSchema` |
+| `SitemapProviderContract` | Sitemap providers |
+| `HasPublicUrl` | Declare a model's public URL |
+| `SeoAnalyzableContent` | Supply a model's full HTML to analyzers |
+| `FeedProviderContract` | RSS and Atom feed content |
+| `IndexNowKeyProviderContract` | Supply the IndexNow key |
+| `OgImageRendererContract` | Custom OG image renderer |
 
-```php
-$seo = app('seo');
-$redirectService = app('seo.redirect');
-```
-
-## Contracts/Interfaces
-
-The package defines these contracts:
-
-```php
-namespace ArtisanPackUI\Seo\Contracts;
-
-interface SeoableInterface
-{
-    public function getSeoTitle(): ?string;
-    public function getSeoDescription(): ?string;
-    public function getSeoImage(): ?string;
-    public function getSeoUrl(): ?string;
-}
-
-interface AnalyzerInterface
-{
-    public function analyze($model): array;
-}
-
-interface SchemaBuilderInterface
-{
-    public function build($model, array $data = []): array;
-}
-
-interface SitemapProviderInterface
-{
-    public function getEntries(): Collection;
-}
-```
-
-## Exception Classes
-
-```php
-namespace ArtisanPackUI\Seo\Exceptions;
-
-// Thrown when redirect creates a loop
-RedirectLoopException::class;
-
-// Thrown when sitemap generation fails
-SitemapGenerationException::class;
-
-// Thrown when schema type is invalid
-InvalidSchemaTypeException::class;
-
-// Thrown when configuration is invalid
-InvalidConfigurationException::class;
-```
+All contracts are in the `ArtisanPackUI\SEO\Contracts` namespace.
 
 ## Next Steps
 

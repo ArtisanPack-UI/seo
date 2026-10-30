@@ -10,14 +10,13 @@ ArtisanPack UI SEO provides global helper functions for common SEO tasks.
 
 ### seo()
 
-Get the main SEO service instance.
+Get the `SeoService` instance.
 
 ```php
 $seo = seo();
 
-// Use service methods
-$meta = seo()->getMetaForModel($post);
-$tags = seo()->generateMetaTags($post);
+$metaTags = seo()->getMetaTags($post);
+$openGraph = seo()->getOpenGraph($post);
 ```
 
 ### seoMeta()
@@ -47,7 +46,7 @@ $value = seoConfig('custom.key', 'default');
 
 ### seoIsEnabled()
 
-Check if a SEO feature is enabled.
+Check if an SEO feature is enabled. This reads `seo.{feature}.enabled`.
 
 ```php
 if (seoIsEnabled('sitemap')) {
@@ -67,25 +66,22 @@ if (seoIsEnabled('analysis')) {
 
 ### seoTitle()
 
-Format a page title with site name suffix.
+Format a page title with the site name suffix, using `seo.site.separator`.
 
 ```php
-// With default separator from config
 $title = seoTitle('My Page');
 // Result: "My Page | My Site"
 
-// With custom separator
-$title = seoTitle('My Page', ' - ');
-// Result: "My Page - My Site"
-
 // Without suffix
-$title = seoTitle('My Page', '');
+$title = seoTitle('My Page', false);
 // Result: "My Page"
 ```
 
+The suffix is left off when the title already contains the site name, or when adding it would pass `seo.defaults.title_max_length`.
+
 ### seoDescription()
 
-Truncate text to SEO-friendly description length.
+Shorten text to an SEO-friendly length. The limit includes the `...` added to shortened text, and text within the limit is returned unchanged.
 
 ```php
 // Default 160 characters
@@ -93,9 +89,6 @@ $desc = seoDescription($longText);
 
 // Custom length
 $desc = seoDescription($longText, 150);
-
-// With ellipsis
-$desc = seoDescription($longText, 160, '...');
 ```
 
 ## Redirect Helpers
@@ -119,7 +112,7 @@ Find a redirect for a given path.
 $redirect = seoFindRedirect('/old-page');
 
 if ($redirect) {
-    $destination = $redirect->target;
+    $destination = $redirect->to_path;
     $statusCode = $redirect->status_code;
 }
 ```
@@ -129,219 +122,48 @@ if ($redirect) {
 Create a new redirect.
 
 ```php
-$redirect = seoCreateRedirect(
-    source: '/old-page',
-    target: '/new-page',
-    type: 'exact',
-    statusCode: 301
-);
+$redirect = seoCreateRedirect('/old-page', '/new-page');
 
-// With all options
+// With a status code and match type
 $redirect = seoCreateRedirect(
-    source: '/blog/*',
-    target: '/articles/$1',
-    type: 'wildcard',
+    fromPath: '/blog/*',
+    toPath: '/articles/$1',
     statusCode: 301,
-    isActive: true,
-    notes: 'Blog migration redirect'
+    matchType: 'wildcard',
 );
 ```
 
 ### seoDeleteRedirect()
 
-Delete a redirect.
+Delete a redirect by model or ID.
 
 ```php
-// By ID
 seoDeleteRedirect(123);
-
-// By source path
-seoDeleteRedirect('/old-page', byPath: true);
+seoDeleteRedirect($redirect);
 ```
 
 ### seoRedirectStatistics()
 
-Get redirect statistics.
+Get redirect statistics from `RedirectService::getStatistics()`.
 
 ```php
 $stats = seoRedirectStatistics();
-
-// Returns:
-// [
-//     'total' => 45,
-//     'active' => 42,
-//     'inactive' => 3,
-//     'total_hits' => 12543,
-//     'most_hit' => [...],
-// ]
-```
-
-## Sitemap Helpers
-
-### seoSitemap()
-
-Get the sitemap service instance.
-
-```php
-$sitemapService = seoSitemap();
-
-// Generate sitemaps
-seoSitemap()->generate();
-```
-
-### seoGenerateSitemap()
-
-Generate sitemaps.
-
-```php
-// Generate all
-seoGenerateSitemap();
-
-// Generate specific type
-seoGenerateSitemap('standard');
-seoGenerateSitemap('images');
-seoGenerateSitemap('videos');
-seoGenerateSitemap('news');
-```
-
-### seoSubmitSitemap()
-
-Submit sitemaps to search engines.
-
-```php
-// Submit to all configured engines
-seoSubmitSitemap();
-
-// Submit to specific engine
-seoSubmitSitemap('google');
-seoSubmitSitemap('bing');
-```
-
-## Analysis Helpers
-
-### seoAnalyze()
-
-Run SEO analysis on a model.
-
-```php
-$results = seoAnalyze($post);
-
-// Returns:
-// [
-//     'score' => 75,
-//     'readability' => ['status' => 'pass', ...],
-//     'keyword_density' => ['status' => 'warning', ...],
-//     ...
-// ]
-```
-
-### seoScore()
-
-Get the SEO score for a model.
-
-```php
-$score = seoScore($post);
-// Returns: 0-100
 ```
 
 ## Schema Helpers
 
-### seoSchema()
+### apSeoAddSchema()
 
-Generate schema markup for a model.
-
-```php
-$schema = seoSchema($post);
-
-// Returns JSON-LD array
-// [
-//     '@context' => 'https://schema.org',
-//     '@type' => 'Article',
-//     ...
-// ]
-```
-
-### seoSchemaJson()
-
-Get schema as JSON string.
+Add a schema to the current page's JSON-LD graph.
 
 ```php
-$json = seoSchemaJson($post);
-
-// Returns JSON string ready for output
+apSeoAddSchema([
+    '@type' => 'FAQPage',
+    'mainEntity' => $questions,
+]);
 ```
 
-## URL Helpers
-
-### seoCanonical()
-
-Get the canonical URL for a model.
-
-```php
-$canonical = seoCanonical($post);
-// Returns: "https://example.com/posts/my-post"
-```
-
-### seoUrl()
-
-Generate an SEO-friendly URL.
-
-```php
-$url = seoUrl($post);
-
-// With options
-$url = seoUrl($post, absolute: true);
-```
-
-## Robots Helpers
-
-### seoRobots()
-
-Generate robots meta content for a model.
-
-```php
-$robots = seoRobots($post);
-// Returns: "index, follow" or "noindex, nofollow"
-```
-
-### seoRobotsTxt()
-
-Get the robots.txt content.
-
-```php
-$content = seoRobotsTxt();
-```
-
-## Hreflang Helpers
-
-### seoHreflang()
-
-Get hreflang URLs for a model.
-
-```php
-$hreflang = seoHreflang($post);
-
-// Returns:
-// [
-//     'en' => 'https://example.com/post',
-//     'fr' => 'https://example.fr/article',
-//     'x-default' => 'https://example.com/post',
-// ]
-```
-
-## Cache Helpers
-
-### seoClearCache()
-
-Clear SEO cache.
-
-```php
-// Clear for specific model
-seoClearCache($post);
-
-// Clear all SEO caches
-seoClearCache();
-```
+It also accepts an `AbstractSchema` instance.
 
 ## Usage Examples
 
@@ -352,15 +174,10 @@ class PostController extends Controller
 {
     public function show(Post $post)
     {
-        // Check if post should be visible
-        if (!seoIsEnabled('noindex_preview') && !$post->shouldBeIndexed()) {
-            abort(404);
-        }
-
         return view('posts.show', [
             'post' => $post,
             'seoTitle' => seoTitle($post->title),
-            'seoDescription' => seoDescription($post->content),
+            'seoDescription' => seoDescription(strip_tags($post->content)),
         ]);
     }
 }
@@ -378,30 +195,8 @@ class PostController extends Controller
 <meta name="description" content="{{ $pageDesc }}">
 ```
 
-### In Artisan Commands
-
-```php
-class GenerateSeoCommand extends Command
-{
-    public function handle()
-    {
-        if (seoIsEnabled('sitemap')) {
-            seoGenerateSitemap();
-            $this->info('Sitemap generated.');
-        }
-
-        if (seoIsEnabled('analysis')) {
-            Post::each(function ($post) {
-                seoAnalyze($post);
-            });
-            $this->info('Analysis complete.');
-        }
-    }
-}
-```
-
 ## Next Steps
 
-- [Services](Services) - Full service documentation
-- [Events](Events) - Event reference
+- [Services](Api-Services) - Full service documentation
+- [Filter Hooks](Api-Filter-Hooks) - Filter reference
 - [Configuration](Installation-Configuration) - Config options

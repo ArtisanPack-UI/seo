@@ -20,39 +20,41 @@ Schema::create('seo_meta', function (Blueprint $table) {
     // Basic meta
     $table->string('meta_title')->nullable();
     $table->text('meta_description')->nullable();
-    $table->string('canonical_url')->nullable();
-
-    // Robots
-    $table->boolean('noindex')->default(false);
-    $table->boolean('nofollow')->default(false);
+    $table->string('canonical_url', 500)->nullable();
+    $table->boolean('no_index')->default(false);
+    $table->boolean('no_follow')->default(false);
+    $table->string('robots_meta')->nullable();
 
     // Open Graph
     $table->string('og_title')->nullable();
     $table->text('og_description')->nullable();
-    $table->string('og_image')->nullable();
+    $table->string('og_image', 500)->nullable();
     $table->unsignedBigInteger('og_image_id')->nullable();
-    $table->string('og_type')->nullable();
-    $table->string('og_locale')->nullable();
+    $table->string('og_type', 50)->nullable();
+    $table->string('og_locale', 10)->nullable();
     $table->string('og_site_name')->nullable();
 
     // Twitter
-    $table->string('twitter_card')->nullable();
+    $table->string('twitter_card', 50)->default('summary_large_image');
     $table->string('twitter_title')->nullable();
     $table->text('twitter_description')->nullable();
-    $table->string('twitter_image')->nullable();
+    $table->string('twitter_image', 500)->nullable();
     $table->unsignedBigInteger('twitter_image_id')->nullable();
-    $table->string('twitter_site')->nullable();
-    $table->string('twitter_creator')->nullable();
+    $table->string('twitter_site', 50)->nullable();
+    $table->string('twitter_creator', 50)->nullable();
 
     // Pinterest & Slack
     $table->text('pinterest_description')->nullable();
-    $table->string('pinterest_image')->nullable();
+    $table->string('pinterest_image', 500)->nullable();
+    $table->unsignedBigInteger('pinterest_image_id')->nullable();
     $table->string('slack_title')->nullable();
     $table->text('slack_description')->nullable();
+    $table->string('slack_image', 500)->nullable();
+    $table->unsignedBigInteger('slack_image_id')->nullable();
 
     // Schema
-    $table->string('schema_type')->nullable();
-    $table->json('schema_data')->nullable();
+    $table->string('schema_type', 100)->nullable();
+    $table->json('schema_markup')->nullable();
 
     // Keywords
     $table->string('focus_keyword')->nullable();
@@ -62,9 +64,9 @@ Schema::create('seo_meta', function (Blueprint $table) {
     $table->json('hreflang')->nullable();
 
     // Sitemap
+    $table->decimal('sitemap_priority', 2, 1)->nullable();
+    $table->string('sitemap_changefreq', 20)->nullable();
     $table->boolean('exclude_from_sitemap')->default(false);
-    $table->decimal('sitemap_priority', 2, 1)->default(0.5);
-    $table->string('sitemap_changefreq')->default('weekly');
 
     $table->timestamps();
 });
@@ -77,13 +79,13 @@ Schema::create('seo_meta', function (Blueprint $table) {
 | `meta_title` | string\|null | Custom meta title |
 | `meta_description` | string\|null | Custom meta description |
 | `canonical_url` | string\|null | Custom canonical URL |
-| `noindex` | bool | Prevent indexing |
-| `nofollow` | bool | Prevent link following |
+| `no_index` | bool | Prevent indexing |
+| `no_follow` | bool | Prevent link following |
 | `og_title` | string\|null | Open Graph title |
 | `og_description` | string\|null | Open Graph description |
 | `og_image` | string\|null | Open Graph image URL |
 | `og_image_id` | int\|null | Media Library image ID |
-| `og_type` | string\|null | Open Graph type |
+| `og_type` | string\|null | Open Graph type, inferred when null |
 | `og_locale` | string\|null | Open Graph locale |
 | `og_site_name` | string\|null | Open Graph site name |
 | `twitter_card` | string\|null | Twitter card type |
@@ -93,12 +95,12 @@ Schema::create('seo_meta', function (Blueprint $table) {
 | `twitter_site` | string\|null | Twitter @site handle |
 | `twitter_creator` | string\|null | Twitter @creator handle |
 | `schema_type` | string\|null | Schema.org type |
-| `schema_data` | array\|null | Custom schema data |
+| `schema_markup` | array\|null | Custom schema data |
 | `focus_keyword` | string\|null | Primary keyword |
 | `secondary_keywords` | array\|null | Additional keywords |
 | `hreflang` | array\|null | Hreflang URLs |
-| `sitemap_priority` | float | Sitemap priority (0.0-1.0) |
-| `sitemap_changefreq` | string | Sitemap change frequency |
+| `sitemap_priority` | float\|null | Sitemap priority (0.0-1.0), left out of the sitemap when null |
+| `sitemap_changefreq` | string\|null | Sitemap change frequency, left out of the sitemap when null |
 | `exclude_from_sitemap` | bool | Exclude from sitemap |
 
 ### Relationships
@@ -106,40 +108,29 @@ Schema::create('seo_meta', function (Blueprint $table) {
 ```php
 // Polymorphic parent
 public function seoable(): MorphTo
-{
-    return $this->morphTo();
-}
 
-// Media Library integration (if installed)
-public function ogImage(): BelongsTo
-{
-    return $this->belongsTo(Media::class, 'og_image_id');
-}
-
-public function twitterImage(): BelongsTo
-{
-    return $this->belongsTo(Media::class, 'twitter_image_id');
-}
+// Cached analysis
+public function analysisCache(): HasOne
 ```
 
 ### Casts
 
 ```php
 protected $casts = [
-    'noindex' => 'boolean',
-    'nofollow' => 'boolean',
+    'no_index' => 'boolean',
+    'no_follow' => 'boolean',
     'exclude_from_sitemap' => 'boolean',
-    'schema_data' => 'array',
+    'schema_markup' => 'array',
     'secondary_keywords' => 'array',
     'hreflang' => 'array',
-    'sitemap_priority' => 'float',
+    'sitemap_priority' => 'decimal:1',
 ];
 ```
 
 ### Usage Examples
 
 ```php
-use ArtisanPackUI\Seo\Models\SeoMeta;
+use ArtisanPackUI\SEO\Models\SeoMeta;
 
 // Find by model
 $meta = SeoMeta::where('seoable_type', Post::class)
@@ -166,17 +157,15 @@ The `Redirect` model stores URL redirect rules.
 ```php
 Schema::create('redirects', function (Blueprint $table) {
     $table->id();
-    $table->string('source');
-    $table->string('target');
-    $table->enum('type', ['exact', 'regex', 'wildcard'])->default('exact');
+    $table->string('from_path');
+    $table->string('to_path');
+    $table->string('match_type')->default('exact');
     $table->integer('status_code')->default(301);
     $table->boolean('is_active')->default(true);
     $table->unsignedBigInteger('hits')->default(0);
     $table->timestamp('last_hit_at')->nullable();
     $table->text('notes')->nullable();
     $table->timestamps();
-
-    $table->index(['source', 'is_active']);
 });
 ```
 
@@ -184,9 +173,9 @@ Schema::create('redirects', function (Blueprint $table) {
 
 | Property | Type | Description |
 |----------|------|-------------|
-| `source` | string | Source path/pattern |
-| `target` | string | Destination URL |
-| `type` | string | Match type (exact, regex, wildcard) |
+| `from_path` | string | Source path/pattern |
+| `to_path` | string | Destination URL |
+| `match_type` | string | Match type (exact, regex, wildcard) |
 | `status_code` | int | HTTP status (301, 302, 307, 308) |
 | `is_active` | bool | Whether redirect is active |
 | `hits` | int | Number of times triggered |
@@ -217,8 +206,8 @@ Redirect::mostHits()->limit(10)->get();
 // Recently hit
 Redirect::recentlyHit()->get();
 
-// By type
-Redirect::byType('regex')->get();
+// By match type
+Redirect::ofType('regex')->get();
 ```
 
 ### Methods
@@ -230,25 +219,22 @@ $redirect = Redirect::find(1);
 $matches = $redirect->matches('/some/path');
 
 // Get the redirect target for a path
-$destination = $redirect->getDestination('/some/path');
+$destination = $redirect->getResolvedDestination('/some/path');
 
 // Increment hit counter
 $redirect->recordHit();
-
-// Toggle active status
-$redirect->toggleActive();
 ```
 
 ### Usage Examples
 
 ```php
-use ArtisanPackUI\Seo\Models\Redirect;
+use ArtisanPackUI\SEO\Models\Redirect;
 
 // Create a redirect
 $redirect = Redirect::create([
-    'source' => '/old-page',
-    'target' => '/new-page',
-    'type' => 'exact',
+    'from_path' => '/old-page',
+    'to_path' => '/new-page',
+    'match_type' => 'exact',
     'status_code' => 301,
 ]);
 
@@ -269,16 +255,16 @@ The `SitemapEntry` model tracks sitemap entries.
 ```php
 Schema::create('sitemap_entries', function (Blueprint $table) {
     $table->id();
-    $table->nullableMorphs('sitemapable');
-    $table->string('url');
-    $table->decimal('priority', 2, 1)->default(0.5);
-    $table->string('changefreq')->default('weekly');
-    $table->timestamp('lastmod')->nullable();
+    $table->morphs('sitemapable');
+    $table->string('url', 500)->unique();
+    $table->string('type', 50)->default('page');
+    $table->timestamp('last_modified')->nullable();
+    $table->decimal('priority', 2, 1)->nullable();
+    $table->string('changefreq', 20)->nullable();
+    $table->boolean('is_indexable')->default(true);
     $table->json('images')->nullable();
     $table->json('videos')->nullable();
     $table->timestamps();
-
-    $table->unique('url');
 });
 ```
 
@@ -287,11 +273,13 @@ Schema::create('sitemap_entries', function (Blueprint $table) {
 | Property | Type | Description |
 |----------|------|-------------|
 | `url` | string | Page URL |
-| `priority` | float | Priority (0.0-1.0) |
-| `changefreq` | string | Change frequency |
-| `lastmod` | Carbon\|null | Last modification |
-| `images` | array\|null | Image URLs for image sitemap |
-| `videos` | array\|null | Video data for video sitemap |
+| `type` | string | Sitemap type |
+| `last_modified` | Carbon\|null | Last modification |
+| `priority` | float\|null | Priority (0.0-1.0), left out of the sitemap when null |
+| `changefreq` | string\|null | Change frequency, left out of the sitemap when null |
+| `is_indexable` | bool | Whether the URL is listed |
+| `images` | array\|null | Images for the image sitemap |
+| `videos` | array\|null | Video data for the video sitemap |
 
 ### Relationships
 
@@ -306,17 +294,22 @@ public function sitemapable(): MorphTo
 ### Scopes
 
 ```php
-// Entries with images
-SitemapEntry::withImages()->get();
+// Indexable entries
+SitemapEntry::indexable()->get();
 
-// Entries with videos
+// By sitemap type
+SitemapEntry::byType('post')->get();
+
+// Entries with images or videos
+SitemapEntry::withImages()->get();
 SitemapEntry::withVideos()->get();
 
-// By priority
-SitemapEntry::where('priority', '>=', 0.8)->get();
+// Ordered
+SitemapEntry::orderByPriority()->get();
+SitemapEntry::orderByLastModified()->get();
 
-// Recently modified
-SitemapEntry::where('lastmod', '>=', now()->subDays(7))->get();
+// Recently updated
+SitemapEntry::recentlyUpdated(7)->get();
 ```
 
 ---
@@ -330,9 +323,20 @@ The `SeoAnalysisCache` model caches SEO analysis results.
 ```php
 Schema::create('seo_analysis_cache', function (Blueprint $table) {
     $table->id();
-    $table->foreignId('seo_meta_id')->constrained('seo_meta')->cascadeOnDelete();
-    $table->json('results');
-    $table->integer('score');
+    $table->foreignId('seo_meta_id')->unique()->constrained('seo_meta')->cascadeOnDelete();
+    $table->unsignedTinyInteger('overall_score')->default(0);
+    $table->unsignedTinyInteger('readability_score')->default(0);
+    $table->unsignedTinyInteger('keyword_score')->default(0);
+    $table->unsignedTinyInteger('meta_score')->default(0);
+    $table->unsignedTinyInteger('content_score')->default(0);
+    $table->json('issues')->nullable();
+    $table->json('suggestions')->nullable();
+    $table->json('passed_checks')->nullable();
+    $table->json('analyzer_results')->nullable();
+    $table->timestamp('analyzed_at')->nullable();
+    $table->string('focus_keyword_used')->nullable();
+    $table->unsignedInteger('content_word_count')->default(0);
+    $table->string('content_hash')->nullable();
     $table->timestamps();
 });
 ```
@@ -342,8 +346,11 @@ Schema::create('seo_analysis_cache', function (Blueprint $table) {
 | Property | Type | Description |
 |----------|------|-------------|
 | `seo_meta_id` | int | Related SeoMeta ID |
-| `results` | array | Analysis results |
-| `score` | int | Overall SEO score |
+| `overall_score` | int | Overall SEO score |
+| `readability_score`, `keyword_score`, `meta_score`, `content_score` | int | Category scores |
+| `issues`, `suggestions`, `passed_checks` | array\|null | Analysis findings |
+| `analyzer_results` | array\|null | Per-analyzer results |
+| `content_hash` | string\|null | Fingerprint of the analyzed content |
 
 ### Relationships
 
@@ -356,6 +363,6 @@ public function seoMeta(): BelongsTo
 
 ## Next Steps
 
-- [Services](Services) - Service documentation
-- [Helper Functions](Helpers) - Helper reference
+- [Services](Api-Services) - Service documentation
+- [Helper Functions](Api-Helpers) - Helper reference
 - [Model Integration](Usage-Model-Integration) - HasSeo trait

@@ -14,7 +14,7 @@ ArtisanPack UI SEO ships a suite of AI-powered agents built on top of [`artisanp
 - Provider credentials configured through `artisanpack-ui/ai`
 - The `seo.ai.use` authorization ability granted to the calling user
 
-When `artisanpack-ui/ai` is not installed, the AI Livewire components, `/api/seo/ai/*` endpoints, and feature registry entries are not registered. The rest of the SEO package works unchanged on PHP 8.2 / Laravel 10 / Laravel 11.
+When `artisanpack-ui/ai` is not installed, the AI Livewire components, `/api/seo/ai/*` endpoints, and feature registry entries are not registered. The rest of the SEO package works unchanged on PHP 8.2 / Laravel 11.
 
 ## The Feature Suite
 
@@ -23,7 +23,7 @@ When `artisanpack-ui/ai` is not installed, the AI Livewire components, `/api/seo
 | `seo.suggest_meta_title` | `MetaTitleSuggestionAgent` | N CTR-optimized title variants ≤60 chars (default 5, max 10) |
 | `seo.suggest_meta_description` | `MetaDescriptionAgent` | N 150-160 char meta description variants (default 5, max 10) |
 | `seo.analyze_content` | `ContentAnalysisAgent` | Weighted 0-100 quality score across four dimensions with recommendations |
-| `seo.generate_schema` | `SchemaGenerationAgent` | Suggests a JSON-LD type from the 14 supported schemas and returns a starter object |
+| `seo.generate_schema` | `SchemaGenerationAgent` | Suggests a JSON-LD type from the 15 supported schemas and returns a starter object |
 | `seo.suggest_hreflang` | `HreflangSuggestionAgent` | Flags missing reciprocals, self-refs, x-default, and inconsistent lang codes |
 
 All five features are auto-registered by `SEOServiceProvider::aiFeatures()`; the AI feature registry picks them up on boot.
@@ -282,7 +282,7 @@ The agent raises a `FeatureError` if zero variants survive validation.
 }
 ```
 
-`suggested_type` is guaranteed to be one of the 14 supported schema types the SEO package already builds for. Use `missing_required_fields` to prompt the editor for the values the agent could not infer.
+`suggested_type` is guaranteed to be one of the 15 supported schema types the SEO package already builds for. Use `missing_required_fields` to prompt the editor for the values the agent could not infer.
 
 ### Hreflang gap analysis — `POST /api/seo/ai/suggest-hreflang`
 

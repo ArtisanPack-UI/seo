@@ -6,7 +6,7 @@ title: Filter Hooks
 
 ArtisanPack UI SEO fires filter hooks at key points in its lifecycle so integrators can transform values before they reach the renderer. Filters are powered by the required [`artisanpack-ui/hooks`](https://github.com/ArtisanPack-UI/hooks) package.
 
-Filters differ from [Events](Api-Events): a filter callback **must return a value** and can transform the payload; an event listener runs for side effects and cannot change the underlying data.
+A filter callback **must return a value** and can transform the payload. An action runs for side effects and can't change the underlying data. The package doesn't dispatch Laravel [events](Api-Events).
 
 ## Available Filters
 
@@ -29,6 +29,8 @@ The `$tags` array has the following shape:
     'additionalMeta' => array,
 ]
 ```
+
+`additionalMeta` is an array of `name => content` pairs, each rendered as a `<meta name>` tag. It holds `author` by default. Since 1.9.0 it no longer includes `keywords` or `article:*` tags; those dates are Open Graph properties.
 
 Example:
 
@@ -81,23 +83,65 @@ Fired inside `SitemapGenerator::generate()` and `SitemapGenerator::generateFromP
 
 - **Since**: 1.3.0
 - **Payload**: `(array $entries, string $sitemapType)`
-- **Return**: `array` — the (possibly modified) list of `SitemapEntry` instances.
+- **Return**: `array` — the (possibly modified) list of entries. Entries are `SitemapEntry` models or, for provider URLs, arrays.
 
 Example:
 
 ```php
 addFilter( 'ap.seo.sitemapEntries', function ( array $entries, string $sitemapType ): array {
-	if ( 'standard' !== $sitemapType ) {
+	if ( 'post' !== $sitemapType ) {
 		return $entries;
 	}
 
 	return array_values( array_filter( $entries, function ( $entry ) {
-		return ! str_contains( $entry->url, '/preview/' );
+		$url = is_array( $entry ) ? $entry['url'] : $entry->url;
+
+		return ! str_contains( $url, '/preview/' );
 	} ) );
 } );
 ```
 
-Common sitemap types passed as `$sitemapType`: `standard`, `images`, `videos`, `news`. Custom providers may pass their own identifiers.
+`$sitemapType` is the entry type, such as `post`, or a provider's type. The all-types `sitemap-{page}.xml` passes an empty string, and since 1.9.0 the sitemap index no longer links that sitemap, so put your logic on the per-type values. The image, video, and news sitemaps don't run this filter.
+
+### `ap.seo.llmsTxtEntries`
+
+Fired inside `LlmsTxtGenerator::generate()` so integrators can add, drop, or reorder [llms.txt](Advanced-Llms-Txt) entries.
+
+- **Since**: 1.4.0
+- **Payload**: `(array $entries)`
+- **Return**: `array` — the (possibly modified) list of entries. Entries are `SitemapEntry` models or arrays. Since 1.9.0, provider URLs arrive as arrays, so handle both.
+
+### `ap.seo.feedEntries`
+
+Fired before RSS and Atom feed entries are rendered.
+
+- **Payload**: `(array $entries, string $feedType)`
+- **Return**: `array`
+
+### `ap.seo.schemaGraph`
+
+Fired before the JSON-LD graph is rendered.
+
+- **Payload**: `(array $graph, ?Model $model)`
+- **Return**: `array`
+
+### `ap.seo.resolveMorphModel`
+
+Resolves stored morph types that aren't class names. See [Custom Morph Types](Usage-Model-Integration#custom-morph-types).
+
+- **Since**: 1.8.0
+- **Payload**: `(?Model $model, string $type)`
+- **Return**: `?Model`
+
+## Available Actions
+
+Actions run for side effects and return nothing.
+
+### `ap.seo.schemaRendering` and `ap.seo.schemaRendered`
+
+Fired before and after the JSON-LD graph is output.
+
+- **Payload**: `(array $graph, ?Model $model)`
 
 ## Registering Filters
 
@@ -117,10 +161,7 @@ class SeoFilterServiceProvider extends ServiceProvider
 
 	public function appendVersionMeta( array $tags ): array
 	{
-		$tags['additionalMeta'][] = [
-			'name'    => 'x-app-version',
-			'content' => config( 'app.version' ),
-		];
+		$tags['additionalMeta']['x-app-version'] = config( 'app.version' );
 
 		return $tags;
 	}
@@ -139,6 +180,6 @@ removeAllFilters( 'ap.seo.metaTags' );
 
 ## Next Steps
 
-- [Events](Api-Events) — Laravel events dispatched by the package.
+- [Events](Api-Events) — Browser events from the Livewire components.
 - [Services](Api-Services) — Service classes that fire these filters.
 - [Helper Functions](Api-Helpers) — Helper reference.

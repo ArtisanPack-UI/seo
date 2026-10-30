@@ -53,9 +53,9 @@ Each feature has its own cache settings:
 ### Access
 
 ```php
-use ArtisanPackUI\Seo\Services\CacheService;
+use ArtisanPackUI\SEO\Services\CacheService;
 
-$cacheService = app('seo.cache');
+$cacheService = app(CacheService::class);
 ```
 
 ### Methods
@@ -155,7 +155,7 @@ app(SitemapService::class)->clearCache();
 ### Using Service
 
 ```php
-$cacheService = app('seo.cache');
+$cacheService = app(CacheService::class);
 
 // Clear specific cache type
 $cacheService->forget('meta', $post->id);
@@ -166,18 +166,6 @@ $cacheService->clearForModel($post);
 
 // Flush all SEO caches
 $cacheService->flush();
-```
-
-### Using Artisan
-
-```bash
-# Clear all SEO caches
-php artisan seo:clear-cache
-
-# Clear specific type
-php artisan seo:clear-cache --type=redirects
-php artisan seo:clear-cache --type=sitemaps
-php artisan seo:clear-cache --type=analysis
 ```
 
 ## Cache Drivers
@@ -246,7 +234,7 @@ use App\Models\Post;
 
 class WarmSeoCache extends Command
 {
-    protected $signature = 'seo:warm-cache';
+    protected $signature = 'app:warm-seo-cache';
 
     public function handle(): void
     {
@@ -258,12 +246,12 @@ class WarmSeoCache extends Command
         });
 
         // Warm sitemap cache
-        app('seo.sitemap')->generate();
+        app(SitemapService::class)->generate();
 
         // Warm analysis cache
         Post::chunk(100, function ($posts) {
             foreach ($posts as $post) {
-                app('seo.analysis')->analyze($post);
+                app(AnalysisService::class)->analyze($post);
             }
         });
 
@@ -278,7 +266,7 @@ After creating the custom command above, use it in deployment scripts:
 
 ```php
 // In a deployment script or command
-Artisan::call('seo:warm-cache');
+Artisan::call('app:warm-seo-cache');
 ```
 
 ## Disabling Caching
@@ -383,21 +371,8 @@ For Redis:
 redis-cli info memory
 ```
 
-## Events
-
-```php
-use ArtisanPackUI\Seo\Events\SeoCacheCleared;
-
-Event::listen(SeoCacheCleared::class, function ($event) {
-    Log::info('SEO cache cleared', [
-        'model' => $event->model,
-        'keys' => $event->keys,
-    ]);
-});
-```
-
 ## Next Steps
 
 - [Configuration](Installation-Configuration) - Full configuration reference
-- [Artisan Commands](Artisan-Commands) - CLI tools
+- [Artisan Commands](Advanced-Artisan-Commands) - CLI tools
 - [Performance Tips](Troubleshooting) - Troubleshooting

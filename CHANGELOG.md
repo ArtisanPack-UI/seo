@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.9.0] - 2026-10-30
+
 ### Added
 
 - **`HasPublicUrl` contract and `PublicUrlResolver`.** Models can declare
@@ -58,7 +60,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   same reason, and `getOrCreateSitemapEntry()` and `updateSitemapEntry()`
   throw `InvalidArgumentException` for a model with no URL (#117).
 - **Breaking: `article:*` tags moved to Open Graph.** They are now rendered
-  with `property` by `<x-seo-open-graph>` and `<x-seo-meta>`, only when
+  with `property` by `<x-seo:open-graph>` and `<x-seo:meta>`, only when
   `og:type` is `article`, and are gone from `MetaTagsDTO::$additionalMeta`.
   Read them from `OpenGraphDTO::$publishedTime` and `$modifiedTime` (#120).
 - **Breaking: `meta name="keywords"` is no longer emitted.** Search engines
